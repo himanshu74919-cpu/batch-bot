@@ -1,3 +1,4 @@
+
 import os
 import telebot
 from telebot import types
@@ -21,8 +22,8 @@ def keep_alive():
 
 # Bot Configurations
 TOKEN = '8871003871:AAHKYffl2ncAxcri7iBSJeHheGzhfON0C6o'
-ADMIN_USERNAME = "himanshu74919"         # Aapki Admin Telegram ID
-CHANNEL_USERNAME = "batchseller321"      # 🔥 Aapka Channel Username Set Ho Gaya Hai!
+ADMIN_USERNAME = "the_himanshu1"          # 🔥 Aapka Naya Admin Username Set Ho Gaya!
+CHANNEL_USERNAME = "batchseller321"      # Aapka Telegram Channel
 
 bot = telebot.TeleBot(TOKEN)
 
