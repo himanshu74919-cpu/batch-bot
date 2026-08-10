@@ -1,6 +1,7 @@
 import os
 import json
 import telebot
+import requests
 from telebot import types
 from flask import Flask
 from threading import Thread
@@ -22,8 +23,8 @@ def keep_alive():
 
 # Bot Configurations
 TOKEN = '8871003871:AAHKYffl2ncAxcri7iBSJeHheGzhfON0C6o'
-ADMIN_USERNAME = "the_himanshu1"         # Aapki Admin Telegram ID
-CHANNEL_USERNAME = "batchseller321"     # Aapka Channel Username
+ADMIN_USERNAME = "the_himanshu1"         # Admin Telegram Username
+CHANNEL_USERNAME = "batchseller321"     # Telegram Channel Username
 
 bot = telebot.TeleBot(TOKEN)
 
@@ -57,7 +58,8 @@ def is_user_joined(user_id):
         print(f"Error checking join: {e}")
         return True
 
-# Keyboards
+# --- KEYBOARDS ---
+
 def force_join_menu():
     markup = types.InlineKeyboardMarkup(row_width=1)
     btn1 = types.InlineKeyboardButton("📢 Join Telegram Channel", url=f"https://t.me/{CHANNEL_USERNAME}")
@@ -65,34 +67,75 @@ def force_join_menu():
     markup.add(btn1, btn2)
     return markup
 
+# Main Category Selection
 def main_menu():
+    markup = types.InlineKeyboardMarkup(row_width=2)
+    btn1 = types.InlineKeyboardButton("📚 BATCH STORE (PW, Unacademy...)", callback_data="category_batches")
+    btn2 = types.InlineKeyboardButton("🔍 OSINT & LOOKUP TOOLS", callback_data="category_osint")
+    btn3 = types.InlineKeyboardButton("💬 BUY PREMIUM / CONTACT ADMIN", url=f"https://t.me/{ADMIN_USERNAME}")
+    markup.add(btn1)
+    markup.add(btn2)
+    markup.add(btn3)
+    return markup
+
+# Batch Store Menu
+def batch_menu():
     markup = types.InlineKeyboardMarkup(row_width=2)
     btn1 = types.InlineKeyboardButton("📚 Physics Wallah (PW)", callback_data="inst_pw")
     btn2 = types.InlineKeyboardButton("🎯 Nxt Topper", callback_data="inst_nxt")
     btn3 = types.InlineKeyboardButton("🎓 UnAcademy", callback_data="inst_unacademy")
     btn4 = types.InlineKeyboardButton("📖 GyanBindu GS", callback_data="inst_gyanbindu")
-    btn5 = types.InlineKeyboardButton("⚡ CareerWill Batches", callback_data="inst_careerwill")
-    btn6 = types.InlineKeyboardButton("💳 Payment Methods & QR", callback_data="payment_info")
-    btn7 = types.InlineKeyboardButton("💬 Buy / Contact Admin", url=f"https://t.me/{ADMIN_USERNAME}")
+    btn5 = types.InlineKeyboardButton("⚡ CareerWill", callback_data="inst_careerwill")
+    btn6 = types.InlineKeyboardButton("💳 Payment Methods", callback_data="payment_info")
+    btn_back = types.InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")
     
     markup.add(btn1, btn2)
     markup.add(btn3, btn4)
-    markup.add(btn5)
-    markup.add(btn6)
-    markup.add(btn7)
+    markup.add(btn5, btn6)
+    markup.add(btn_back)
     return markup
 
-def back_menu():
+# OSINT Tools Menu (Exactly Like Image)
+def osint_menu():
+    markup = types.InlineKeyboardMarkup(row_width=2)
+    btn1 = types.InlineKeyboardButton("📇 NUMBER LOOKUP", callback_data="osint_number")
+    btn2 = types.InlineKeyboardButton("🪪 AADHAAR LOOKUP", callback_data="osint_aadhaar")
+    btn3 = types.InlineKeyboardButton("👨‍👩‍👧 FAMILY LOOKUP", callback_data="osint_family")
+    btn4 = types.InlineKeyboardButton("📍 PINCODE LOOKUP", callback_data="osint_pincode")
+    btn5 = types.InlineKeyboardButton("🏦 IFSC LOOKUP", callback_data="osint_ifsc")
+    btn6 = types.InlineKeyboardButton("📸 INSTAGRAM LOOKUP", callback_data="osint_insta")
+    btn7 = types.InlineKeyboardButton("✈️ TELEGRAM LOOKUP", callback_data="osint_tg")
+    btn8 = types.InlineKeyboardButton("🚗 VEHICLE LOOKUP", callback_data="osint_vehicle")
+    btn9 = types.InlineKeyboardButton("🌐 IP / DOMAIN LOOKUP", callback_data="osint_ip")
+    btn10 = types.InlineKeyboardButton("💎 BUY PREMIUM ACCESS", url=f"https://t.me/{ADMIN_USERNAME}")
+    btn_back = types.InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")
+    
+    markup.add(btn1, btn2)
+    markup.add(btn3, btn4)
+    markup.add(btn5, btn6)
+    markup.add(btn7, btn8)
+    markup.add(btn9)
+    markup.add(btn10)
+    markup.add(btn_back)
+    return markup
+
+def back_to_osint():
     markup = types.InlineKeyboardMarkup()
-    btn = types.InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")
-    markup.add(btn)
+    markup.add(types.InlineKeyboardButton("🔙 Back to OSINT Menu", callback_data="category_osint"))
     return markup
 
-# Commands
+def back_to_batch():
+    markup = types.InlineKeyboardMarkup()
+    markup.add(types.InlineKeyboardButton("🔙 Back to Batch Menu", callback_data="category_batches"))
+    return markup
+
+
+# --- COMMAND HANDLERS ---
+
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
     user_id = message.from_user.id
-    save_user(user_id)  # Save user to DB
+    save_user(user_id)
     
     if not is_user_joined(user_id):
         join_text = (
@@ -104,49 +147,86 @@ def send_welcome(message):
         return
 
     welcome_text = (
-        "🔥 **WELCOME TO PREMIUM BATCH STORE** 🔥\n\n"
-        "✨ *All Paid Batches Available at 80-90% Discount!*\n"
-        "Subscribers ke liye sabhi premium batches bilkul cheap rate par available hain.\n\n"
-        "⚡ **Available Offerings:**\n"
-        "✅ Complete Lectures & PDF Notes\n"
-        "✅ Daily DPPs & Test Series\n"
-        "✅ Instant Access via Private Link\n\n"
-        "👇 *Niche button par click karke institute chunien:*"
+        "🔥 **WELCOME TO MULTI-SERVICE BOT** 🔥\n\n"
+        "Aap yahan se **Educational Batches** bhi buy kar sakte hain aur **Educational OSINT Tools** bhi access kar sakte hain!\n\n"
+        "👇 *Kripya apni zaroorat ke hisab se category chuniye:*"
     )
     bot.send_message(message.chat.id, welcome_text, parse_mode="Markdown", reply_markup=main_menu())
 
-# Admin Command: Total Users Stats
+# IFSC Lookup Command Handler
+@bot.message_handler(commands=['ifsc'])
+def ifsc_lookup(message):
+    try:
+        code = message.text.split()[1].strip().upper()
+        res = requests.get(f"https://ifsc.razorpay.com/{code}").json()
+        if "BANK" in res:
+            reply = (
+                f"🏦 **IFSC DETAILS FOUND**\n\n"
+                f"• **Bank:** {res.get('BANK')}\n"
+                f"• **Branch:** {res.get('BRANCH')}\n"
+                f"• **Address:** {res.get('ADDRESS')}\n"
+                f"• **City:** {res.get('CITY')}\n"
+                f"• **State:** {res.get('STATE')}\n"
+                f"• **UPI Supported:** {res.get('UPI')}"
+            )
+        else:
+            reply = "❌ Invalid IFSC Code! Kripya sahi IFSC code dalein."
+    except:
+        reply = "⚠️ Usage: `/ifsc SBIN0001234` (IFSC code ke sath message karein)"
+    bot.reply_to(message, reply, parse_mode="Markdown")
+
+# Pincode Lookup Command Handler
+@bot.message_handler(commands=['pincode'])
+def pincode_lookup(message):
+    try:
+        code = message.text.split()[1].strip()
+        res = requests.get(f"https://api.postalpincode.in/pincode/{code}").json()
+        if res[0]['Status'] == 'Success':
+            post = res[0]['PostOffice'][0]
+            reply = (
+                f"📍 **PINCODE DETAILS FOUND**\n\n"
+                f"• **Post Office:** {post.get('Name')}\n"
+                f"• **District:** {post.get('District')}\n"
+                f"• **State:** {post.get('State')}\n"
+                f"• **Block/Circle:** {post.get('Block')}\n"
+                f"• **Country:** {post.get('Country')}"
+            )
+        else:
+            reply = "❌ Invalid Pincode!"
+    except:
+        reply = "⚠️ Usage: `/pincode 110001` (Pincode ke sath message karein)"
+    bot.reply_to(message, reply, parse_mode="Markdown")
+
+# Admin Stats
 @bot.message_handler(commands=['stats'])
 def bot_stats(message):
     if message.from_user.username == ADMIN_USERNAME:
         users = load_users()
         bot.reply_to(message, f"📊 **Total Bot Users:** `{len(users)}`", parse_mode="Markdown")
-    else:
-        bot.reply_to(message, "❌ Ye command sirf Admin ke liye hai.")
 
-# Admin Command: Broadcast Message to All Users
+# Admin Broadcast
 @bot.message_handler(commands=['broadcast'])
 def broadcast_msg(message):
     if message.from_user.username == ADMIN_USERNAME:
         msg = message.text.replace("/broadcast", "").strip()
         if not msg:
-            bot.reply_to(message, "⚠️ Usage: `/broadcast Aapka Message Here`", parse_mode="Markdown")
+            bot.reply_to(message, "⚠️ Usage: `/broadcast Your Message`", parse_mode="Markdown")
             return
         
         users = load_users()
         success, failed = 0, 0
         for uid in users:
             try:
-                bot.send_message(uid, f"📢 **IMPORTANT ANNOUNCEMENT** 📢\n\n{msg}", parse_mode="Markdown")
+                bot.send_message(uid, f"📢 **IMPORTANT ANNOUNCEMENT**\n\n{msg}", parse_mode="Markdown")
                 success += 1
             except:
                 failed += 1
         
-        bot.reply_to(message, f"✅ Broadcast Complete!\n\n• Success: {success}\n• Failed: {failed}")
-    else:
-        bot.reply_to(message, "❌ Ye command sirf Admin ke liye hai.")
+        bot.reply_to(message, f"✅ Broadcast Done!\n• Success: {success}\n• Failed: {failed}")
 
-# Callbacks
+
+# --- CALLBACK QUERY HANDLERS ---
+
 @bot.callback_query_handler(func=lambda call: True)
 def callback_listener(call):
     user_id = call.from_user.id
@@ -154,86 +234,79 @@ def callback_listener(call):
     if call.data == "check_join":
         if is_user_joined(user_id):
             bot.answer_callback_query(call.id, "✅ Verification Successful!")
-            welcome_text = "🔥 **WELCOME TO PREMIUM BATCH STORE** 🔥\n\n👇 *Kripya apna institute select karein:*"
-            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=welcome_text, parse_mode="Markdown", reply_markup=main_menu())
+            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text="🔥 **WELCOME!** Select category:", parse_mode="Markdown", reply_markup=main_menu())
         else:
-            bot.answer_callback_query(call.id, "❌ Aapne abhi tak channel join nahi kiya hai!", show_alert=True)
+            bot.answer_callback_query(call.id, "❌ Channel join nahi kiya hai!", show_alert=True)
         return
 
     if not is_user_joined(user_id):
         bot.answer_callback_query(call.id, "⚠️ Pehle channel join karein!", show_alert=True)
         return
 
+    # Navigation
     if call.data == "main_menu":
-        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text="👇 *Main Menu - Select Institute:*", parse_mode="Markdown", reply_markup=main_menu())
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text="👇 *Main Menu - Category chunien:*", parse_mode="Markdown", reply_markup=main_menu())
     
-    elif call.data == "inst_pw":
+    elif call.data == "category_batches":
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text="📚 **BATCH STORE - Select Institute:**", parse_mode="Markdown", reply_markup=batch_menu())
+
+    elif call.data == "category_osint":
         text = (
-            "📚 **PHYSICS WALLAH (PW) BATCHES**\n\n"
-            "• **Arjuna JEE / NEET 2025/2026**\n"
-            "• **Lakshya JEE / NEET 2025/2026**\n"
-            "• **Yakeen NEET Droppers Batch**\n"
-            "• **UPSC / State PSC Complete Batches**\n\n"
-            "💰 *Price:* Only ₹199 - ₹299 (80-90% OFF)\n\n"
-            f"📩 Buy karne ke liye Admin ko message karein: @{ADMIN_USERNAME}"
+            "🛠️ **OSINT & LOOKUP TOOLS MENU** 🛠️\n\n"
+            "💰 *Premium Status:* Active / Educational Mode\n"
+            "✅ Unlimited Lookups & Priority Access\n\n"
+            "👇 *Niche diye gaye tools par click karein:*"
         )
-        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=text, parse_mode="Markdown", reply_markup=back_menu())
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=text, parse_mode="Markdown", reply_markup=osint_menu())
+
+    # --- OSINT TOOLS BUTTON HANDLERS ---
+    
+    elif call.data == "osint_ifsc":
+        text = "🏦 **IFSC LOOKUP TOOL**\n\nKaise use karein:\nBot ko message bhejein: `/ifsc SBIN0001234`\n\n(Aapko Bank, Branch, Address ki poori details mil jayengi!)"
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=text, parse_mode="Markdown", reply_markup=back_to_osint())
+
+    elif call.data == "osint_pincode":
+        text = "📍 **PINCODE LOOKUP TOOL**\n\nKaise use karein:\nBot ko message bhejein: `/pincode 110001`\n\n(Aapko Area, Post Office aur District info milegi!)"
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=text, parse_mode="Markdown", reply_markup=back_to_osint())
+
+    elif call.data in ["osint_number", "osint_aadhaar", "osint_family", "osint_insta", "osint_tg", "osint_vehicle", "osint_ip"]:
+        tool_name = call.data.replace("osint_", "").upper()
+        text = (
+            f"🔐 **{tool_name} LOOKUP (PREMIUM FEATURE)**\n\n"
+            "⚠️ Ye feature sirf **Premium / Paid Users** ke liye unlocked hai.\n\n"
+            "✨ **Premium Features:**\n"
+            "✅ Unlimited High-Speed Lookups\n"
+            "✅ Priority Server Processing\n"
+            "✅ Direct Admin Support\n\n"
+            f"📩 Access lene ke liye Admin ko message karein: @{ADMIN_USERNAME}"
+        )
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=text, parse_mode="Markdown", reply_markup=back_to_osint())
+
+    # --- BATCH STORE BUTTON HANDLERS ---
+
+    elif call.data == "inst_pw":
+        text = f"📚 **PW BATCHES**\n\n• Arjuna / Lakshya / Yakeen (JEE/NEET/UPSC)\n💰 Price: ₹199 - ₹299 (80-90% OFF)\n\n📩 Buy: @{ADMIN_USERNAME}"
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=text, parse_mode="Markdown", reply_markup=back_to_batch())
 
     elif call.data == "inst_nxt":
-        text = (
-            "🎯 **NXT TOPPER BATCHES**\n\n"
-            "• **Class 9th & 10th Board Special**\n"
-            "• **Class 11th & 12th Board + Competitive**\n"
-            "• **Full Notes + Test Series Included**\n\n"
-            "💰 *Price:* Very Cheap Rates!\n\n"
-            f"📩 Buy karne ke liye Contact Admin: @{ADMIN_USERNAME}"
-        )
-        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=text, parse_mode="Markdown", reply_markup=back_menu())
+        text = f"🎯 **NXT TOPPER**\n\n• Class 9th - 12th Board Special\n💰 Ultra Low Price!\n\n📩 Buy: @{ADMIN_USERNAME}"
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=text, parse_mode="Markdown", reply_markup=back_to_batch())
 
     elif call.data == "inst_unacademy":
-        text = (
-            "🎓 **UNACADEMY PREMIUM BATCHES**\n\n"
-            "• **IIT JEE / NEET Top Educators**\n"
-            "• **UPSC CSE Complete Foundation**\n"
-            "• **SSC CGL / Banking Batches**\n\n"
-            "💰 *Price:* Guaranteed Lowest Price!\n\n"
-            f"📩 Direct Message Admin: @{ADMIN_USERNAME}"
-        )
-        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=text, parse_mode="Markdown", reply_markup=back_menu())
+        text = f"🎓 **UNACADEMY**\n\n• IIT JEE / NEET / UPSC / SSC\n💰 Lowest Price Guaranteed!\n\n📩 Buy: @{ADMIN_USERNAME}"
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=text, parse_mode="Markdown", reply_markup=back_to_batch())
 
     elif call.data == "inst_gyanbindu":
-        text = (
-            "📖 **GYANBINDU GS ACADEMY**\n\n"
-            "• **Bihar Daroga / Bihar Police**\n"
-            "• **BPSC Special Batch**\n"
-            "• **GS Class Notes & Question Bank**\n\n"
-            "💰 *Price:* Ultra Cheap Rates!\n\n"
-            f"📩 Batch lene ke liye message karein: @{ADMIN_USERNAME}"
-        )
-        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=text, parse_mode="Markdown", reply_markup=back_menu())
+        text = f"📖 **GYANBINDU GS**\n\n• Bihar Daroga / BPSC / SSC\n💰 Cheap Rates!\n\n📩 Buy: @{ADMIN_USERNAME}"
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=text, parse_mode="Markdown", reply_markup=back_to_batch())
 
     elif call.data == "inst_careerwill":
-        text = (
-            "⚡ **CAREERWILL BATCHES**\n\n"
-            "• **Gagan Pratap Sir Maths Special**\n"
-            "• **Rakesh Yadav Sir Maths**\n"
-            "• **Jaideep Sir English Special**\n"
-            "• **Reasoning & GS Batches**\n\n"
-            "💰 *Price:* Starting at ₹149 Only!\n\n"
-            f"📩 Buy karne ke liye contact karein: @{ADMIN_USERNAME}"
-        )
-        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=text, parse_mode="Markdown", reply_markup=back_menu())
+        text = f"⚡ **CAREERWILL**\n\n• Gagan Pratap / Rakesh Yadav Maths Special\n💰 Starting @ ₹149\n\n📩 Buy: @{ADMIN_USERNAME}"
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=text, parse_mode="Markdown", reply_markup=back_to_batch())
 
     elif call.data == "payment_info":
-        text = (
-            "💳 **PAYMENT & BUYING PROCESS**\n\n"
-            "1. Apna manpasand batch chunien.\n"
-            f"2. Admin (@{ADMIN_USERNAME}) ko message karke QR / UPI ID lein.\n"
-            "3. Payment karne ke baad screenshot bhejein.\n"
-            "4. Aapko **Instant Private Group / Drive Access** mil jayega!\n\n"
-            "✅ 100% Trusted & Safe Service!"
-        )
-        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=text, parse_mode="Markdown", reply_markup=back_menu())
+        text = f"💳 **PAYMENT DETAILS**\n\nPayment QR ya UPI ID lene ke liye Admin ko direct message karein:\n👉 @{ADMIN_USERNAME}"
+        bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=text, parse_mode="Markdown", reply_markup=back_to_batch())
 
 # Auto Reply
 @bot.message_handler(func=lambda message: True)
@@ -245,13 +318,9 @@ def auto_reply(message):
         bot.reply_to(message, "⚠️ Bot use karne ke liye pehle channel join karein!", reply_markup=force_join_menu())
         return
 
-    text = message.text.lower()
-    if any(word in text for word in ["price", "daam", "rate", "kitne ka"]):
-        bot.reply_to(message, f"💰 Sabhi batches par 80-90% discount hai! Direct buy karne ke liye Admin @{ADMIN_USERNAME} ko message karein.")
-    else:
-        bot.reply_to(message, f"🤖 **Auto-Reply:** Batch buy karne ya details ke liye `/start` dabayein ya Admin @{ADMIN_USERNAME} se baat karein.", parse_mode="Markdown")
+    bot.reply_to(message, f"🤖 Main aapki query samajh gaya hu! Details ke liye `/start` dabayein ya Admin @{ADMIN_USERNAME} ko contact karein.", parse_mode="Markdown")
 
 # Server Run
 keep_alive()
-print("🔥 Upgraded Batch Seller Bot Active! 🔥")
+print("🔥 Dual-Mode Batch + OSINT Bot Active! 🔥")
 bot.infinity_polling()
