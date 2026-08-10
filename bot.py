@@ -12,12 +12,16 @@ TOKEN = '8871003871:AAHKYffl2ncAxcri7iBSJeHheGzhfON0C6o'
 ADMIN_USERNAME = "the_himanshu1"         
 CHANNEL_USERNAME = "batchseller321"     
 
-# 👉 Aapki Gemini API Key yahan direct set hai
-GEMINI_API_KEY = "AQ.Ab8RN6KUOy8pTtiSX5dxvY4a-TmMxykoWcf03yrwRQwPTv06qQ"
+# 👉 Render Environment Variable se key auto-read hogi (GitHub isse block nahi karega)
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 
 if GEMINI_API_KEY:
-    genai.configure(api_key=GEMINI_API_KEY)
-    ai_model = genai.GenerativeModel("gemini-1.5-flash")
+    try:
+        genai.configure(api_key=GEMINI_API_KEY)
+        ai_model = genai.GenerativeModel("gemini-1.5-flash")
+    except Exception as e:
+        print(f"Gemini Configuration Error: {e}")
+        ai_model = None
 else:
     ai_model = None
 
@@ -413,7 +417,7 @@ def gemini_ai_handler(message):
         return
 
     if not ai_model:
-        bot.reply_to(message, "⚠️ Gemini API Key missing hai.")
+        bot.reply_to(message, "⚠️ Gemini API Key Render mein missing hai. Please Render Environment Variables set karein.")
         return
 
     try:
