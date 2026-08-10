@@ -1,5 +1,4 @@
-pytelegrambotapi
-flask
+pyTelegramBotAPI
 requests
-google-generativeai
+Flask
 
