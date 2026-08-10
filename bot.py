@@ -5,32 +5,39 @@ import requests
 from telebot import types
 from flask import Flask
 from threading import Thread
-import google.generativeai as genai
+
+# --- GEMINI AI SAFE IMPORT ---
+try:
+    import google.generativeai as genai
+    HAS_GEMINI_LIB = True
+except Exception as e:
+    HAS_GEMINI_LIB = False
+    print(f"Gemini Library Import Failed: {e}")
 
 # --- CONFIGURATIONS ---
 TOKEN = '8871003871:AAHKYffl2ncAxcri7iBSJeHheGzhfON0C6o'
 ADMIN_USERNAME = "the_himanshu1"         
 CHANNEL_USERNAME = "batchseller321"     
 
-# 👉 Render Environment Variable se key auto-read hogi (GitHub isse block nahi karega)
+# Render Environment Variable se key read karna
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 
-if GEMINI_API_KEY:
+ai_model = None
+if HAS_GEMINI_LIB and GEMINI_API_KEY:
     try:
         genai.configure(api_key=GEMINI_API_KEY)
         ai_model = genai.GenerativeModel("gemini-1.5-flash")
+        print("✅ Gemini AI Successfully Configured!")
     except Exception as e:
-        print(f"Gemini Configuration Error: {e}")
+        print(f"❌ Gemini Configuration Error: {e}")
         ai_model = None
-else:
-    ai_model = None
 
 # Web Server (Render 24/7 Keep Alive)
 app = Flask('')
 
 @app.route('/')
 def home():
-    return "Bot 24/7 Active with Gemini AI!"
+    return "Bot 24/7 Active!"
 
 def run():
     port = int(os.environ.get("PORT", 8080))
@@ -406,9 +413,9 @@ def callback_listener(call):
     elif call.data == "inst_careerwill": safe_edit(f"⚡ **CareerWill**\nBuy: @{ADMIN_USERNAME}", back_to_batch())
     elif call.data == "payment_info": safe_edit(f"💳 **Payment Info**\nUPI ID ke liye baat karein: @{ADMIN_USERNAME}", back_to_batch())
 
-# --- GEMINI AI AUTO-REPLY HANDLER ---
+# --- TEXT MESSAGE HANDLER ---
 @bot.message_handler(func=lambda message: True)
-def gemini_ai_handler(message):
+def auto_reply_handler(message):
     user_id = message.from_user.id
     save_user(user_id)
     
@@ -416,19 +423,22 @@ def gemini_ai_handler(message):
         bot.reply_to(message, "⚠️ Bot use karne ke liye pehle channel join karein!", reply_markup=force_join_menu())
         return
 
-    if not ai_model:
-        bot.reply_to(message, "⚠️ Gemini API Key Render mein missing hai. Please Render Environment Variables set karein.")
-        return
+    # Agar Gemini AI Active hai
+    if ai_model:
+        try:
+            bot.send_chat_action(message.chat.id, 'typing')
+            response = ai_model.generate_content(message.text)
+            bot.reply_to(message, response.text, parse_mode="Markdown")
+            return
+        except Exception as e:
+            print(f"Gemini Error: {e}")
+            bot.reply_to(message, "🤖 **AI Response Error:** Gemini key invalid ya expired hai. Baaki bot features working hain!")
+            return
 
-    try:
-        bot.send_chat_action(message.chat.id, 'typing')
-        response = ai_model.generate_content(message.text)
-        bot.reply_to(message, response.text, parse_mode="Markdown")
-    except Exception as e:
-        print(f"Gemini Error: {e}")
-        bot.reply_to(message, "🤖 **AI Error:** Response generate karne mein issue aaya. Dobara try karein.")
+    # Fallback agar AI active na ho
+    bot.reply_to(message, f"🤖 Details ke liye `/start` dabayein ya Admin @{ADMIN_USERNAME} ko contact karein.", parse_mode="Markdown")
 
 # Server Run & Polling
 keep_alive()
-print("🔥 Full AI & Multi-Tool Bot Active Successfully! 🔥")
+print("🔥 Multi-Tool Bot Active Successfully! 🔥")
 bot.infinity_polling()
