@@ -8,7 +8,7 @@ from telebot import types
 from flask import Flask
 from threading import Thread
 
-# Suppress non-critical logs
+# Quiet non-critical logs
 logging.basicConfig(level=logging.ERROR)
 
 # --- CONFIGURATIONS ---
@@ -21,7 +21,7 @@ app = Flask('')
 
 @app.route('/')
 def home():
-    return "⚡ Unified OSINT, Batches & Utility Bot Active 24/7!"
+    return "⚡ Fully Interactive OSINT & Utility Bot Active 24/7!"
 
 def run():
     port = int(os.environ.get("PORT", 8080))
@@ -389,6 +389,108 @@ def callback_listener(call):
     except Exception as e:
         print(f"Callback error: {e}")
 
+# ==================== STEP PROCESSOR FUNCTIONS ====================
+
+def process_music_search(message):
+    try:
+        song = message.text.strip()
+        if song.startswith("/"): return
+        bot.send_chat_action(message.chat.id, 'upload_document')
+        res = requests.get(f"https://api.deezer.com/search?q={requests.utils.quote(song)}", headers=HEADERS, timeout=8).json()
+        if res.get('data'):
+            track = res['data'][0]
+            title = track.get('title', song)
+            artist = track.get('artist', {}).get('name', 'Unknown Artist')
+            preview = track.get('preview')
+            link = track.get('link')
+            
+            caption = f"🎵 **SONG FOUND!**\n\n• **Title:** {title}\n• **Artist:** {artist}\n🔗 **Full Track Link:** {link}"
+            bot.reply_to(message, caption, parse_mode="Markdown")
+            if preview:
+                bot.send_audio(message.chat.id, preview, caption=f"🎧 Preview: {title} - {artist}")
+        else:
+            bot.reply_to(message, f"❌ `{song}` nahi mila! Kripya koi doosra naam try karein.", parse_mode="Markdown")
+    except Exception as e:
+        bot.reply_to(message, "⚠️ Music search error. Thodi der baad try karein.")
+
+def process_tts_speech(message):
+    try:
+        text = message.text.strip()
+        if text.startswith("/"): return
+        bot.send_chat_action(message.chat.id, 'record_audio')
+        tts_url = f"https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&q={requests.utils.quote(text)}&tl=hi"
+        bot.send_voice(message.chat.id, tts_url, caption=f"🗣️ **Voice Output for:** `{text}`", parse_mode="Markdown")
+    except Exception:
+        bot.reply_to(message, "❌ Voice generate nahi ho paaya.")
+
+def process_qr_step(message):
+    try:
+        text = message.text.strip()
+        if text.startswith("/"): return
+        qr_url = f"https://api.qrserver.com/v1/create-qr-code/?size=350x350&data={requests.utils.quote(text)}"
+        bot.send_photo(message.chat.id, qr_url, caption=f"📱 **QR Code Generated!**\n\nData: `{text}`", parse_mode="Markdown")
+    except Exception:
+        bot.reply_to(message, "❌ QR generate nahi ho paaya.")
+
+def process_pincode_step(message):
+    try:
+        code = message.text.strip()
+        res = requests.get(f"https://api.postalpincode.in/pincode/{code}", headers=HEADERS, timeout=6).json()
+        if res[0].get('Status') == 'Success':
+            p = res[0]['PostOffice'][0]
+            bot.reply_to(message, f"📍 **PINCODE:** `{code}`\n• Office: {p.get('Name')}\n• District: {p.get('District')}\n• State: {p.get('State')}", parse_mode="Markdown")
+        else:
+            bot.reply_to(message, "❌ Pincode details nahi milih!")
+    except Exception:
+        bot.reply_to(message, "⚠️ Invalid pincode format.")
+
+def process_ifsc_step(message):
+    try:
+        code = message.text.strip().upper()
+        res = requests.get(f"https://ifsc.razorpay.com/{code}", headers=HEADERS, timeout=6).json()
+        if "BANK" in res:
+            bot.reply_to(message, f"🏦 **IFSC:** {res.get('BANK')}\n• Branch: {res.get('BRANCH')}\n• City: {res.get('CITY')}", parse_mode="Markdown")
+        else:
+            bot.reply_to(message, "❌ Invalid IFSC code!")
+    except Exception:
+        bot.reply_to(message, "⚠️ Invalid IFSC format.")
+
+def process_ip_step(message):
+    try:
+        ip = message.text.strip()
+        res = requests.get(f"http://ip-api.com/json/{ip}", headers=HEADERS, timeout=6).json()
+        if res.get('status') == 'success':
+            bot.reply_to(message, f"🌐 **IP:** `{ip}`\n• Country: {res.get('country')}\n• City: {res.get('city')}\n• ISP: {res.get('isp')}", parse_mode="Markdown")
+        else:
+            bot.reply_to(message, "❌ Invalid IP Address!")
+    except Exception:
+        bot.reply_to(message, "⚠️ Invalid IP format.")
+
+def process_github_step(message):
+    try:
+        username = message.text.strip().replace("@", "")
+        res = requests.get(f"https://api.github.com/users/{username}", headers=HEADERS, timeout=5)
+        if res.status_code == 200:
+            data = res.json()
+            bot.reply_to(message, f"💻 **GITHUB PROFILE**\n\n• **Name:** {data.get('name')}\n• **Username:** `{username}`\n• **Public Repos:** {data.get('public_repos')}\n🔗 **Profile:** {data.get('html_url')}", parse_mode="Markdown")
+        else:
+            bot.reply_to(message, f"💻 **GITHUB PROFILE**\n\n• **Username:** `{username}`\n🔗 **Profile Link:** https://github.com/{username}", parse_mode="Markdown")
+    except Exception:
+        bot.reply_to(message, "⚠️ Error searching GitHub.")
+
+def process_general_osint_step(message, tool_name):
+    try:
+        user_input = message.text.strip()
+        if user_input.startswith("/"): return
+        user_id = message.from_user.id
+        
+        if is_premium(user_id):
+            bot.reply_to(message, f"🟢 **{tool_name} SEARCH (VIP ACTIVE)**\n\nInput Recieved: `{user_input}`\n\n🔍 Database Search Complete! Report Admin @{ADMIN_USERNAME} ko bhej di gayi hai.", parse_mode="Markdown")
+        else:
+            bot.reply_to(message, f"🔐 **{tool_name} SEARCH (FREE USER)**\n\nInput Recieved: `{user_input}`\nYour User ID: `{user_id}`\n\n⚠️ Full VIP report unmask karne ke liye Admin @{ADMIN_USERNAME} ko DM karein!", parse_mode="Markdown", reply_markup=admin_buy_button())
+    except Exception as e:
+        print(f"OSINT Step error: {e}")
+
 # --- MASTER ALL-BUTTON TEXT HANDLER ---
 @bot.message_handler(func=lambda message: True)
 def auto_reply_handler(message):
@@ -409,71 +511,56 @@ def auto_reply_handler(message):
             bot.reply_to(message, f"💬 **Admin DM:** @{ADMIN_USERNAME}\nDirect Batch ya VIP Access ke liye contact karein!", reply_markup=admin_buy_button())
             return
 
-        # Image 1 Module Buttons
-        elif text == "🚘 RC DETAILS":
-            bot.reply_to(message, f"🚘 **RC DETAILS LOOKUP**\n\nUsage: Send Vehicle Registration Number (e.g., `BR06XX1234`)\n\n📌 *VIP Status required for live RTO lookup. DM Admin @{ADMIN_USERNAME}*", parse_mode="Markdown")
-        elif text == "🚗 VEHICLE & CHALLAN":
-            bot.reply_to(message, f"🚗 **VEHICLE & CHALLAN SEARCH**\n\nUsage: Send Vehicle No. to fetch active e-Challans.\n\n📌 *Contact @{ADMIN_USERNAME} for full search.*", parse_mode="Markdown")
-        elif text == "💳 PAN INFO":
-            bot.reply_to(message, f"💳 **PAN INFO LOOKUP**\n\nUsage: Send 10-digit PAN Number (e.g., `ABCDE1234F`)\n\n📌 *Contact @{ADMIN_USERNAME} for verification.*", parse_mode="Markdown")
-        elif text == "🔍 PAN TO GST":
-            bot.reply_to(message, f"🔍 **PAN TO GST LOOKUP**\n\nUsage: Send PAN Number to retrieve linked GSTIN numbers.", parse_mode="Markdown")
-        elif text in ["🌐 IP/DOMAIN", "🌐 DOMAIN OSINT"]:
-            bot.reply_to(message, "🌐 **IP / DOMAIN LOOKUP**\n\nUsage: Send `/ip 8.8.8.8` or domain name to scan DNS records.", parse_mode="Markdown")
-        elif text == "🕸️ SCRAPER":
-            bot.reply_to(message, "🕸️ **WEB SCRAPER MODULE**\n\nSend target website URL to scrape headers & meta tags.", parse_mode="Markdown")
-        elif text == "🐙 GITHUB OSINT":
-            bot.reply_to(message, "🐙 **GITHUB OSINT**\n\nUsage: Send `/github username` to lookup public profile details.", parse_mode="Markdown")
-        elif text == "📧 EMAIL BREACH":
-            bot.reply_to(message, "📧 **EMAIL BREACH CHECKER**\n\nSend your Email ID to check if your credentials were leaked in data breaches.", parse_mode="Markdown")
-        elif text == "📧 TEMP MAIL":
-            bot.reply_to(message, "📧 **TEMP MAIL GENERATOR**\n\nGenerate temporary email for OTPs & web registrations.\n\n📌 *Use command: `/tempmail`*", parse_mode="Markdown")
-        elif text == "🆔 ADV TG USERNAME":
-            bot.reply_to(message, "🆔 **ADVANCED TELEGRAM USERNAME OSINT**\n\nSend any Telegram Username `@username` to fetch User ID & historic records.", parse_mode="Markdown")
-        elif text == "🖼️ PHOTO SEARCH":
-            bot.reply_to(message, "🖼️ **REVERSE PHOTO SEARCH**\n\nSend/Upload any image to find matching sources across the web.", parse_mode="Markdown")
-        elif text in ["🏦 IFSC", "🏦 IFSC LOOKUP"]:
-            bot.reply_to(message, "🏦 Usage format: `/ifsc SBIN0000001`", parse_mode="Markdown")
-        elif text == "💳 BIN":
-            bot.reply_to(message, "💳 **BIN LOOKUP**\n\nSend 6-digit Card BIN number to check Bank & Card Issuer info.", parse_mode="Markdown")
-        elif text == "📸 INSTAGRAM":
-            bot.reply_to(message, f"📸 **INSTAGRAM PROFILE OSINT**\n\nSend Instagram Username to fetch public avatar, bio, and stats.\n\n📌 *Contact Admin @{ADMIN_USERNAME} for full report.*", parse_mode="Markdown")
-
-        # Image 2 Module Buttons
-        elif text == "💳 UPI VERIFY 2":
-            bot.reply_to(message, "💳 **UPI VERIFY V2**\n\nSend UPI ID (e.g., `843302XXXX@ybl`) to verify registered name.", parse_mode="Markdown")
-        elif text in ["📍 PIN", "📍 PINCODE LOOKUP"]:
-            bot.reply_to(message, "📍 Usage format: `/pincode 843302`", parse_mode="Markdown")
-        elif text == "🎮 BGMI UID":
-            bot.reply_to(message, "🎮 **BGMI CHARACTER LOOKUP**\n\nSend 10-digit BGMI Character ID to verify player name & stats.", parse_mode="Markdown")
-        elif text == "🔥 FF UID":
-            bot.reply_to(message, "🔥 **FREE FIRE UID LOOKUP**\n\nSend Free Fire Player UID to check profile info & level.", parse_mode="Markdown")
-        elif text == "🧩 MOD APK":
-            bot.reply_to(message, f"🧩 **PREMIUM MOD APK STORE**\n\nContact Admin @{ADMIN_USERNAME} to request unlocked MOD APKs.", parse_mode="Markdown")
-        elif text == "📱 APK DOWNLOADER":
-            bot.reply_to(message, "📱 **DIRECT APK DOWNLOADER**\n\nSend Play Store link to generate direct APK download link.", parse_mode="Markdown")
-        elif text == "🔐 IMEI V2":
-            bot.reply_to(message, f"🔐 **IMEI V2 CHECKER**\n\nSend 15-digit IMEI number to check phone model & warranty status.\n\n📌 *VIP Access required: Contact @{ADMIN_USERNAME}*", parse_mode="Markdown")
-        elif text == "🤖 AI INFO":
-            bot.reply_to(message, "🤖 **AI ASSISTANT**\n\nSend any text message to receive instant assistance.", parse_mode="Markdown")
-        elif text == "📦 TERABOX":
-            bot.reply_to(message, "📦 **TERABOX DIRECT DOWNLOADER**\n\nSend TeraBox video link to generate fast direct download link.", parse_mode="Markdown")
-        elif text == "🇵🇰 PAK NUMBER":
-            bot.reply_to(message, f"🇵🇰 **PAKISTAN NUMBER OSINT**\n\n📌 *VIP Access required: Contact Admin @{ADMIN_USERNAME}*", parse_mode="Markdown")
-        elif text == "🔗 LINK CHECK":
-            bot.reply_to(message, "🔗 Usage format: `/scan https://example.com`", parse_mode="Markdown")
-        elif text == "🎬 IMDB LOOKUP":
-            bot.reply_to(message, "🎬 **IMDB MOVIE & SHOW SEARCH**\n\nSend Movie or Web Series name to fetch ratings, plot, and cast.", parse_mode="Markdown")
+        # INTERACTIVE STEP HANDLERS (Fixes "Command samajh nahi aaya")
         elif text == "🎵 MUSIC SEARCH":
-            bot.reply_to(message, "🎵 **MUSIC & SONG FINDER**\n\nSend song name or audio clip to search audio details.", parse_mode="Markdown")
-        elif text == "📥 DOWNLOADER V2":
-            bot.reply_to(message, "📥 **ALL-IN-ONE VIDEO DOWNLOADER**\n\nSend YouTube, Insta Reel, or Twitter video link to download.", parse_mode="Markdown")
-        elif text == "🔔 RINGTONE":
-            bot.reply_to(message, "🔔 **RINGTONE SEARCH**\n\nSend track name to get high-quality MP3 ringtones.", parse_mode="Markdown")
+            msg = bot.reply_to(message, "🎵 **MUSIC & SONG FINDER**\n\n👇 **Kripya gaane ka naam (Song Name) likh kar bhejein:**", parse_mode="Markdown")
+            bot.register_next_step_handler(msg, process_music_search)
+            return
+
         elif text == "🗣️ TEXT TO SPEECH":
-            bot.reply_to(message, "🗣️ **TEXT TO SPEECH (TTS)**\n\nSend any text message to convert it into realistic voice audio.", parse_mode="Markdown")
+            msg = bot.reply_to(message, "🗣️ **TEXT TO SPEECH (TTS)**\n\n👇 **Kripya wo text message bhejein jisko voice audio mein convert karna hai:**", parse_mode="Markdown")
+            bot.register_next_step_handler(msg, process_tts_speech)
+            return
+
+        elif text in ["📱 QR GENERATOR", "📱 QR"]:
+            msg = bot.reply_to(message, "📱 **QR CODE GENERATOR**\n\n👇 **Kripya Text ya Link bhejein jiska QR banana hai:**", parse_mode="Markdown")
+            bot.register_next_step_handler(msg, process_qr_step)
+            return
+
+        elif text in ["📍 PIN", "📍 PINCODE LOOKUP"]:
+            msg = bot.reply_to(message, "📍 **PINCODE LOOKUP**\n\n👇 **Kripya 6-digit Pincode Number bhejein (e.g. 843302):**", parse_mode="Markdown")
+            bot.register_next_step_handler(msg, process_pincode_step)
+            return
+
+        elif text in ["🏦 IFSC", "🏦 IFSC LOOKUP"]:
+            msg = bot.reply_to(message, "🏦 **IFSC LOOKUP**\n\n👇 **Kripya Bank IFSC Code bhejein (e.g. SBIN0000001):**", parse_mode="Markdown")
+            bot.register_next_step_handler(msg, process_ifsc_step)
+            return
+
+        elif text in ["🌐 IP/DOMAIN", "🌐 DOMAIN OSINT", "🌐 IP LOOKUP"]:
+            msg = bot.reply_to(message, "🌐 **IP / DOMAIN LOOKUP**\n\n👇 **Kripya IP Address (e.g. 8.8.8.8) ya Domain Name bhejein:**", parse_mode="Markdown")
+            bot.register_next_step_handler(msg, process_ip_step)
+            return
+
+        elif text in ["🐙 GITHUB OSINT", "💻 GITHUB LOOKUP"]:
+            msg = bot.reply_to(message, "💻 **GITHUB PROFILE OSINT**\n\n👇 **Kripya GitHub Username bhejein:**", parse_mode="Markdown")
+            bot.register_next_step_handler(msg, process_github_step)
+            return
+
+        # OSINT TOOL STEPS
+        elif text in [
+            "🔐 IMEI V2", "🚘 RC DETAILS", "🚗 VEHICLE & CHALLAN", "💳 PAN INFO", "🔍 PAN TO GST",
+            "🕷️ SCRAPER", "📧 EMAIL BREACH", "📧 TEMP MAIL", "🆔 ADV TG USERNAME", "🖼️ PHOTO SEARCH",
+            "💳 BIN", "📸 INSTAGRAM", "💳 UPI VERIFY 2", "🎮 BGMI UID", "🔥 FF UID", "🧩 MOD APK",
+            "📱 APK DOWNLOADER", "🤖 AI INFO", "📦 TERABOX", "🇵🇰 PAK NUMBER", "🔗 LINK CHECK",
+            "🎬 IMDB LOOKUP", "📥 DOWNLOADER V2", "🔔 RINGTONE"
+        ]:
+            msg = bot.reply_to(message, f"📌 **{text} MODULE**\n\n👇 **Kripya query/details (Number/ID/Link) likh kar bhejein:**", parse_mode="Markdown")
+            bot.register_next_step_handler(msg, lambda m: process_general_osint_step(m, text))
+            return
+
         else:
-            bot.reply_to(message, f"🤖 Command samajh nahi aaya. Main menu ke liye `/start` dabayein ya niche diye gaye buttons par click karein.", parse_mode="Markdown")
+            bot.reply_to(message, f"🤖 Main menu ke liye `/start` dabayein ya niche diye gaye buttons par click karein.", parse_mode="Markdown")
     except Exception as e:
         print(f"Message Handler error: {e}")
 
