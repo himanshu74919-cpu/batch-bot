@@ -9,15 +9,17 @@ import google.generativeai as genai
 
 # --- CONFIGURATIONS ---
 TOKEN = '8871003871:AAHKYffl2ncAxcri7iBSJeHheGzhfON0C6o'
-ADMIN_USERNAME = "the_himanshu1"         # Apna Telegram Admin Username dalein
-CHANNEL_USERNAME = "batchseller321"     # Apna Telegram Channel Username dalein
+ADMIN_USERNAME = "the_himanshu1"         
+CHANNEL_USERNAME = "batchseller321"     
 
-# 👉 Aapki Gemini API Key yahan automatically set kar di gayi hai
-GEMINI_API_KEY = "AQ.Ab8RN6LVqv3baUIEkZJKEfTmDd_LzpOa1hUfkPQsBuprHrV0RA"
+# 👉 Aapki Gemini API Key yahan direct set hai
+GEMINI_API_KEY = "AQ.Ab8RN6KUOy8pTtiSX5dxvY4a-TmMxykoWcf03yrwRQwPTv06qQ"
 
-# Configure Gemini AI
-genai.configure(api_key=GEMINI_API_KEY)
-ai_model = genai.GenerativeModel("gemini-1.5-flash")
+if GEMINI_API_KEY:
+    genai.configure(api_key=GEMINI_API_KEY)
+    ai_model = genai.GenerativeModel("gemini-1.5-flash")
+else:
+    ai_model = None
 
 # Web Server (Render 24/7 Keep Alive)
 app = Flask('')
@@ -37,7 +39,7 @@ def keep_alive():
 bot = telebot.TeleBot(TOKEN)
 HEADERS = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
 
-# --- DATABASES (USERS & PREMIUM MEMBERS) ---
+# --- DATABASES ---
 USERS_FILE = "users.json"
 PREMIUM_FILE = "premium_users.json"
 
@@ -67,7 +69,6 @@ def is_premium(user_id):
     premiums = load_data(PREMIUM_FILE)
     return user_id in premiums
 
-# Check Force Sub
 def is_user_joined(user_id):
     try:
         member = bot.get_chat_member(chat_id=f"@{CHANNEL_USERNAME}", user_id=user_id)
@@ -375,7 +376,6 @@ def callback_listener(call):
         status = "🟢 VIP PREMIUM ACTIVE" if is_premium(user_id) else "🔴 FREE USER (Limited)"
         safe_edit(f"🔍 **OSINT MENU**\n\nStatus: {status}\n\n👇 Tools:", osint_menu())
 
-    # Utility Menu Info
     elif call.data == "tool_pincode": safe_edit("📍 Command: `/pincode 843302`", back_to_tools())
     elif call.data == "tool_ifsc": safe_edit("🏦 Command: `/ifsc SBIN0000001`", back_to_tools())
     elif call.data == "tool_ip": safe_edit("🌐 Command: `/ip 8.8.8.8`", back_to_tools())
@@ -395,7 +395,6 @@ def callback_listener(call):
         else:
             safe_edit(f"🔐 **{tool} (PREMIUM ONLY)**\nYour ID: `{user_id}`\n\nAdmin se contact karein.", buy_premium_menu())
 
-    # Batches
     elif call.data == "inst_pw": safe_edit(f"📚 **PW Batches**\nPrice: ₹199\nBuy: @{ADMIN_USERNAME}", back_to_batch())
     elif call.data == "inst_nxt": safe_edit(f"🎯 **Nxt Topper**\nBuy: @{ADMIN_USERNAME}", back_to_batch())
     elif call.data == "inst_unacademy": safe_edit(f"🎓 **Unacademy**\nBuy: @{ADMIN_USERNAME}", back_to_batch())
@@ -403,27 +402,27 @@ def callback_listener(call):
     elif call.data == "inst_careerwill": safe_edit(f"⚡ **CareerWill**\nBuy: @{ADMIN_USERNAME}", back_to_batch())
     elif call.data == "payment_info": safe_edit(f"💳 **Payment Info**\nUPI ID ke liye baat karein: @{ADMIN_USERNAME}", back_to_batch())
 
-# --- GEMINI AI AUTO-REPLY HANDLER (Har text message ka jawab AI dega) ---
+# --- GEMINI AI AUTO-REPLY HANDLER ---
 @bot.message_handler(func=lambda message: True)
 def gemini_ai_handler(message):
     user_id = message.from_user.id
     save_user(user_id)
     
-    # Force Join Check
     if not is_user_joined(user_id):
         bot.reply_to(message, "⚠️ Bot use karne ke liye pehle channel join karein!", reply_markup=force_join_menu())
         return
 
-    # User ka message Gemini AI ko bhejna
+    if not ai_model:
+        bot.reply_to(message, "⚠️ Gemini API Key missing hai.")
+        return
+
     try:
-        # Typing action dikhana taaki user ko pata chale bot soch raha hai
         bot.send_chat_action(message.chat.id, 'typing')
-        
         response = ai_model.generate_content(message.text)
         bot.reply_to(message, response.text, parse_mode="Markdown")
     except Exception as e:
         print(f"Gemini Error: {e}")
-        bot.reply_to(message, f"🤖 **AI Error:** Maaf kijiye, response generate karne mein kuch samasya aayi. Kripya dobara try karein ya /start dabayein.")
+        bot.reply_to(message, "🤖 **AI Error:** Response generate karne mein issue aaya. Dobara try karein.")
 
 # Server Run & Polling
 keep_alive()
