@@ -90,18 +90,18 @@ def is_user_joined(user_id):
         print(f"Error checking join status: {e}")
         return True
 
-# --- SET TELEGRAM MENU COMMANDS (Bottom-left Menu Button) ---
+# --- SET TELEGRAM MENU COMMANDS (Split Tools In Menu List) ---
 try:
     bot.set_my_commands([
-        telebot.types.BotCommand("start", "🔄 Open Main Menu"),
-        telebot.types.BotCommand("pincode", "📍 Search Pincode (e.g. /pincode 843302)"),
-        telebot.types.BotCommand("ifsc", "🏦 Search IFSC (e.g. /ifsc SBIN0000001)"),
-        telebot.types.BotCommand("qr", "📱 Generate QR Code"),
-        telebot.types.BotCommand("short", "🔗 Shorten Long URL"),
-        telebot.types.BotCommand("crypto", "🪙 Check Crypto Prices"),
-        telebot.types.BotCommand("ip", "🌐 IP Address Lookup"),
-        telebot.types.BotCommand("scan", "🛡️ Scan Website Safety"),
-        telebot.types.BotCommand("github", "💻 Lookup GitHub Profile")
+        telebot.types.BotCommand("start", "🔄 Main Menu & Batches Ad"),
+        telebot.types.BotCommand("pincode", "📍 Search Pincode Details"),
+        telebot.types.BotCommand("ifsc", "🏦 Search Bank IFSC Details"),
+        telebot.types.BotCommand("qr", "📱 Generate Custom QR Code"),
+        telebot.types.BotCommand("short", "🔗 Shorten Long URL Link"),
+        telebot.types.BotCommand("crypto", "🪙 Check Live Crypto Prices"),
+        telebot.types.BotCommand("ip", "🌐 IP Address Geo-Lookup"),
+        telebot.types.BotCommand("scan", "🛡️ Scan URL Safety"),
+        telebot.types.BotCommand("github", "💻 Lookup GitHub User Profile")
     ])
 except Exception as e:
     print(f"Error setting bot commands: {e}")
@@ -114,87 +114,30 @@ def force_join_menu():
     markup.add(btn1, btn2)
     return markup
 
-# 👉 BOTTOM PERSISTENT KEYBOARD (Typing Area Ke Niche Rahne Wala Button Bar)
-def bottom_persistent_menu():
+# 👉 SPLIT BOTTOM KEYBOARD (Saare Tools Alag-Alag Display Honge)
+def split_bottom_keyboard():
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-    btn1 = types.KeyboardButton("🤖 ASK GEMINI AI")
-    btn2 = types.KeyboardButton("📚 BATCH STORE")
-    btn3 = types.KeyboardButton("🛠️ FREE TOOLS")
-    btn4 = types.KeyboardButton("🔍 OSINT LOOKUP")
-    btn5 = types.KeyboardButton("💬 CONTACT ADMIN")
-    markup.add(btn1, btn2, btn3, btn4, btn5)
+    btn_batches = types.KeyboardButton("📚 AVAILABLE BATCHES")
+    btn_ai = types.KeyboardButton("🤖 ASK GEMINI AI")
+    btn1 = types.KeyboardButton("📍 PINCODE LOOKUP")
+    btn2 = types.KeyboardButton("🏦 IFSC LOOKUP")
+    btn3 = types.KeyboardButton("📱 QR GENERATOR")
+    btn4 = types.KeyboardButton("🔗 URL SHORTENER")
+    btn5 = types.KeyboardButton("🌐 IP LOOKUP")
+    btn6 = types.KeyboardButton("🪙 CRYPTO RATES")
+    btn7 = types.KeyboardButton("💻 GITHUB LOOKUP")
+    btn8 = types.KeyboardButton("🛡️ SCAN WEBSITE")
+    btn9 = types.KeyboardButton("🔍 OSINT VIP LOOKUPS")
+    btn_admin = types.KeyboardButton("💬 CONTACT ADMIN TO BUY")
+    
+    markup.add(btn_batches, btn_ai, btn1, btn2, btn3, btn4, btn5, btn6, btn7, btn8, btn9, btn_admin)
     return markup
 
-def main_menu():
-    markup = types.InlineKeyboardMarkup(row_width=1)
-    btn1 = types.InlineKeyboardButton("🤖 ASK GEMINI AI CHAT", callback_data="ai_info")
-    btn2 = types.InlineKeyboardButton("📚 BATCH STORE (PW, Unacademy...)", callback_data="category_batches")
-    btn3 = types.InlineKeyboardButton("🛠️ FREE PUBLIC UTILITIES & TOOLS", callback_data="category_tools")
-    btn4 = types.InlineKeyboardButton("🔍 OSINT & LOOKUP TOOLS (VIP)", callback_data="category_osint")
-    btn5 = types.InlineKeyboardButton("💬 BUY PREMIUM / CONTACT ADMIN", url=f"https://t.me/{ADMIN_USERNAME}")
-    markup.add(btn1, btn2, btn3, btn4, btn5)
-    return markup
-
-def batch_menu():
-    markup = types.InlineKeyboardMarkup(row_width=2)
-    btn1 = types.InlineKeyboardButton("📚 Physics Wallah (PW)", callback_data="inst_pw")
-    btn2 = types.InlineKeyboardButton("🎯 Nxt Topper", callback_data="inst_nxt")
-    btn3 = types.InlineKeyboardButton("🎓 UnAcademy", callback_data="inst_unacademy")
-    btn4 = types.InlineKeyboardButton("📖 GyanBindu GS", callback_data="inst_gyanbindu")
-    btn5 = types.InlineKeyboardButton("⚡ CareerWill", callback_data="inst_careerwill")
-    btn6 = types.InlineKeyboardButton("💳 Payment Methods", callback_data="payment_info")
-    btn_back = types.InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")
-    markup.add(btn1, btn2, btn3, btn4, btn5, btn6, btn_back)
-    return markup
-
-def public_tools_menu():
-    markup = types.InlineKeyboardMarkup(row_width=2)
-    btn1 = types.InlineKeyboardButton("📍 PINCODE LOOKUP", callback_data="tool_pincode")
-    btn2 = types.InlineKeyboardButton("🏦 IFSC LOOKUP", callback_data="tool_ifsc")
-    btn3 = types.InlineKeyboardButton("🌐 IP LOOKUP", callback_data="tool_ip")
-    btn4 = types.InlineKeyboardButton("📱 QR GENERATOR", callback_data="tool_qr")
-    btn5 = types.InlineKeyboardButton("🔗 URL SHORTENER", callback_data="tool_short")
-    btn6 = types.InlineKeyboardButton("💻 GITHUB LOOKUP", callback_data="tool_github")
-    btn7 = types.InlineKeyboardButton("🪙 CRYPTO RATES", callback_data="tool_crypto")
-    btn8 = types.InlineKeyboardButton("🛡️ WEBSITE SCANNER", callback_data="tool_scanner")
-    btn_back = types.InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")
-    markup.add(btn1, btn2, btn3, btn4, btn5, btn6, btn7, btn8, btn_back)
-    return markup
-
-def osint_menu():
-    markup = types.InlineKeyboardMarkup(row_width=2)
-    btn1 = types.InlineKeyboardButton("📇 NUMBER LOOKUP", callback_data="osint_number")
-    btn2 = types.InlineKeyboardButton("🪪 AADHAAR LOOKUP", callback_data="osint_aadhaar")
-    btn3 = types.InlineKeyboardButton("👨‍👩‍👧 FAMILY LOOKUP", callback_data="osint_family")
-    btn4 = types.InlineKeyboardButton("📸 INSTAGRAM LOOKUP", callback_data="osint_insta")
-    btn5 = types.InlineKeyboardButton("✈️ TELEGRAM LOOKUP", callback_data="osint_tg")
-    btn6 = types.InlineKeyboardButton("🚗 VEHICLE LOOKUP", callback_data="osint_vehicle")
-    btn7 = types.InlineKeyboardButton("💎 BUY PREMIUM ACCESS", callback_data="buy_premium_info")
-    btn_back = types.InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")
-    markup.add(btn1, btn2, btn3, btn4, btn5, btn6, btn7, btn_back)
-    return markup
-
-def buy_premium_menu():
-    markup = types.InlineKeyboardMarkup(row_width=1)
-    btn1 = types.InlineKeyboardButton("💬 Direct Message Admin to Buy", url=f"https://t.me/{ADMIN_USERNAME}")
-    btn2 = types.InlineKeyboardButton("💳 Payment Methods & QR", callback_data="payment_info")
-    btn_back = types.InlineKeyboardButton("🔙 Back to OSINT Menu", callback_data="category_osint")
-    markup.add(btn1, btn2, btn_back)
-    return markup
-
-def back_to_tools():
+# Single Buy/Contact Button under Batch Advertisement
+def admin_buy_button():
     markup = types.InlineKeyboardMarkup()
-    markup.add(types.InlineKeyboardButton("🔙 Back to Tools Menu", callback_data="category_tools"))
-    return markup
-
-def back_to_osint():
-    markup = types.InlineKeyboardMarkup()
-    markup.add(types.InlineKeyboardButton("🔙 Back to OSINT Menu", callback_data="category_osint"))
-    return markup
-
-def back_to_batch():
-    markup = types.InlineKeyboardMarkup()
-    markup.add(types.InlineKeyboardButton("🔙 Back to Batch Menu", callback_data="category_batches"))
+    btn = types.InlineKeyboardButton("💬 BUY BATCH / CONTACT ADMIN", url=f"https://t.me/{ADMIN_USERNAME}")
+    markup.add(btn)
     return markup
 
 # --- COMMAND HANDLERS ---
@@ -212,14 +155,24 @@ def send_welcome(message):
         bot.send_message(message.chat.id, join_text, parse_mode="Markdown", reply_markup=force_join_menu())
         return
 
-    welcome_text = (
-        "🔥 **WELCOME TO MULTI-SERVICE AI BOT** 🔥\n\n"
-        "Aap yahan **Google Gemini AI** se kuch bhi pooch sakte hain, **Batches**, **Free Utility Tools**, aur **OSINT Lookups** access kar sakte hain!\n\n"
-        "👇 *Niche diye gaye Quick Menu buttons se direct navigate karein:*"
+    # Ad Text & Features Show Karega
+    ad_text = (
+        "🔥 **ALL PREMIUM EDUCATIONAL BATCHES AT ULTRA LOW PRICE** 🔥\n\n"
+        "✨ **Humari Services & Features:**\n"
+        "• 🎓 **Physics Wallah (PW):** Lakshya, Arjuna, Yakeen, Udaan, Prayas Batches\n"
+        "• 🎯 **Nxt Topper:** Complete Topper Special Course\n"
+        "• 📚 **UnAcademy:** Complete Subscription Batches\n"
+        "• 📖 **GyanBindu GS:** Special GS / Competitive Exam Batches\n"
+        "• ⚡ **CareerWill:** Rakesh Yadav & Top Educator Batches\n\n"
+        "⭐ **Kyun Humse BATCH Lein?**\n"
+        "✅ Direct Official Class Access / Google Drive Links\n"
+        "✅ 100% Full Course Guarantee & Regular Updates\n"
+        "✅ Ultra Low Price (Market Se 80% Cheap)\n\n"
+        "👇 **Batch Kharidne Ke Liye Niche Admin Se Direct Baat Karein:**"
     )
-    # Inline Menu + Bottom Reply Keyboard
-    bot.send_message(message.chat.id, welcome_text, parse_mode="Markdown", reply_markup=bottom_persistent_menu())
-    bot.send_message(message.chat.id, "👇 **Select Category:**", reply_markup=main_menu())
+    
+    bot.send_message(message.chat.id, ad_text, parse_mode="Markdown", reply_markup=split_bottom_keyboard())
+    bot.send_message(message.chat.id, "👇 **Contact Support:**", reply_markup=admin_buy_button())
 
 # --- ADMIN COMMANDS ---
 @bot.message_handler(commands=['addpremium'])
@@ -231,14 +184,8 @@ def add_premium_user(message):
             premiums.add(target_id)
             save_data(PREMIUM_FILE, premiums)
             bot.reply_to(message, f"✅ User `{target_id}` ko **PREMIUM VIP ACCESS** de diya gaya hai!", parse_mode="Markdown")
-            try:
-                bot.send_message(target_id, "🎉 **CONGRATULATIONS!**\nAapka **Premium Access** activate kar diya gaya hai!", parse_mode="Markdown")
-            except:
-                pass
         except:
             bot.reply_to(message, "⚠️ Usage: `/addpremium 123456789`")
-    else:
-        bot.reply_to(message, "❌ Ye command sirf Admin ke liye hai.")
 
 @bot.message_handler(commands=['delpremium'])
 def del_premium_user(message):
@@ -250,8 +197,6 @@ def del_premium_user(message):
                 premiums.remove(target_id)
                 save_data(PREMIUM_FILE, premiums)
                 bot.reply_to(message, f"❌ User `{target_id}` ka Premium access hata diya gaya hai.", parse_mode="Markdown")
-            else:
-                bot.reply_to(message, "⚠️ Ye user Premium list mein nahi hai.")
         except:
             bot.reply_to(message, "⚠️ Usage: `/delpremium 123456789`")
 
@@ -263,7 +208,7 @@ def make_qr(message):
         if len(parts) < 2:
             bot.reply_to(message, "⚠️ Usage: `/qr https://t.me/batchseller321`", parse_mode="Markdown")
             return
-        text = parts[1].strip().replace("[", "").replace("]", "").replace("(", "").replace(")", "")
+        text = parts[1].strip()
         qr_url = f"https://api.qrserver.com/v1/create-qr-code/?size=350x350&data={requests.utils.quote(text)}"
         bot.send_photo(message.chat.id, qr_url, caption=f"📱 **QR Code Generated!**\n\nData: {text}")
     except:
@@ -276,17 +221,15 @@ def scan_website(message):
         if len(parts) < 2:
             bot.reply_to(message, "⚠️ Usage: `/scan https://example.com`", parse_mode="Markdown")
             return
-        url = parts[1].strip().replace("[", "").replace("]", "").replace("(", "").replace(")", "")
+        url = parts[1].strip()
         api_url = "https://urlhaus-api.abuse.ch/v1/url/"
         response = requests.post(api_url, data={'url': url}, headers=HEADERS, timeout=10).json()
         status = response.get('query_status')
         
         if status == 'ok':
             result_text = f"🚨 **WARNING: UNSAFE WEBSITE!**\n• URL: `{url}`\n• Threat: {response.get('threat', 'Phishing')}"
-        elif status == 'no_results':
-            result_text = f"✅ **SAFE WEBSITE**\n• URL: `{url}`\n• Status: Clean / No threats found."
         else:
-            result_text = f"🔍 **SCAN COMPLETED**\n• URL: `{url}`\n• Status: Clean or Unlisted."
+            result_text = f"✅ **SAFE WEBSITE**\n• URL: `{url}`\n• Status: Clean / No threats found."
         bot.reply_to(message, result_text, parse_mode="Markdown")
     except:
         bot.reply_to(message, "⚠️ Error scanning website.")
@@ -385,63 +328,10 @@ def callback_listener(call):
 
     if call.data == "check_join":
         if is_user_joined(user_id):
-            bot.send_message(call.message.chat.id, "✅ Verification Successful!", reply_markup=bottom_persistent_menu())
-            bot.send_message(call.message.chat.id, "👇 *Main Menu:*", reply_markup=main_menu())
+            bot.send_message(call.message.chat.id, "✅ Verification Successful!", reply_markup=split_bottom_keyboard())
+            send_welcome(call.message)
         else:
             bot.send_message(call.message.chat.id, "❌ Channel join nahi kiya hai!", reply_markup=force_join_menu())
-        return
-
-    if not is_user_joined(user_id):
-        bot.send_message(call.message.chat.id, "⚠️ Pehle channel join karein!", reply_markup=force_join_menu())
-        return
-
-    def safe_edit(text, reply_markup=None):
-        try:
-            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=text, parse_mode="Markdown", reply_markup=reply_markup)
-        except:
-            bot.send_message(call.message.chat.id, text, parse_mode="Markdown", reply_markup=reply_markup)
-
-    if call.data == "main_menu":
-        safe_edit("👇 *Main Menu - Category chunien:*", main_menu())
-    
-    elif call.data == "ai_info":
-        safe_edit("🤖 **GEMINI AI CHAT ACTIVE**\n\nAb aap bot ko koi bhi message ya sawal bhej sakte hain, Google Gemini AI aapko turant jawab dega!", main_menu())
-
-    elif call.data == "category_batches":
-        safe_edit("📚 **BATCH STORE - Select Institute:**", batch_menu())
-
-    elif call.data == "category_tools":
-        safe_edit("🛠️ **FREE PUBLIC UTILITIES & TOOLS**\n\nNiche kisi bhi tool ko chunien:", public_tools_menu())
-
-    elif call.data == "category_osint":
-        status = "🟢 VIP PREMIUM ACTIVE" if is_premium(user_id) else "🔴 FREE USER (Limited)"
-        safe_edit(f"🔍 **OSINT MENU**\n\nStatus: {status}\n\n👇 Tools:", osint_menu())
-
-    elif call.data == "tool_pincode": safe_edit("📍 Command: `/pincode 843302`", back_to_tools())
-    elif call.data == "tool_ifsc": safe_edit("🏦 Command: `/ifsc SBIN0000001`", back_to_tools())
-    elif call.data == "tool_ip": safe_edit("🌐 Command: `/ip 8.8.8.8`", back_to_tools())
-    elif call.data == "tool_qr": safe_edit("📱 Command: `/qr YourText`", back_to_tools())
-    elif call.data == "tool_short": safe_edit("🔗 Command: `/short https://link.com`", back_to_tools())
-    elif call.data == "tool_github": safe_edit("💻 Command: `/github username`", back_to_tools())
-    elif call.data == "tool_crypto": safe_edit("🪙 Command: `/crypto btc`", back_to_tools())
-    elif call.data == "tool_scanner": safe_edit("🛡️ Command: `/scan https://site.com`", back_to_tools())
-
-    elif call.data == "buy_premium_info":
-        safe_edit(f"💎 **BUY PREMIUM**\n\nContact Admin: @{ADMIN_USERNAME}", buy_premium_menu())
-
-    elif call.data.startswith("osint_"):
-        tool = call.data.replace("osint_", "").upper()
-        if is_premium(user_id):
-            safe_edit(f"🌟 **{tool} VIP (ACTIVE)**\n\nDetails Admin @{ADMIN_USERNAME} ko bhejein.", back_to_osint())
-        else:
-            safe_edit(f"🔐 **{tool} (PREMIUM ONLY)**\nYour ID: `{user_id}`\n\nAdmin se contact karein.", buy_premium_menu())
-
-    elif call.data == "inst_pw": safe_edit(f"📚 **PW Batches**\nPrice: ₹199\nBuy: @{ADMIN_USERNAME}", back_to_batch())
-    elif call.data == "inst_nxt": safe_edit(f"🎯 **Nxt Topper**\nBuy: @{ADMIN_USERNAME}", back_to_batch())
-    elif call.data == "inst_unacademy": safe_edit(f"🎓 **Unacademy**\nBuy: @{ADMIN_USERNAME}", back_to_batch())
-    elif call.data == "inst_gyanbindu": safe_edit(f"📖 **GyanBindu GS**\nBuy: @{ADMIN_USERNAME}", back_to_batch())
-    elif call.data == "inst_careerwill": safe_edit(f"⚡ **CareerWill**\nBuy: @{ADMIN_USERNAME}", back_to_batch())
-    elif call.data == "payment_info": safe_edit(f"💳 **Payment Info**\nUPI ID ke liye baat karein: @{ADMIN_USERNAME}", back_to_batch())
 
 # --- TEXT MESSAGE HANDLER ---
 @bot.message_handler(func=lambda message: True)
@@ -454,22 +344,43 @@ def auto_reply_handler(message):
         bot.reply_to(message, "⚠️ Bot use karne ke liye pehle channel join karein!", reply_markup=force_join_menu())
         return
 
-    # Bottom Keyboard Clicks Response
-    if text == "🤖 ASK GEMINI AI":
-        bot.reply_to(message, "🤖 **Gemini AI Active!** Mujhe apna koi bhi sawal bhejien.", reply_markup=bottom_persistent_menu())
+    # Split Bottom Buttons Clicks Response
+    if text in ["📚 AVAILABLE BATCHES", "/start"]:
+        send_welcome(message)
         return
-    elif text == "📚 BATCH STORE":
-        bot.reply_to(message, "📚 **BATCH STORE:**", reply_markup=batch_menu())
+    elif text == "💬 CONTACT ADMIN TO BUY":
+        bot.reply_to(message, f"💬 **Admin DM:** @{ADMIN_USERNAME}\nDirect Batch lene ke liye message karein!", reply_markup=admin_buy_button())
         return
-    elif text == "🛠️ FREE TOOLS":
-        bot.reply_to(message, "🛠️ **FREE PUBLIC TOOLS:**", reply_markup=public_tools_menu())
+    elif text == "🤖 ASK GEMINI AI":
+        bot.reply_to(message, "🤖 **Gemini AI Active!** Mujhe apna koi bhi sawal bhejien.")
         return
-    elif text == "🔍 OSINT LOOKUP":
+    elif text == "📍 PINCODE LOOKUP":
+        bot.reply_to(message, "📍 Usage format: `/pincode 843302`", parse_mode="Markdown")
+        return
+    elif text == "🏦 IFSC LOOKUP":
+        bot.reply_to(message, "🏦 Usage format: `/ifsc SBIN0000001`", parse_mode="Markdown")
+        return
+    elif text == "📱 QR GENERATOR":
+        bot.reply_to(message, "📱 Usage format: `/qr https://t.me/batchseller321`", parse_mode="Markdown")
+        return
+    elif text == "🔗 URL SHORTENER":
+        bot.reply_to(message, "🔗 Usage format: `/short https://yourlink.com`", parse_mode="Markdown")
+        return
+    elif text == "🌐 IP LOOKUP":
+        bot.reply_to(message, "🌐 Usage format: `/ip 8.8.8.8`", parse_mode="Markdown")
+        return
+    elif text == "🪙 CRYPTO RATES":
+        bot.reply_to(message, "🪙 Usage format: `/crypto btc`", parse_mode="Markdown")
+        return
+    elif text == "💻 GITHUB LOOKUP":
+        bot.reply_to(message, "💻 Usage format: `/github username`", parse_mode="Markdown")
+        return
+    elif text == "🛡️ SCAN WEBSITE":
+        bot.reply_to(message, "🛡️ Usage format: `/scan https://example.com`", parse_mode="Markdown")
+        return
+    elif text == "🔍 OSINT VIP LOOKUPS":
         status = "🟢 VIP PREMIUM ACTIVE" if is_premium(user_id) else "🔴 FREE USER (Limited)"
-        bot.reply_to(message, f"🔍 **OSINT LOOKUPS** ({status}):", reply_markup=osint_menu())
-        return
-    elif text == "💬 CONTACT ADMIN":
-        bot.reply_to(message, f"💬 Admin se baat karne ke liye click karein: @{ADMIN_USERNAME}")
+        bot.reply_to(message, f"🔍 **OSINT LOOKUPS STATUS:** {status}\n\nDetails ke liye Admin @{ADMIN_USERNAME} ko DM karein.")
         return
 
     # Normal Gemini AI Reply
