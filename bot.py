@@ -114,12 +114,13 @@ def public_tools_menu():
     btn5 = types.InlineKeyboardButton("🔗 URL SHORTENER", callback_data="tool_short")
     btn6 = types.InlineKeyboardButton("💻 GITHUB LOOKUP", callback_data="tool_github")
     btn7 = types.InlineKeyboardButton("🪙 CRYPTO RATES", callback_data="tool_crypto")
+    btn8 = types.InlineKeyboardButton("🛡️ WEBSITE SCANNER", callback_data="tool_scanner")
     btn_back = types.InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")
     
     markup.add(btn1, btn2)
     markup.add(btn3, btn4)
     markup.add(btn5, btn6)
-    markup.add(btn7)
+    markup.add(btn7, btn8)
     markup.add(btn_back)
     return markup
 
@@ -182,12 +183,47 @@ def send_welcome(message):
 
     welcome_text = (
         "🔥 **WELCOME TO MULTI-SERVICE UTILITY BOT** 🔥\n\n"
-        "Aap yahan se **Educational Batches**, **Free Utility Tools** (QR, URL Shortener, Crypto, GitHub) aur **OSINT Lookups** access kar sakte hain!\n\n"
+        "Aap yahan se **Educational Batches**, **Free Utility Tools** (QR, Shortener, Crypto, Website Scanner) aur **OSINT Lookups** access kar sakte hain!\n\n"
         "👇 *Kripya apni zaroorat ke hisab se category chuniye:*"
     )
     bot.send_message(message.chat.id, welcome_text, parse_mode="Markdown", reply_markup=main_menu())
 
-# --- REAL WORKING UTILITY COMMANDS (BULLETPROOF) ---
+# --- ADMIN COMMANDS ---
+
+@bot.message_handler(commands=['addpremium'])
+def add_premium_user(message):
+    if message.from_user.username == ADMIN_USERNAME:
+        try:
+            target_id = int(message.text.split()[1].strip())
+            premiums = load_data(PREMIUM_FILE)
+            premiums.add(target_id)
+            save_data(PREMIUM_FILE, premiums)
+            bot.reply_to(message, f"✅ User `{target_id}` ko **PREMIUM VIP ACCESS** de diya gaya hai!", parse_mode="Markdown")
+            try:
+                bot.send_message(target_id, "🎉 **CONGRATULATIONS!**\nAapka **Premium Access** activate kar diya gaya hai!", parse_mode="Markdown")
+            except:
+                pass
+        except:
+            bot.reply_to(message, "⚠️ Usage: `/addpremium 123456789`")
+    else:
+        bot.reply_to(message, "❌ Ye command sirf Admin ke liye hai.")
+
+@bot.message_handler(commands=['delpremium'])
+def del_premium_user(message):
+    if message.from_user.username == ADMIN_USERNAME:
+        try:
+            target_id = int(message.text.split()[1].strip())
+            premiums = load_data(PREMIUM_FILE)
+            if target_id in premiums:
+                premiums.remove(target_id)
+                save_data(PREMIUM_FILE, premiums)
+                bot.reply_to(message, f"❌ User `{target_id}` ka Premium access hata diya gaya hai.", parse_mode="Markdown")
+            else:
+                bot.reply_to(message, "⚠️ Ye user Premium list mein nahi hai.")
+        except:
+            bot.reply_to(message, "⚠️ Usage: `/delpremium 123456789`")
+
+# --- REAL WORKING UTILITY COMMANDS ---
 
 @bot.message_handler(commands=['qr'])
 def make_qr(message):
@@ -197,7 +233,6 @@ def make_qr(message):
             bot.reply_to(message, "⚠️ Usage: `/qr https://t.me/batchseller321`", parse_mode="Markdown")
             return
         
-        # Clean special markdown characters
         text = parts[1].strip().replace("[", "").replace("]", "").replace("(", "").replace(")", "")
         qr_url = f"https://api.qrserver.com/v1/create-qr-code/?size=350x350&data={requests.utils.quote(text)}"
         
@@ -207,6 +242,45 @@ def make_qr(message):
             bot.send_photo(message.chat.id, qr_url)
     except Exception as e:
         bot.reply_to(message, "❌ Error generating QR Code.")
+
+@bot.message_handler(commands=['scan'])
+def scan_website(message):
+    try:
+        parts = message.text.split(maxsplit=1)
+        if len(parts) < 2:
+            bot.reply_to(message, "⚠️ Usage: `/scan https://example.com`", parse_mode="Markdown")
+            return
+        
+        url = parts[1].strip().replace("[", "").replace("]", "").replace("(", "").replace(")", "")
+        api_url = "https://urlhaus-api.abuse.ch/v1/url/"
+        data = {'url': url}
+        
+        response = requests.post(api_url, data=data, headers=HEADERS, timeout=10).json()
+        status = response.get('query_status')
+        
+        if status == 'ok':
+            threat = response.get('threat', 'Malicious / Phishing')
+            date_added = response.get('date_added', 'N/A')
+            result_text = (
+                f"🚨 **WARNING: FRAUD / UNSAFE WEBSITE DETECTED!** 🚨\n\n"
+                f"• **URL:** `{url}`\n"
+                f"• **Status:** 🔴 Dangerous / Phishing\n"
+                f"• **Threat Type:** {threat}\n"
+                f"• **Date Added:** {date_added}\n\n"
+                f"⚠️ *Is website par apni financial/personal info share na karein!*"
+            )
+        elif status == 'no_results':
+            result_text = (
+                f"✅ **WEBSITE SCAN RESULT: SAFE / CLEAN** ✅\n\n"
+                f"• **URL:** `{url}`\n"
+                f"• **Status:** 🟢 No threats found in active threat database."
+            )
+        else:
+            result_text = f"🔍 **SCAN COMPLETED**\n\n• **URL:** `{url}`\n• **Status:** Clean or Unlisted."
+            
+        bot.reply_to(message, result_text, parse_mode="Markdown")
+    except Exception as e:
+        bot.reply_to(message, "⚠️ Error scanning website. Please try again later.")
 
 @bot.message_handler(commands=['crypto'])
 def crypto_price(message):
@@ -435,6 +509,9 @@ def callback_listener(call):
     elif call.data == "tool_crypto":
         safe_edit("🪙 **CRYPTO RATES**\n\nCommand: `/crypto btc` ya `/crypto eth`", back_to_tools())
 
+    elif call.data == "tool_scanner":
+        safe_edit("🛡️ **WEBSITE SCANNER**\n\nCommand: `/scan https://example.com`", back_to_tools())
+
     elif call.data == "buy_premium_info":
         text = (
             "💎 **BUY PREMIUM OSINT MEMBERSHIP** 💎\n\n"
@@ -490,5 +567,5 @@ def auto_reply(message):
 
 # Server Run
 keep_alive()
-print("🔥 Fixed & Cleaned Bot Active! 🔥")
+print("🔥 Full All-In-One Master Bot Active! 🔥")
 bot.infinity_polling()
