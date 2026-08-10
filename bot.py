@@ -17,7 +17,7 @@ TOKEN = '8871003871:AAHKYffl2ncAxcri7iBSJeHheGzhfON0C6o'
 ADMIN_USERNAME = "the_himanshu1"         
 CHANNEL_USERNAME = "batchseller321"     
 
-# Memory State Storage
+# In-Memory State Backup
 USER_STATES = {}
 
 # Flask Web Server (Render 24/7 Keep-Alive)
@@ -25,7 +25,7 @@ app = Flask('')
 
 @app.route('/')
 def home():
-    return "⚡ Fully Working OSINT, Batches & Utility Bot Active 24/7!"
+    return "⚡ Smart Auto-Detect OSINT & Batches Bot Active 24/7!"
 
 def run():
     port = int(os.environ.get("PORT", 8080))
@@ -246,7 +246,7 @@ def callback_listener(call):
     except Exception as e:
         print(f"Callback error: {e}")
 
-# ==================== DETAILED REPORT GENERATION ENGINES ====================
+# ==================== REPORT GENERATION ENGINES ====================
 
 def process_music_search(message, song):
     try:
@@ -351,7 +351,6 @@ def process_scan(message, url):
     except Exception:
         bot.reply_to(message, "⚠️ Scan error.")
 
-# --- DETAILED OSINT LOOKUP REPORTS ---
 def process_imei_report(message, imei_no):
     brands = ["Apple iPhone 15 Pro", "Samsung Galaxy S24 Ultra", "OnePlus 12", "Xiaomi 14 Pro", "Realme GT 5"]
     chosen = random.choice(brands)
@@ -359,62 +358,16 @@ def process_imei_report(message, imei_no):
         f"🔐 **IMEI LOOKUP REPORT**\n"
         f"━━━━━━━━━━━━━━━━━━━━━\n"
         f"📲 **IMEI Number:** `{imei_no}`\n"
-        f"📱 **Device:** {chosen}\n"
+        f"📱 **Device Model:** {chosen}\n"
         f"🏷️ **Brand Status:** Verified Original\n"
-        f"🛡️ **Warranty:** Active (In-Warranty)\n"
-        f"🚫 **Blacklist Status:** CLEAN (Not Stolen/Lost)\n"
+        f"🛡️ **Warranty Status:** Active (In-Warranty)\n"
+        f"🚫 **Blacklist Check:** CLEAN (Not Stolen/Lost)\n"
         f"🔒 **iCloud/FindMy:** OFF / Unlocked\n"
         f"━━━━━━━━━━━━━━━━━━━━━\n"
         f"💬 Full Hardware Log ke liye Admin se contact karein:\n"
         f"👉 @{ADMIN_USERNAME}"
     )
-    bot.reply_to(message, report, parse_mode="Markdown")
-
-def process_rc_report(message, vehicle_no):
-    report = (
-        f"🚘 **RTO VEHICLE RC REPORT**\n"
-        f"━━━━━━━━━━━━━━━━━━━━━\n"
-        f"🚗 **Vehicle No:** `{vehicle_no.upper()}`\n"
-        f"👤 **Owner Name:** Verification Passed (Active)\n"
-        f"🏎️ **Model:** Commercial/Private Transport\n"
-        f"⛽ **Fuel Type:** Petrol / CNG\n"
-        f"🏛️ **RTO Location:** Bihar / India RTO Authority\n"
-        f"📅 **Reg Date:** 14-Aug-2022\n"
-        f"✅ **Fitness Valid:** Active (Up to 2037)\n"
-        f"━━━━━━━━━━━━━━━━━━━━━\n"
-        f"💬 Unmasked Owner Name ke liye Admin ko DM karein:\n"
-        f"👉 @{ADMIN_USERNAME}"
-    )
-    bot.reply_to(message, report, parse_mode="Markdown")
-
-def process_challan_report(message, veh_no):
-    report = (
-        f"🚗 **VEHICLE E-CHALLAN REPORT**\n"
-        f"━━━━━━━━━━━━━━━━━━━━━\n"
-        f"🚘 **Vehicle No:** `{veh_no.upper()}`\n"
-        f"⚠️ **Total Active Challans:** 1 Pending\n"
-        f"💰 **Challan Amount:** ₹500 (Over-speeding / Helmet)\n"
-        f"📍 **Challan Location:** City Traffic Junction\n"
-        f"📅 **Date:** Recent Record\n"
-        f"━━━━━━━━━━━━━━━━━━━━━\n"
-        f"💬 Challan Pay Receipt ke liye Admin ko DM karein:\n"
-        f"👉 @{ADMIN_USERNAME}"
-    )
-    bot.reply_to(message, report, parse_mode="Markdown")
-
-def process_pan_report(message, pan_no):
-    report = (
-        f"💳 **PAN CARD VERIFICATION REPORT**\n"
-        f"━━━━━━━━━━━━━━━━━━━━━\n"
-        f"🆔 **PAN Number:** `{pan_no.upper()}`\n"
-        f"👤 **PAN Holder:** Verified Active Individual\n"
-        f"📊 **PAN Status:** EXISTING & VALID\n"
-        f"🔗 **Aadhaar Seeding:** LINKED\n"
-        f"━━━━━━━━━━━━━━━━━━━━━\n"
-        f"💬 Full PAN Details ke liye Admin ko DM karein:\n"
-        f"👉 @{ADMIN_USERNAME}"
-    )
-    bot.reply_to(message, report, parse_mode="Markdown")
+    bot.reply_to(message, report, parse_mode="Markdown", reply_markup=types.InlineKeyboardMarkup().add(types.InlineKeyboardButton("💬 Contact Admin", url=f"https://t.me/{ADMIN_USERNAME}")))
 
 def process_terabox_report(message, link):
     report = (
@@ -422,46 +375,30 @@ def process_terabox_report(message, link):
         f"━━━━━━━━━━━━━━━━━━━━━\n"
         f"🔗 **Original Link:** `{link}`\n"
         f"⚡ **Status:** Direct High-Speed Link Unlocked!\n\n"
-        f"📥 **Fast Download / Stream:**\n"
+        f"📥 **Fast Download / Stream Link:**\n"
         f"👉 https://terabox-fast-dl.workers.dev/watch?url={requests.utils.quote(link)}\n"
         f"━━━━━━━━━━━━━━━━━━━━━\n"
-        f"Enjoy Ad-free Fast Download!"
+        f"Enjoy Ad-free Fast Stream!"
     )
     bot.reply_to(message, report, parse_mode="Markdown")
 
-def process_ff_report(message, uid):
-    names = ["⚡Dark_Rider⚡", "🔥OP_Pro_Gamer🔥", "SRK_Bhai_007", "King_FF_99"]
-    report = (
-        f"🔥 **FREE FIRE PLAYER PROFILE**\n"
-        f"━━━━━━━━━━━━━━━━━━━━━\n"
-        f"🆔 **Player UID:** `{uid}`\n"
-        f"🎮 **In-Game Name:** {random.choice(names)}\n"
-        f"⭐ **Level:** {random.randint(55, 78)}\n"
-        f"👍 **Likes:** {random.randint(1200, 8500)}\n"
-        f"🏰 **Guild:** VIP_ESPORTS_IN\n"
-        f"🌐 **Region:** INDIA\n"
-        f"━━━━━━━━━━━━━━━━━━━━━\n"
-        f" Verified FF Account!"
-    )
-    bot.reply_to(message, report, parse_mode="Markdown")
-
-def process_general_osint(message, user_input, tool_name):
+def process_general_osint(message, user_input, tool_name="OSINT"):
     user_id = message.from_user.id
     status = "🟢 VIP ACTIVE" if is_premium(user_id) else "🔴 FREE USER"
     
     reply_msg = (
-        f"🔍 **{tool_name} REPORT**\n"
+        f"🔍 **{tool_name} SEARCH REPORT**\n"
         f"━━━━━━━━━━━━━━━━━━━━━\n"
         f"📥 **Query Input:** `{user_input}`\n"
         f"👤 **Access Status:** {status}\n"
-        f"⚡ **Result:** Record Found & Processed Successfully!\n"
+        f"⚡ **Result Status:** Record Found & Processed!\n"
         f"━━━━━━━━━━━━━━━━━━━━━\n"
         f"💬 Full Unmasked Report/File lene ke liye Admin ko DM karein:\n"
         f"👉 @{ADMIN_USERNAME}"
     )
     bot.reply_to(message, reply_msg, parse_mode="Markdown", reply_markup=types.InlineKeyboardMarkup().add(types.InlineKeyboardButton("💬 Contact Admin", url=f"https://t.me/{ADMIN_USERNAME}")))
 
-# --- MASTER ROUTER & STATE ENGINE ---
+# --- MASTER ROUTER & SMART AUTO-DETECTION ENGINE ---
 ALL_BUTTONS = [
     "📚 AVAILABLE BATCHES", "💬 CONTACT ADMIN", "💬 CONTACT TO ADMIN", "📍 PINCODE LOOKUP", "📱 QR GENERATOR",
     "🌐 IP LOOKUP", "💻 GITHUB LOOKUP", "🔍 OSINT VIP LOOKUPS", "🏦 IFSC LOOKUP",
@@ -484,7 +421,7 @@ def auto_reply_handler(message):
             bot.reply_to(message, "⚠️ Bot use karne ke liye pehle channel join karein!", reply_markup=force_join_menu())
             return
 
-        # 1. IF USER CLICKS ANY OF THE MENU BUTTONS:
+        # 1. MENU BUTTON CLICKS
         if text in ALL_BUTTONS:
             if text in ["📚 AVAILABLE BATCHES", "/start"]:
                 USER_STATES.pop(user_id, None)
@@ -508,9 +445,10 @@ def auto_reply_handler(message):
                 bot.reply_to(message, f"📌 **{text}**\n\n👇 **Kripya Details / Number / Link / ID likh kar bhejein:**", parse_mode="Markdown")
                 return
 
-        # 2. IF USER SENDS ANY DATA / INPUT (Number, Song Name, Link, ID):
+        # 2. USER SENDS INPUT DATA
         current_tool = USER_STATES.pop(user_id, None)
         
+        # If State Exists:
         if current_tool:
             if current_tool == "🎵 MUSIC SEARCH":
                 process_music_search(message, text)
@@ -532,22 +470,32 @@ def auto_reply_handler(message):
                 process_scan(message, text)
             elif current_tool in ["🔐 IMEI V2", "🔍 IMEI LOOKUPS"]:
                 process_imei_report(message, text)
-            elif current_tool == "🚘 RC DETAILS":
-                process_rc_report(message, text)
-            elif current_tool in ["🚗 VEHICLE AND CHALLAN", "🚗 VEHICLE & CHALLAN"]:
-                process_challan_report(message, text)
-            elif current_tool in ["💳 PAN INFO", "🔍 PAN TO GST"]:
-                process_pan_report(message, text)
             elif current_tool == "📦 TERABOX":
                 process_terabox_report(message, text)
-            elif current_tool == "🔥 FF UID":
-                process_ff_report(message, text)
             else:
                 process_general_osint(message, text, current_tool)
             return
 
-        # 3. IF NO TOOL WAS SELECTED:
-        bot.reply_to(message, "🤖 Main menu ke liye `/start` dabayein ya niche diye gaye buttons par click karein.", parse_mode="Markdown")
+        # 3. SMART AUTO-DETECTION (Bypass Memory Resets / Render Restarts)
+        clean_digit = text.replace(" ", "").replace("-", "")
+        if clean_digit.isdigit() and len(clean_digit) == 15:
+            # Auto-detect IMEI / 15-digit ID
+            process_imei_report(message, clean_digit)
+            return
+        elif clean_digit.isdigit() and len(clean_digit) == 6:
+            # Auto-detect Pincode
+            process_pincode(message, clean_digit)
+            return
+        elif text.lower().startswith("http://") or text.lower().startswith("https://"):
+            # Auto-detect Terabox / Link
+            if "terabox" in text.lower() or "1024tera" in text.lower():
+                process_terabox_report(message, text)
+            else:
+                process_scan(message, text)
+            return
+
+        # Fallback General Response if Input sent
+        process_general_osint(message, text, "INPUT SEARCH")
 
     except Exception as e:
         print(f"Message Router error: {e}")
@@ -557,7 +505,7 @@ if __name__ == "__main__":
     keep_alive()
     setup_commands()
 
-    print("🔥 All 30 Functions Working & Polling Active! 🔥")
+    print("🔥 Smart Auto-Detect Bot Active & Polling Started! 🔥")
 
     while True:
         try:
