@@ -6,31 +6,10 @@ from telebot import types
 from flask import Flask
 from threading import Thread
 
-# --- GEMINI AI SAFE IMPORT ---
-try:
-    import google.generativeai as genai
-    HAS_GEMINI_LIB = True
-except Exception as e:
-    HAS_GEMINI_LIB = False
-    print(f"Gemini Library Import Failed: {e}")
-
 # --- CONFIGURATIONS ---
 TOKEN = '8871003871:AAHKYffl2ncAxcri7iBSJeHheGzhfON0C6o'
 ADMIN_USERNAME = "the_himanshu1"         
 CHANNEL_USERNAME = "batchseller321"     
-
-# Render Environment Variable se key read karna
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
-
-ai_model = None
-if HAS_GEMINI_LIB and GEMINI_API_KEY:
-    try:
-        genai.configure(api_key=GEMINI_API_KEY)
-        ai_model = genai.GenerativeModel("gemini-1.5-flash")
-        print("✅ Gemini AI Successfully Configured!")
-    except Exception as e:
-        print(f"❌ Gemini Configuration Error: {e}")
-        ai_model = None
 
 # Web Server (Render 24/7 Keep Alive)
 app = Flask('')
@@ -90,7 +69,7 @@ def is_user_joined(user_id):
         print(f"Error checking join status: {e}")
         return True
 
-# --- SET TELEGRAM MENU COMMANDS (Split Tools In Menu List) ---
+# --- SET TELEGRAM MENU COMMANDS ---
 try:
     bot.set_my_commands([
         telebot.types.BotCommand("start", "🔄 Main Menu & Batches Ad"),
@@ -114,11 +93,10 @@ def force_join_menu():
     markup.add(btn1, btn2)
     return markup
 
-# 👉 SPLIT BOTTOM KEYBOARD (Saare Tools Alag-Alag Display Honge)
+# 👉 SPLIT BOTTOM KEYBOARD (AI Button Hatakar Sirf Tools Rakhe Gaye Hain)
 def split_bottom_keyboard():
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     btn_batches = types.KeyboardButton("📚 AVAILABLE BATCHES")
-    btn_ai = types.KeyboardButton("🤖 ASK GEMINI AI")
     btn1 = types.KeyboardButton("📍 PINCODE LOOKUP")
     btn2 = types.KeyboardButton("🏦 IFSC LOOKUP")
     btn3 = types.KeyboardButton("📱 QR GENERATOR")
@@ -130,10 +108,9 @@ def split_bottom_keyboard():
     btn9 = types.KeyboardButton("🔍 OSINT VIP LOOKUPS")
     btn_admin = types.KeyboardButton("💬 CONTACT ADMIN TO BUY")
     
-    markup.add(btn_batches, btn_ai, btn1, btn2, btn3, btn4, btn5, btn6, btn7, btn8, btn9, btn_admin)
+    markup.add(btn_batches, btn1, btn2, btn3, btn4, btn5, btn6, btn7, btn8, btn9, btn_admin)
     return markup
 
-# Single Buy/Contact Button under Batch Advertisement
 def admin_buy_button():
     markup = types.InlineKeyboardMarkup()
     btn = types.InlineKeyboardButton("💬 BUY BATCH / CONTACT ADMIN", url=f"https://t.me/{ADMIN_USERNAME}")
@@ -155,7 +132,6 @@ def send_welcome(message):
         bot.send_message(message.chat.id, join_text, parse_mode="Markdown", reply_markup=force_join_menu())
         return
 
-    # Ad Text & Features Show Karega
     ad_text = (
         "🔥 **ALL PREMIUM EDUCATIONAL BATCHES AT ULTRA LOW PRICE** 🔥\n\n"
         "✨ **Humari Services & Features:**\n"
@@ -344,15 +320,12 @@ def auto_reply_handler(message):
         bot.reply_to(message, "⚠️ Bot use karne ke liye pehle channel join karein!", reply_markup=force_join_menu())
         return
 
-    # Split Bottom Buttons Clicks Response
+    # Button Clicks Response
     if text in ["📚 AVAILABLE BATCHES", "/start"]:
         send_welcome(message)
         return
     elif text == "💬 CONTACT ADMIN TO BUY":
         bot.reply_to(message, f"💬 **Admin DM:** @{ADMIN_USERNAME}\nDirect Batch lene ke liye message karein!", reply_markup=admin_buy_button())
-        return
-    elif text == "🤖 ASK GEMINI AI":
-        bot.reply_to(message, "🤖 **Gemini AI Active!** Mujhe apna koi bhi sawal bhejien.")
         return
     elif text == "📍 PINCODE LOOKUP":
         bot.reply_to(message, "📍 Usage format: `/pincode 843302`", parse_mode="Markdown")
@@ -382,22 +355,10 @@ def auto_reply_handler(message):
         status = "🟢 VIP PREMIUM ACTIVE" if is_premium(user_id) else "🔴 FREE USER (Limited)"
         bot.reply_to(message, f"🔍 **OSINT LOOKUPS STATUS:** {status}\n\nDetails ke liye Admin @{ADMIN_USERNAME} ko DM karein.")
         return
-
-    # Normal Gemini AI Reply
-    if ai_model:
-        try:
-            bot.send_chat_action(message.chat.id, 'typing')
-            response = ai_model.generate_content(text)
-            bot.reply_to(message, response.text, parse_mode="Markdown")
-            return
-        except Exception as e:
-            print(f"Gemini Error: {e}")
-            bot.reply_to(message, "🤖 **AI Response Error:** Gemini AI busy hai. Kripya thodi der baad try karein.")
-            return
-
-    bot.reply_to(message, f"🤖 Details ke liye `/start` dabayein ya Admin @{ADMIN_USERNAME} ko contact karein.", parse_mode="Markdown")
+    else:
+        bot.reply_to(message, f"🤖 Main menu ke liye `/start` dabayein ya niche diye gaye buttons ka use karein.", parse_mode="Markdown")
 
 # Server Run & Polling
 keep_alive()
-print("🔥 Multi-Tool Bot Active Successfully! 🔥")
+print("🔥 Batch Seller Bot Active Successfully! 🔥")
 bot.infinity_polling()
