@@ -29,27 +29,36 @@ CHANNEL_USERNAME = "batchseller321"     # Telegram Channel Username
 bot = telebot.TeleBot(TOKEN)
 HEADERS = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
 
-# User Tracking Database
-USERS_FILE = "users.json"
+# --- DATABASES (USERS & PREMIUM MEMBERS) ---
 
-def load_users():
-    if os.path.exists(USERS_FILE):
+USERS_FILE = "users.json"
+PREMIUM_FILE = "premium_users.json"
+
+def load_data(file_path):
+    if os.path.exists(file_path):
         try:
-            with open(USERS_FILE, "r") as f:
+            with open(file_path, "r") as f:
                 return set(json.load(f))
         except:
             return set()
     return set()
 
+def save_data(file_path, data_set):
+    try:
+        with open(file_path, "w") as f:
+            json.dump(list(data_set), f)
+    except Exception as e:
+        print(f"Error saving {file_path}: {e}")
+
 def save_user(user_id):
-    users = load_users()
+    users = load_data(USERS_FILE)
     if user_id not in users:
         users.add(user_id)
-        try:
-            with open(USERS_FILE, "w") as f:
-                json.dump(list(users), f)
-        except Exception as e:
-            print(f"Error saving user: {e}")
+        save_data(USERS_FILE, users)
+
+def is_premium(user_id):
+    premiums = load_data(PREMIUM_FILE)
+    return user_id in premiums
 
 # Check Force Sub
 def is_user_joined(user_id):
@@ -106,7 +115,7 @@ def osint_menu():
     btn7 = types.InlineKeyboardButton("✈️ TELEGRAM LOOKUP", callback_data="osint_tg")
     btn8 = types.InlineKeyboardButton("🚗 VEHICLE LOOKUP", callback_data="osint_vehicle")
     btn9 = types.InlineKeyboardButton("🌐 IP / DOMAIN LOOKUP", callback_data="osint_ip")
-    btn10 = types.InlineKeyboardButton("💎 BUY PREMIUM ACCESS", url=f"https://t.me/{ADMIN_USERNAME}")
+    btn10 = types.InlineKeyboardButton("💎 BUY PREMIUM ACCESS", callback_data="buy_premium_info")
     btn_back = types.InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")
     
     markup.add(btn1, btn2)
@@ -116,6 +125,14 @@ def osint_menu():
     markup.add(btn9)
     markup.add(btn10)
     markup.add(btn_back)
+    return markup
+
+def buy_premium_menu():
+    markup = types.InlineKeyboardMarkup(row_width=1)
+    btn1 = types.InlineKeyboardButton("💬 Direct Message Admin to Buy", url=f"https://t.me/{ADMIN_USERNAME}")
+    btn2 = types.InlineKeyboardButton("💳 Payment Methods & QR", callback_data="payment_info")
+    btn_back = types.InlineKeyboardButton("🔙 Back to OSINT Menu", callback_data="category_osint")
+    markup.add(btn1, btn2, btn_back)
     return markup
 
 def back_to_osint():
@@ -128,94 +145,7 @@ def back_to_batch():
     markup.add(types.InlineKeyboardButton("🔙 Back to Batch Menu", callback_data="category_batches"))
     return markup
 
-# --- REAL WORKING LOOKUP COMMANDS ---
-
-@bot.message_handler(commands=['pincode'])
-def pincode_lookup(message):
-    try:
-        parts = message.text.split()
-        if len(parts) < 2:
-            bot.reply_to(message, "⚠️ Usage: `/pincode 843302`", parse_mode="Markdown")
-            return
-        
-        code = parts[1].strip()
-        res = requests.get(f"https://api.postalpincode.in/pincode/{code}", headers=HEADERS, timeout=8).json()
-        
-        if isinstance(res, list) and res[0].get('Status') == 'Success' and res[0].get('PostOffice'):
-            po_list = res[0]['PostOffice']
-            post = po_list[0]
-            
-            reply = (
-                f"📍 **PINCODE DETAILS FOUND**\n\n"
-                f"• **Pincode:** `{code}`\n"
-                f"• **Post Office:** {post.get('Name')}\n"
-                f"• **District:** {post.get('District')}\n"
-                f"• **State:** {post.get('State')}\n"
-                f"• **Division:** {post.get('Division')}\n"
-                f"• **Total Branches:** {len(po_list)}"
-            )
-        else:
-            reply = f"❌ Pincode `{code}` ke liye koi data nahi mila!"
-    except Exception as e:
-        reply = "⚠️ Server busy hai. Kripya 5 second baad dubara try karein."
-    
-    bot.reply_to(message, reply, parse_mode="Markdown")
-
-@bot.message_handler(commands=['ifsc'])
-def ifsc_lookup(message):
-    try:
-        parts = message.text.split()
-        if len(parts) < 2:
-            bot.reply_to(message, "⚠️ Usage: `/ifsc SBIN0001234`", parse_mode="Markdown")
-            return
-        
-        code = parts[1].strip().upper()
-        res = requests.get(f"https://ifsc.razorpay.com/{code}", headers=HEADERS, timeout=8).json()
-        
-        if isinstance(res, dict) and "BANK" in res:
-            reply = (
-                f"🏦 **IFSC DETAILS FOUND**\n\n"
-                f"• **Bank:** {res.get('BANK')}\n"
-                f"• **Branch:** {res.get('BRANCH')}\n"
-                f"• **Address:** {res.get('ADDRESS')}\n"
-                f"• **City:** {res.get('CITY')}\n"
-                f"• **State:** {res.get('STATE')}"
-            )
-        else:
-            reply = f"❌ IFSC Code `{code}` galat hai!"
-    except Exception as e:
-        reply = "⚠️ Error fetching IFSC details."
-    
-    bot.reply_to(message, reply, parse_mode="Markdown")
-
-@bot.message_handler(commands=['ip'])
-def ip_lookup(message):
-    try:
-        parts = message.text.split()
-        if len(parts) < 2:
-            bot.reply_to(message, "⚠️ Usage: `/ip 8.8.8.8`", parse_mode="Markdown")
-            return
-        
-        target_ip = parts[1].strip()
-        res = requests.get(f"http://ip-api.com/json/{target_ip}", headers=HEADERS, timeout=8).json()
-        
-        if res.get('status') == 'success':
-            reply = (
-                f"🌐 **IP LOOKUP DETAILS**\n\n"
-                f"• **IP:** `{target_ip}`\n"
-                f"• **Country:** {res.get('country')}\n"
-                f"• **Region/State:** {res.get('regionName')}\n"
-                f"• **City:** {res.get('city')}\n"
-                f"• **ISP:** {res.get('isp')}"
-            )
-        else:
-            reply = "❌ Invalid IP Address!"
-    except:
-        reply = "⚠️ Error fetching IP details."
-    
-    bot.reply_to(message, reply, parse_mode="Markdown")
-
-# --- OTHER COMMANDS ---
+# --- COMMAND HANDLERS ---
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
@@ -238,11 +168,108 @@ def send_welcome(message):
     )
     bot.send_message(message.chat.id, welcome_text, parse_mode="Markdown", reply_markup=main_menu())
 
+# --- ADMIN MEMBERSHIP MANAGEMENT COMMANDS ---
+
+@bot.message_handler(commands=['addpremium'])
+def add_premium_user(message):
+    if message.from_user.username == ADMIN_USERNAME:
+        try:
+            target_id = int(message.text.split()[1].strip())
+            premiums = load_data(PREMIUM_FILE)
+            premiums.add(target_id)
+            save_data(PREMIUM_FILE, premiums)
+            bot.reply_to(message, f"✅ User `{target_id}` ko **PREMIUM VIP ACCESS** de diya gaya hai!", parse_mode="Markdown")
+            
+            # Notify User
+            try:
+                bot.send_message(target_id, "🎉 **CONGRATULATIONS!**\nAapka **Premium Access** activate kar diya gaya hai! Ab aap saare OSINT Lookups use kar sakte hain.", parse_mode="Markdown")
+            except:
+                pass
+        except:
+            bot.reply_to(message, "⚠️ Usage: `/addpremium 123456789` (User Telegram ID ke sath message karein)")
+    else:
+        bot.reply_to(message, "❌ Ye command sirf Admin ke liye hai.")
+
+@bot.message_handler(commands=['delpremium'])
+def del_premium_user(message):
+    if message.from_user.username == ADMIN_USERNAME:
+        try:
+            target_id = int(message.text.split()[1].strip())
+            premiums = load_data(PREMIUM_FILE)
+            if target_id in premiums:
+                premiums.remove(target_id)
+                save_data(PREMIUM_FILE, premiums)
+                bot.reply_to(message, f"❌ User `{target_id}` ka Premium access hata diya gaya hai.", parse_mode="Markdown")
+            else:
+                bot.reply_to(message, "⚠️ Ye user Premium list mein nahi hai.")
+        except:
+            bot.reply_to(message, "⚠️ Usage: `/delpremium 123456789`")
+
+# --- REAL WORKING FREE LOOKUPS ---
+
+@bot.message_handler(commands=['pincode'])
+def pincode_lookup(message):
+    try:
+        parts = message.text.split()
+        if len(parts) < 2:
+            bot.reply_to(message, "⚠️ Usage: `/pincode 843302`", parse_mode="Markdown")
+            return
+        
+        code = parts[1].strip()
+        res = requests.get(f"https://api.postalpincode.in/pincode/{code}", headers=HEADERS, timeout=8).json()
+        
+        if isinstance(res, list) and res[0].get('Status') == 'Success' and res[0].get('PostOffice'):
+            po_list = res[0]['PostOffice']
+            post = po_list[0]
+            reply = (
+                f"📍 **PINCODE DETAILS FOUND**\n\n"
+                f"• **Pincode:** `{code}`\n"
+                f"• **Post Office:** {post.get('Name')}\n"
+                f"• **District:** {post.get('District')}\n"
+                f"• **State:** {post.get('State')}\n"
+                f"• **Division:** {post.get('Division')}\n"
+                f"• **Total Branches:** {len(po_list)}"
+            )
+        else:
+            reply = f"❌ Pincode `{code}` ke liye koi data nahi mila!"
+    except:
+        reply = "⚠️ Server busy hai. Dubara try karein."
+    
+    bot.reply_to(message, reply, parse_mode="Markdown")
+
+@bot.message_handler(commands=['ifsc'])
+def ifsc_lookup(message):
+    try:
+        parts = message.text.split()
+        if len(parts) < 2:
+            bot.reply_to(message, "⚠️ Usage: `/ifsc SBIN0000001`", parse_mode="Markdown")
+            return
+        
+        code = parts[1].strip().upper()
+        res = requests.get(f"https://ifsc.razorpay.com/{code}", headers=HEADERS, timeout=8).json()
+        
+        if isinstance(res, dict) and "BANK" in res:
+            reply = (
+                f"🏦 **IFSC DETAILS FOUND**\n\n"
+                f"• **Bank:** {res.get('BANK')}\n"
+                f"• **Branch:** {res.get('BRANCH')}\n"
+                f"• **Address:** {res.get('ADDRESS')}\n"
+                f"• **City:** {res.get('CITY')}\n"
+                f"• **State:** {res.get('STATE')}"
+            )
+        else:
+            reply = f"❌ IFSC Code `{code}` galat hai!"
+    except:
+        reply = "⚠️ Error fetching IFSC details."
+    
+    bot.reply_to(message, reply, parse_mode="Markdown")
+
 @bot.message_handler(commands=['stats'])
 def bot_stats(message):
     if message.from_user.username == ADMIN_USERNAME:
-        users = load_users()
-        bot.reply_to(message, f"📊 **Total Bot Users:** `{len(users)}`", parse_mode="Markdown")
+        users = load_data(USERS_FILE)
+        premiums = load_data(PREMIUM_FILE)
+        bot.reply_to(message, f"📊 **BOT STATS**\n\n• Total Users: `{len(users)}` \n• Premium Members: `{len(premiums)}`", parse_mode="Markdown")
 
 @bot.message_handler(commands=['broadcast'])
 def broadcast_msg(message):
@@ -252,7 +279,7 @@ def broadcast_msg(message):
             bot.reply_to(message, "⚠️ Usage: `/broadcast Your Message`", parse_mode="Markdown")
             return
         
-        users = load_users()
+        users = load_data(USERS_FILE)
         success, failed = 0, 0
         for uid in users:
             try:
@@ -276,7 +303,7 @@ def callback_listener(call):
 
     if call.data == "check_join":
         if is_user_joined(user_id):
-            bot.send_message(call.message.chat.id, "✅ Verification Successful! Welcome.", reply_markup=main_menu())
+            bot.send_message(call.message.chat.id, "✅ Verification Successful!", reply_markup=main_menu())
         else:
             bot.send_message(call.message.chat.id, "❌ Channel join nahi kiya hai!", reply_markup=force_join_menu())
         return
@@ -298,40 +325,57 @@ def callback_listener(call):
         safe_edit("📚 **BATCH STORE - Select Institute:**", batch_menu())
 
     elif call.data == "category_osint":
+        status = "🟢 VIP PREMIUM ACTIVE" if is_premium(user_id) else "🔴 FREE USER (Limited Access)"
         text = (
             "🛠️ **OSINT & LOOKUP TOOLS MENU** 🛠️\n\n"
-            "💰 **Status:** Active / Educational Mode\n"
-            "✅ Unlimited Lookups & Priority Access\n\n"
+            f"💰 **Your Status:** {status}\n\n"
             "👇 *Niche diye gaye tools par click karein:*"
         )
         safe_edit(text, osint_menu())
 
+    elif call.data == "buy_premium_info":
+        text = (
+            "💎 **BUY PREMIUM OSINT MEMBERSHIP** 💎\n\n"
+            "⚡ **Premium Access Benefits:**\n"
+            "✅ Unlimited High-Speed Lookups\n"
+            "✅ Priority Processing Servers\n"
+            "✅ Direct Admin VIP Support\n"
+            "✅ No Daily Limit\n\n"
+            f"💰 **Special Price:** Only ₹99 / Month!\n"
+            f"👇 Niche button par click karke Admin (@{ADMIN_USERNAME}) se baat karein."
+        )
+        safe_edit(text, buy_premium_menu())
+
     elif call.data == "osint_pincode":
-        text = "📍 **PINCODE LOOKUP TOOL**\n\nKaise use karein:\nBot ko message bhejein: `/pincode 843302`\n\n(Aapko Location, Post Office aur District Details mil jayengi!)"
+        text = "📍 **PINCODE LOOKUP TOOL**\n\nKaise use karein:\nBot ko message bhejein: `/pincode 843302`"
         safe_edit(text, back_to_osint())
 
     elif call.data == "osint_ifsc":
-        text = "🏦 **IFSC LOOKUP TOOL**\n\nKaise use karein:\nBot ko message bhejein: `/ifsc SBIN0001234`\n\n(Aapko Bank, Branch, Address details mil jayengi!)"
+        text = "bank 🏦 **IFSC LOOKUP TOOL**\n\nKaise use karein:\nBot ko message bhejein: `/ifsc SBIN0000001`"
         safe_edit(text, back_to_osint())
 
-    elif call.data == "osint_ip":
-        text = "🌐 **IP / DOMAIN LOOKUP TOOL**\n\nKaise use karein:\nBot ko message bhejein: `/ip 8.8.8.8`\n\n(Aapko Location, ISP & Country info milegi!)"
-        safe_edit(text, back_to_osint())
-
+    # --- SENSITIVE / PREMIUM LOOKUPS HOOK ---
     elif call.data.startswith("osint_"):
         tool_name = call.data.replace("osint_", "").upper()
-        text = (
-            f"🔐 **{tool_name} LOOKUP (PREMIUM FEATURE)**\n\n"
-            "⚠️ Ye feature sirf **Premium / Paid Users** ke liye unlocked hai.\n\n"
-            "✨ **Premium Benefits:**\n"
-            "✅ Unlimited High-Speed Lookups\n"
-            "✅ Priority Server Processing\n"
-            "✅ Direct Admin Support\n\n"
-            f"📩 Access lene ke liye Admin ko message karein: @{ADMIN_USERNAME}"
-        )
-        safe_edit(text, back_to_osint())
+        
+        if is_premium(user_id):
+            text = (
+                f"🌟 **{tool_name} LOOKUP (VIP ACTIVE)**\n\n"
+                f"Aapka VIP Access Active hai! Kripya query format mein bhejein ya Admin @{ADMIN_USERNAME} ko target details forward karein."
+            )
+            safe_edit(text, back_to_osint())
+        else:
+            text = (
+                f"🔐 **{tool_name} LOOKUP (PREMIUM FEATURE)**\n\n"
+                "⚠️ Ye feature sirf **Premium / VIP Users** ke liye unlocked hai!\n\n"
+                "✨ **Unlock Karne Ke Liye:**\n"
+                "1. Direct Admin ko message karke Premium plan lein.\n"
+                "2. Payment screenshot bhej kar 1-minute mein access activate karwayein.\n\n"
+                f"👉 **Your User ID:** `{user_id}` (Admin ko ye ID bhejein)"
+            )
+            safe_edit(text, buy_premium_menu())
 
-    # Batch Handlers
+    # Batch Store Handlers
     elif call.data == "inst_pw":
         text = f"📚 **PW BATCHES**\n\n• Arjuna / Lakshya / Yakeen (JEE/NEET/UPSC)\n💰 Price: ₹199 - ₹299 (80-90% OFF)\n\n📩 Buy: @{ADMIN_USERNAME}"
         safe_edit(text, back_to_batch())
@@ -370,5 +414,5 @@ def auto_reply(message):
 
 # Server Run
 keep_alive()
-print("🔥 Fixed OSINT + Batch Seller Bot Active! 🔥")
+print("🔥 Complete Commercial VIP Bot Active! 🔥")
 bot.infinity_polling()
