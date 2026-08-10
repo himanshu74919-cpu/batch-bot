@@ -187,42 +187,88 @@ def send_welcome(message):
     )
     bot.send_message(message.chat.id, welcome_text, parse_mode="Markdown", reply_markup=main_menu())
 
-# --- ADMIN COMMANDS ---
+# --- REAL WORKING UTILITY COMMANDS (BULLETPROOF) ---
 
-@bot.message_handler(commands=['addpremium'])
-def add_premium_user(message):
-    if message.from_user.username == ADMIN_USERNAME:
+@bot.message_handler(commands=['qr'])
+def make_qr(message):
+    try:
+        parts = message.text.split(maxsplit=1)
+        if len(parts) < 2:
+            bot.reply_to(message, "⚠️ Usage: `/qr https://t.me/batchseller321`", parse_mode="Markdown")
+            return
+        
+        # Clean special markdown characters
+        text = parts[1].strip().replace("[", "").replace("]", "").replace("(", "").replace(")", "")
+        qr_url = f"https://api.qrserver.com/v1/create-qr-code/?size=350x350&data={requests.utils.quote(text)}"
+        
         try:
-            target_id = int(message.text.split()[1].strip())
-            premiums = load_data(PREMIUM_FILE)
-            premiums.add(target_id)
-            save_data(PREMIUM_FILE, premiums)
-            bot.reply_to(message, f"✅ User `{target_id}` ko **PREMIUM VIP ACCESS** de diya gaya hai!", parse_mode="Markdown")
-            try:
-                bot.send_message(target_id, "🎉 **CONGRATULATIONS!**\nAapka **Premium Access** activate kar diya gaya hai!", parse_mode="Markdown")
-            except:
-                pass
+            bot.send_photo(message.chat.id, qr_url, caption=f"📱 **QR Code Generated!**\n\nData: {text}")
         except:
-            bot.reply_to(message, "⚠️ Usage: `/addpremium 123456789`")
-    else:
-        bot.reply_to(message, "❌ Ye command sirf Admin ke liye hai.")
+            bot.send_photo(message.chat.id, qr_url)
+    except Exception as e:
+        bot.reply_to(message, "❌ Error generating QR Code.")
 
-@bot.message_handler(commands=['delpremium'])
-def del_premium_user(message):
-    if message.from_user.username == ADMIN_USERNAME:
-        try:
-            target_id = int(message.text.split()[1].strip())
-            premiums = load_data(PREMIUM_FILE)
-            if target_id in premiums:
-                premiums.remove(target_id)
-                save_data(PREMIUM_FILE, premiums)
-                bot.reply_to(message, f"❌ User `{target_id}` ka Premium access hata diya gaya hai.", parse_mode="Markdown")
+@bot.message_handler(commands=['crypto'])
+def crypto_price(message):
+    try:
+        parts = message.text.split()
+        symbol = parts[1].strip().lower() if len(parts) > 1 else "bitcoin"
+        mapping = {"btc": "bitcoin", "eth": "ethereum", "sol": "solana", "usdt": "tether"}
+        coin = mapping.get(symbol, symbol)
+        
+        res = requests.get(f"https://api.coingecko.com/api/v3/simple/price?ids={coin}&vs_currencies=usd,inr", headers=HEADERS, timeout=8).json()
+        if coin in res:
+            usd = res[coin]['usd']
+            inr = res[coin]['inr']
+            bot.reply_to(message, f"🪙 **CRYPTO LIVE PRICE**\n\n• **Coin:** `{coin.upper()}`\n• **USD:** `${usd:,.2f}`\n• **INR:** `₹{inr:,.2f}`", parse_mode="Markdown")
+        else:
+            bot.reply_to(message, "❌ Coin nahi mila! Try: `/crypto btc`, `/crypto eth`", parse_mode="Markdown")
+    except:
+        bot.reply_to(message, "⚠️ Error fetching Crypto price.")
+
+@bot.message_handler(commands=['short'])
+def short_url(message):
+    try:
+        parts = message.text.split(maxsplit=1)
+        if len(parts) < 2:
+            bot.reply_to(message, "⚠️ Usage: `/short https://yourlink.com`", parse_mode="Markdown")
+            return
+        long_url = parts[1].strip().replace("[", "").replace("]", "").replace("(", "").replace(")", "")
+        res = requests.get(f"https://is.gd/create.php?format=json&url={requests.utils.quote(long_url)}", headers=HEADERS, timeout=8).json()
+        if "shorturl" in res:
+            bot.reply_to(message, f"🔗 **URL SHORTENED SUCCESSFULLY**\n\n• **Short Link:** `{res['shorturl']}`", parse_mode="Markdown")
+        else:
+            bot.reply_to(message, "❌ Link shorten nahi ho paaya.")
+    except:
+        bot.reply_to(message, "⚠️ Error shortening URL.")
+
+@bot.message_handler(commands=['github'])
+def github_user(message):
+    try:
+        parts = message.text.split()
+        if len(parts) < 2:
+            bot.reply_to(message, "⚠️ Usage: `/github username`", parse_mode="Markdown")
+            return
+        username = parts[1].strip()
+        res = requests.get(f"https://api.github.com/users/{username}", headers=HEADERS, timeout=8).json()
+        if "login" in res:
+            reply = (
+                f"💻 **GITHUB PROFILE**\n\n"
+                f"• **Name:** {res.get('name', 'N/A')}\n"
+                f"• **Username:** `{res.get('login')}`\n"
+                f"• **Public Repos:** {res.get('public_repos')}\n"
+                f"• **Followers:** {res.get('followers')} | **Following:** {res.get('following')}\n"
+                f"• **Profile:** {res.get('html_url')}"
+            )
+            avatar = res.get('avatar_url')
+            if avatar:
+                bot.send_photo(message.chat.id, avatar, caption=reply)
             else:
-                bot.reply_to(message, "⚠️ Ye user Premium list mein nahi hai.")
-        except:
-            bot.reply_to(message, "⚠️ Usage: `/delpremium 123456789`")
-
-# --- REAL WORKING UTILITY COMMANDS ---
+                bot.reply_to(message, reply, parse_mode="Markdown")
+        else:
+            bot.reply_to(message, "❌ GitHub user nahi mila!")
+    except:
+        bot.reply_to(message, "⚠️ Error fetching GitHub profile.")
 
 @bot.message_handler(commands=['pincode'])
 def pincode_lookup(message):
@@ -294,82 +340,6 @@ def ip_lookup(message):
     except:
         reply = "⚠️ Error fetching IP details."
     bot.reply_to(message, reply, parse_mode="Markdown")
-
-@bot.message_handler(commands=['qr'])
-def make_qr(message):
-    try:
-        parts = message.text.split(maxsplit=1)
-        if len(parts) < 2:
-            bot.reply_to(message, "⚠️ Usage: `/qr https://t.me/batchseller321`", parse_mode="Markdown")
-            return
-        text = parts[1].strip()
-        qr_url = f"https://api.qrserver.com/v1/create-qr-code/?size=350x350&data={requests.utils.quote(text)}"
-        bot.send_photo(message.chat.id, qr_url, caption=f"📱 **QR Code Generated!**\n\nData: `{text}`", parse_mode="Markdown")
-    except:
-        bot.reply_to(message, "❌ Error generating QR Code.")
-
-@bot.message_handler(commands=['short'])
-def short_url(message):
-    try:
-        parts = message.text.split(maxsplit=1)
-        if len(parts) < 2:
-            bot.reply_to(message, "⚠️ Usage: `/short https://yourlink.com`", parse_mode="Markdown")
-            return
-        long_url = parts[1].strip()
-        res = requests.get(f"https://is.gd/create.php?format=json&url={requests.utils.quote(long_url)}", headers=HEADERS, timeout=8).json()
-        if "shorturl" in res:
-            bot.reply_to(message, f"🔗 **URL SHORTENED SUCCESSFULLY**\n\n• **Short Link:** `{res['shorturl']}`", parse_mode="Markdown")
-        else:
-            bot.reply_to(message, "❌ Link shorten nahi ho paaya.")
-    except:
-        bot.reply_to(message, "⚠️ Error shortening URL.")
-
-@bot.message_handler(commands=['github'])
-def github_user(message):
-    try:
-        parts = message.text.split()
-        if len(parts) < 2:
-            bot.reply_to(message, "⚠️ Usage: `/github username`", parse_mode="Markdown")
-            return
-        username = parts[1].strip()
-        res = requests.get(f"https://api.github.com/users/{username}", headers=HEADERS, timeout=8).json()
-        if "login" in res:
-            reply = (
-                f"💻 **GITHUB PROFILE**\n\n"
-                f"• **Name:** {res.get('name', 'N/A')}\n"
-                f"• **Username:** `{res.get('login')}`\n"
-                f"• **Public Repos:** {res.get('public_repos')}\n"
-                f"• **Followers:** {res.get('followers')} | **Following:** {res.get('following')}\n"
-                f"• **Bio:** {res.get('bio', 'None')}\n"
-                f"• **Profile:** {res.get('html_url')}"
-            )
-            avatar = res.get('avatar_url')
-            if avatar:
-                bot.send_photo(message.chat.id, avatar, caption=reply, parse_mode="Markdown")
-            else:
-                bot.reply_to(message, reply, parse_mode="Markdown")
-        else:
-            bot.reply_to(message, "❌ GitHub user nahi mila!")
-    except:
-        bot.reply_to(message, "⚠️ Error fetching GitHub profile.")
-
-@bot.message_handler(commands=['crypto'])
-def crypto_price(message):
-    try:
-        parts = message.text.split()
-        symbol = parts[1].strip().lower() if len(parts) > 1 else "bitcoin"
-        mapping = {"btc": "bitcoin", "eth": "ethereum", "sol": "solana", "usdt": "tether"}
-        coin = mapping.get(symbol, symbol)
-        
-        res = requests.get(f"https://api.coingecko.com/api/v3/simple/price?ids={coin}&vs_currencies=usd,inr", headers=HEADERS, timeout=8).json()
-        if coin in res:
-            usd = res[coin]['usd']
-            inr = res[coin]['inr']
-            bot.reply_to(message, f"🪙 **CRYPTO LIVE PRICE**\n\n• **Coin:** `{coin.upper()}`\n• **USD:** `${usd:,.2f}`\n• **INR:** `₹{inr:,.2f}`", parse_mode="Markdown")
-        else:
-            bot.reply_to(message, "❌ Coin nahi mila! Try: `/crypto btc`, `/crypto eth`, `/crypto sol`", parse_mode="Markdown")
-    except:
-        bot.reply_to(message, "⚠️ Error fetching Crypto price.")
 
 @bot.message_handler(commands=['stats'])
 def bot_stats(message):
@@ -454,7 +424,7 @@ def callback_listener(call):
         safe_edit("🌐 **IP LOOKUP TOOL**\n\nCommand: `/ip 8.8.8.8`", back_to_tools())
 
     elif call.data == "tool_qr":
-        safe_edit("📱 **QR GENERATOR**\n\nCommand: `/qr Hello World` ya `/qr https://t.me/batchseller321`", back_to_tools())
+        safe_edit("📱 **QR GENERATOR**\n\nCommand: `/qr https://t.me/batchseller321`", back_to_tools())
 
     elif call.data == "tool_short":
         safe_edit("🔗 **URL SHORTENER**\n\nCommand: `/short https://yourlink.com`", back_to_tools())
@@ -463,7 +433,7 @@ def callback_listener(call):
         safe_edit("💻 **GITHUB LOOKUP**\n\nCommand: `/github torvalds`", back_to_tools())
 
     elif call.data == "tool_crypto":
-        safe_edit("🪙 **CRYPTO RATES**\n\nCommand: `/crypto btc` ya `/crypto eth` ya `/crypto sol`", back_to_tools())
+        safe_edit("🪙 **CRYPTO RATES**\n\nCommand: `/crypto btc` ya `/crypto eth`", back_to_tools())
 
     elif call.data == "buy_premium_info":
         text = (
@@ -520,5 +490,5 @@ def auto_reply(message):
 
 # Server Run
 keep_alive()
-print("🔥 Ultimate All-In-One Bot Active! 🔥")
+print("🔥 Fixed & Cleaned Bot Active! 🔥")
 bot.infinity_polling()
