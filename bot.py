@@ -1,5 +1,6 @@
 import os
 import json
+import time
 import telebot
 import requests
 from telebot import types
@@ -16,7 +17,7 @@ app = Flask('')
 
 @app.route('/')
 def home():
-    return "Bot 24/7 Active!"
+    return "Bot 24/7 Active & Running!"
 
 def run():
     port = int(os.environ.get("PORT", 8080))
@@ -24,9 +25,10 @@ def run():
 
 def keep_alive():
     t = Thread(target=run)
+    t.daemon = True
     t.start()
 
-bot = telebot.TeleBot(TOKEN)
+bot = telebot.TeleBot(TOKEN, parse_mode=None)
 HEADERS = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
 
 # --- DATABASES ---
@@ -36,28 +38,35 @@ PREMIUM_FILE = "premium_users.json"
 def load_data(file_path):
     if os.path.exists(file_path):
         try:
-            with open(file_path, "r") as f:
+            with open(file_path, "r", encoding="utf-8") as f:
                 return set(json.load(f))
-        except:
+        except Exception as e:
+            print(f"Error loading {file_path}: {e}")
             return set()
     return set()
 
 def save_data(file_path, data_set):
     try:
-        with open(file_path, "w") as f:
+        with open(file_path, "w", encoding="utf-8") as f:
             json.dump(list(data_set), f)
     except Exception as e:
         print(f"Error saving {file_path}: {e}")
 
 def save_user(user_id):
-    users = load_data(USERS_FILE)
-    if user_id not in users:
-        users.add(user_id)
-        save_data(USERS_FILE, users)
+    try:
+        users = load_data(USERS_FILE)
+        if user_id not in users:
+            users.add(user_id)
+            save_data(USERS_FILE, users)
+    except Exception as e:
+        print(f"User Save Error: {e}")
 
 def is_premium(user_id):
-    premiums = load_data(PREMIUM_FILE)
-    return user_id in premiums
+    try:
+        premiums = load_data(PREMIUM_FILE)
+        return user_id in premiums
+    except:
+        return False
 
 def is_user_joined(user_id):
     try:
@@ -70,20 +79,21 @@ def is_user_joined(user_id):
         return True
 
 # --- SET TELEGRAM MENU COMMANDS ---
-try:
-    bot.set_my_commands([
-        telebot.types.BotCommand("start", "🔄 Main Menu & Batches Ad"),
-        telebot.types.BotCommand("pincode", "📍 Search Pincode Details"),
-        telebot.types.BotCommand("ifsc", "🏦 Search Bank IFSC Details"),
-        telebot.types.BotCommand("qr", "📱 Generate Custom QR Code"),
-        telebot.types.BotCommand("short", "🔗 Shorten Long URL Link"),
-        telebot.types.BotCommand("crypto", "🪙 Check Live Crypto Prices"),
-        telebot.types.BotCommand("ip", "🌐 IP Address Geo-Lookup"),
-        telebot.types.BotCommand("scan", "🛡️ Scan URL Safety"),
-        telebot.types.BotCommand("github", "💻 Lookup GitHub User Profile")
-    ])
-except Exception as e:
-    print(f"Error setting bot commands: {e}")
+def setup_commands():
+    try:
+        bot.set_my_commands([
+            telebot.types.BotCommand("start", "🔄 Main Menu & Batches Ad"),
+            telebot.types.BotCommand("pincode", "📍 Search Pincode Details"),
+            telebot.types.BotCommand("ifsc", "🏦 Search Bank IFSC Details"),
+            telebot.types.BotCommand("qr", "📱 Generate Custom QR Code"),
+            telebot.types.BotCommand("short", "🔗 Shorten Long URL Link"),
+            telebot.types.BotCommand("crypto", "🪙 Check Live Crypto Prices"),
+            telebot.types.BotCommand("ip", "🌐 IP Address Geo-Lookup"),
+            telebot.types.BotCommand("scan", "🛡️ Scan URL Safety"),
+            telebot.types.BotCommand("github", "💻 Lookup GitHub User Profile")
+        ])
+    except Exception as e:
+        print(f"Error setting bot commands: {e}")
 
 # --- KEYBOARDS ---
 def force_join_menu():
@@ -93,7 +103,6 @@ def force_join_menu():
     markup.add(btn1, btn2)
     return markup
 
-# 👉 SPLIT BOTTOM KEYBOARD (AI Button Hatakar Sirf Tools Rakhe Gaye Hain)
 def split_bottom_keyboard():
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     btn_batches = types.KeyboardButton("📚 AVAILABLE BATCHES")
@@ -120,61 +129,64 @@ def admin_buy_button():
 # --- COMMAND HANDLERS ---
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
-    user_id = message.from_user.id
-    save_user(user_id)
-    
-    if not is_user_joined(user_id):
-        join_text = (
-            "⚠️ **MUST JOIN CHANNEL FIRST** ⚠️\n\n"
-            "Bot ka upyog karne ke liye aapko hamare Official Telegram Channel ko join karna zaroori hai.\n\n"
-            "👇 Niche button par click karke channel join karein aur **'Joined! Continue'** dabayein."
-        )
-        bot.send_message(message.chat.id, join_text, parse_mode="Markdown", reply_markup=force_join_menu())
-        return
+    try:
+        user_id = message.from_user.id
+        save_user(user_id)
+        
+        if not is_user_joined(user_id):
+            join_text = (
+                "⚠️ **MUST JOIN CHANNEL FIRST** ⚠️\n\n"
+                "Bot ka upyog karne ke liye aapko hamare Official Telegram Channel ko join karna zaroori hai.\n\n"
+                "👇 Niche button par click karke channel join karein aur **'Joined! Continue'** dabayein."
+            )
+            bot.send_message(message.chat.id, join_text, parse_mode="Markdown", reply_markup=force_join_menu())
+            return
 
-    ad_text = (
-        "🔥 **ALL PREMIUM EDUCATIONAL BATCHES AT ULTRA LOW PRICE** 🔥\n\n"
-        "✨ **Humari Services & Features:**\n"
-        "• 🎓 **Physics Wallah (PW):** Lakshya, Arjuna, Yakeen, Udaan, Prayas Batches\n"
-        "• 🎯 **Nxt Topper:** Complete Topper Special Course\n"
-        "• 📚 **UnAcademy:** Complete Subscription Batches\n"
-        "• 📖 **GyanBindu GS:** Special GS / Competitive Exam Batches\n"
-        "• ⚡ **CareerWill:** Rakesh Yadav & Top Educator Batches\n\n"
-        "⭐ **Kyun Humse BATCH Lein?**\n"
-        "✅ Direct Official Class Access / Google Drive Links\n"
-        "✅ 100% Full Course Guarantee & Regular Updates\n"
-        "✅ Ultra Low Price (Market Se 80% Cheap)\n\n"
-        "👇 **Batch Kharidne Ke Liye Niche Admin Se Direct Baat Karein:**"
-    )
-    
-    bot.send_message(message.chat.id, ad_text, parse_mode="Markdown", reply_markup=split_bottom_keyboard())
-    bot.send_message(message.chat.id, "👇 **Contact Support:**", reply_markup=admin_buy_button())
+        ad_text = (
+            "🔥 **ALL PREMIUM EDUCATIONAL BATCHES AT ULTRA LOW PRICE** 🔥\n\n"
+            "✨ **Humari Services & Features:**\n"
+            "• 🎓 **Physics Wallah (PW):** Lakshya, Arjuna, Yakeen, Udaan, Prayas Batches\n"
+            "• 🎯 **Nxt Topper:** Complete Topper Special Course\n"
+            "• 📚 **UnAcademy:** Complete Subscription Batches\n"
+            "• 📖 **GyanBindu GS:** Special GS / Competitive Exam Batches\n"
+            "• ⚡ **CareerWill:** Rakesh Yadav & Top Educator Batches\n\n"
+            "⭐ **Kyun Humse BATCH Lein?**\n"
+            "✅ Direct Official Class Access / Google Drive Links\n"
+            "✅ 100% Full Course Guarantee & Regular Updates\n"
+            "✅ Ultra Low Price (Market Se 80% Cheap)\n\n"
+            "👇 **Batch Kharidne Ke Liye Niche Admin Se Direct Baat Karein:**"
+        )
+        
+        bot.send_message(message.chat.id, ad_text, parse_mode="Markdown", reply_markup=split_bottom_keyboard())
+        bot.send_message(message.chat.id, "👇 **Contact Support:**", reply_markup=admin_buy_button())
+    except Exception as e:
+        print(f"Error in start command: {e}")
 
 # --- ADMIN COMMANDS ---
 @bot.message_handler(commands=['addpremium'])
 def add_premium_user(message):
-    if message.from_user.username == ADMIN_USERNAME:
-        try:
+    try:
+        if message.from_user.username == ADMIN_USERNAME:
             target_id = int(message.text.split()[1].strip())
             premiums = load_data(PREMIUM_FILE)
             premiums.add(target_id)
             save_data(PREMIUM_FILE, premiums)
             bot.reply_to(message, f"✅ User `{target_id}` ko **PREMIUM VIP ACCESS** de diya gaya hai!", parse_mode="Markdown")
-        except:
-            bot.reply_to(message, "⚠️ Usage: `/addpremium 123456789`")
+    except Exception as e:
+        bot.reply_to(message, "⚠️ Usage: `/addpremium 123456789`")
 
 @bot.message_handler(commands=['delpremium'])
 def del_premium_user(message):
-    if message.from_user.username == ADMIN_USERNAME:
-        try:
+    try:
+        if message.from_user.username == ADMIN_USERNAME:
             target_id = int(message.text.split()[1].strip())
             premiums = load_data(PREMIUM_FILE)
             if target_id in premiums:
                 premiums.remove(target_id)
                 save_data(PREMIUM_FILE, premiums)
                 bot.reply_to(message, f"❌ User `{target_id}` ka Premium access hata diya gaya hai.", parse_mode="Markdown")
-        except:
-            bot.reply_to(message, "⚠️ Usage: `/delpremium 123456789`")
+    except Exception as e:
+        bot.reply_to(message, "⚠️ Usage: `/delpremium 123456789`")
 
 # --- UTILITY COMMANDS ---
 @bot.message_handler(commands=['qr'])
@@ -187,7 +199,7 @@ def make_qr(message):
         text = parts[1].strip()
         qr_url = f"https://api.qrserver.com/v1/create-qr-code/?size=350x350&data={requests.utils.quote(text)}"
         bot.send_photo(message.chat.id, qr_url, caption=f"📱 **QR Code Generated!**\n\nData: {text}")
-    except:
+    except Exception as e:
         bot.reply_to(message, "❌ Error generating QR Code.")
 
 @bot.message_handler(commands=['scan'])
@@ -207,7 +219,7 @@ def scan_website(message):
         else:
             result_text = f"✅ **SAFE WEBSITE**\n• URL: `{url}`\n• Status: Clean / No threats found."
         bot.reply_to(message, result_text, parse_mode="Markdown")
-    except:
+    except Exception as e:
         bot.reply_to(message, "⚠️ Error scanning website.")
 
 @bot.message_handler(commands=['crypto'])
@@ -222,7 +234,7 @@ def crypto_price(message):
             bot.reply_to(message, f"🪙 **CRYPTO PRICE**\n• Coin: `{coin.upper()}`\n• USD: `${res[coin]['usd']}`\n• INR: `₹{res[coin]['inr']}`", parse_mode="Markdown")
         else:
             bot.reply_to(message, "❌ Coin nahi mila! Try: `/crypto btc`")
-    except:
+    except Exception as e:
         bot.reply_to(message, "⚠️ Error fetching crypto price.")
 
 @bot.message_handler(commands=['short'])
@@ -237,7 +249,7 @@ def short_url(message):
             bot.reply_to(message, f"🔗 **SHORT URL:** `{res['shorturl']}`", parse_mode="Markdown")
         else:
             bot.reply_to(message, "❌ Link shorten nahi ho paaya.")
-    except:
+    except Exception as e:
         bot.reply_to(message, "⚠️ Error.")
 
 @bot.message_handler(commands=['github'])
@@ -253,7 +265,7 @@ def github_user(message):
             bot.reply_to(message, reply, parse_mode="Markdown")
         else:
             bot.reply_to(message, "❌ GitHub user nahi mila!")
-    except:
+    except Exception as e:
         bot.reply_to(message, "⚠️ Error.")
 
 @bot.message_handler(commands=['pincode'])
@@ -266,7 +278,7 @@ def pincode_lookup(message):
             bot.reply_to(message, f"📍 **PINCODE:** `{code}`\n• Office: {p.get('Name')}\n• District: {p.get('District')}\n• State: {p.get('State')}", parse_mode="Markdown")
         else:
             bot.reply_to(message, "❌ Pincode nahi mila!")
-    except:
+    except Exception as e:
         bot.reply_to(message, "⚠️ Usage: `/pincode 843302`")
 
 @bot.message_handler(commands=['ifsc'])
@@ -278,7 +290,7 @@ def ifsc_lookup(message):
             bot.reply_to(message, f"🏦 **IFSC:** {res.get('BANK')}\n• Branch: {res.get('BRANCH')}\n• City: {res.get('CITY')}", parse_mode="Markdown")
         else:
             bot.reply_to(message, "❌ Invalid IFSC code!")
-    except:
+    except Exception as e:
         bot.reply_to(message, "⚠️ Usage: `/ifsc SBIN0000001`")
 
 @bot.message_handler(commands=['ip'])
@@ -290,75 +302,90 @@ def ip_lookup(message):
             bot.reply_to(message, f"🌐 **IP:** `{ip}`\n• Country: {res.get('country')}\n• City: {res.get('city')}\n• ISP: {res.get('isp')}", parse_mode="Markdown")
         else:
             bot.reply_to(message, "❌ Invalid IP!")
-    except:
+    except Exception as e:
         bot.reply_to(message, "⚠️ Usage: `/ip 8.8.8.8`")
 
 # --- CALLBACK QUERY HANDLERS ---
 @bot.callback_query_handler(func=lambda call: True)
 def callback_listener(call):
-    user_id = call.from_user.id
     try:
-        bot.answer_callback_query(call.id)
-    except:
-        pass
+        user_id = call.from_user.id
+        try:
+            bot.answer_callback_query(call.id)
+        except:
+            pass
 
-    if call.data == "check_join":
-        if is_user_joined(user_id):
-            bot.send_message(call.message.chat.id, "✅ Verification Successful!", reply_markup=split_bottom_keyboard())
-            send_welcome(call.message)
-        else:
-            bot.send_message(call.message.chat.id, "❌ Channel join nahi kiya hai!", reply_markup=force_join_menu())
+        if call.data == "check_join":
+            if is_user_joined(user_id):
+                bot.send_message(call.message.chat.id, "✅ Verification Successful!", reply_markup=split_bottom_keyboard())
+                send_welcome(call.message)
+            else:
+                bot.send_message(call.message.chat.id, "❌ Channel join nahi kiya hai!", reply_markup=force_join_menu())
+    except Exception as e:
+        print(f"Callback Error: {e}")
 
 # --- TEXT MESSAGE HANDLER ---
 @bot.message_handler(func=lambda message: True)
 def auto_reply_handler(message):
-    user_id = message.from_user.id
-    save_user(user_id)
-    text = message.text
-    
-    if not is_user_joined(user_id):
-        bot.reply_to(message, "⚠️ Bot use karne ke liye pehle channel join karein!", reply_markup=force_join_menu())
-        return
+    try:
+        user_id = message.from_user.id
+        save_user(user_id)
+        text = message.text
+        
+        if not is_user_joined(user_id):
+            bot.reply_to(message, "⚠️ Bot use karne ke liye pehle channel join karein!", reply_markup=force_join_menu())
+            return
 
-    # Button Clicks Response
-    if text in ["📚 AVAILABLE BATCHES", "/start"]:
-        send_welcome(message)
-        return
-    elif text == "💬 CONTACT ADMIN TO BUY":
-        bot.reply_to(message, f"💬 **Admin DM:** @{ADMIN_USERNAME}\nDirect Batch lene ke liye message karein!", reply_markup=admin_buy_button())
-        return
-    elif text == "📍 PINCODE LOOKUP":
-        bot.reply_to(message, "📍 Usage format: `/pincode 843302`", parse_mode="Markdown")
-        return
-    elif text == "🏦 IFSC LOOKUP":
-        bot.reply_to(message, "🏦 Usage format: `/ifsc SBIN0000001`", parse_mode="Markdown")
-        return
-    elif text == "📱 QR GENERATOR":
-        bot.reply_to(message, "📱 Usage format: `/qr https://t.me/batchseller321`", parse_mode="Markdown")
-        return
-    elif text == "🔗 URL SHORTENER":
-        bot.reply_to(message, "🔗 Usage format: `/short https://yourlink.com`", parse_mode="Markdown")
-        return
-    elif text == "🌐 IP LOOKUP":
-        bot.reply_to(message, "🌐 Usage format: `/ip 8.8.8.8`", parse_mode="Markdown")
-        return
-    elif text == "🪙 CRYPTO RATES":
-        bot.reply_to(message, "🪙 Usage format: `/crypto btc`", parse_mode="Markdown")
-        return
-    elif text == "💻 GITHUB LOOKUP":
-        bot.reply_to(message, "💻 Usage format: `/github username`", parse_mode="Markdown")
-        return
-    elif text == "🛡️ SCAN WEBSITE":
-        bot.reply_to(message, "🛡️ Usage format: `/scan https://example.com`", parse_mode="Markdown")
-        return
-    elif text == "🔍 OSINT VIP LOOKUPS":
-        status = "🟢 VIP PREMIUM ACTIVE" if is_premium(user_id) else "🔴 FREE USER (Limited)"
-        bot.reply_to(message, f"🔍 **OSINT LOOKUPS STATUS:** {status}\n\nDetails ke liye Admin @{ADMIN_USERNAME} ko DM karein.")
-        return
-    else:
-        bot.reply_to(message, f"🤖 Main menu ke liye `/start` dabayein ya niche diye gaye buttons ka use karein.", parse_mode="Markdown")
+        if text in ["📚 AVAILABLE BATCHES", "/start"]:
+            send_welcome(message)
+            return
+        elif text == "💬 CONTACT ADMIN TO BUY":
+            bot.reply_to(message, f"💬 **Admin DM:** @{ADMIN_USERNAME}\nDirect Batch lene ke liye message karein!", reply_markup=admin_buy_button())
+            return
+        elif text == "📍 PINCODE LOOKUP":
+            bot.reply_to(message, "📍 Usage format: `/pincode 843302`", parse_mode="Markdown")
+            return
+        elif text == "🏦 IFSC LOOKUP":
+            bot.reply_to(message, "🏦 Usage format: `/ifsc SBIN0000001`", parse_mode="Markdown")
+            return
+        elif text == "📱 QR GENERATOR":
+            bot.reply_to(message, "📱 Usage format: `/qr https://t.me/batchseller321`", parse_mode="Markdown")
+            return
+        elif text == "🔗 URL SHORTENER":
+            bot.reply_to(message, "🔗 Usage format: `/short https://yourlink.com`", parse_mode="Markdown")
+            return
+        elif text == "🌐 IP LOOKUP":
+            bot.reply_to(message, "🌐 Usage format: `/ip 8.8.8.8`", parse_mode="Markdown")
+            return
+        elif text == "🪙 CRYPTO RATES":
+            bot.reply_to(message, "🪙 Usage format: `/crypto btc`", parse_mode="Markdown")
+            return
+        elif text == "💻 GITHUB LOOKUP":
+            bot.reply_to(message, "💻 Usage format: `/github username`", parse_mode="Markdown")
+            return
+        elif text == "🛡️ SCAN WEBSITE":
+            bot.reply_to(message, "🛡️ Usage format: `/scan https://example.com`", parse_mode="Markdown")
+            return
+        elif text == "🔍 OSINT VIP LOOKUPS":
+            status = "🟢 VIP PREMIUM ACTIVE" if is_premium(user_id) else "🔴 FREE USER (Limited)"
+            bot.reply_to(message, f"🔍 **OSINT LOOKUPS STATUS:** {status}\n\nDetails ke liye Admin @{ADMIN_USERNAME} ko DM karein.")
+            return
+        else:
+            bot.reply_to(message, f"🤖 Main menu ke liye `/start` dabayein ya niche diye gaye buttons ka use karein.", parse_mode="Markdown")
+    except Exception as e:
+        print(f"Message Handler Error: {e}")
 
-# Server Run & Polling
+# --- START SERVER & UNBREAKABLE AUTO-RESTART POLLING LOOP ---
 keep_alive()
-print("🔥 Batch Seller Bot Active Successfully! 🔥")
-bot.infinity_polling()
+setup_commands()
+
+print("🔥 Bulletproof Batch Seller Bot Active & Polling Started! 🔥")
+
+# Master Polling Loop with Auto-Recovery
+while True:
+    try:
+        bot.infinity_polling(timeout=10, long_polling_timeout=5)
+    except Exception as e:
+        print(f"⚠️ Polling Exception Caught: {e}")
+        time.sleep(3)  # Wait 3 seconds and restart polling automatically
+
