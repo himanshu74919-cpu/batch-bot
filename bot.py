@@ -90,12 +90,39 @@ def is_user_joined(user_id):
         print(f"Error checking join status: {e}")
         return True
 
+# --- SET TELEGRAM MENU COMMANDS (Bottom-left Menu Button) ---
+try:
+    bot.set_my_commands([
+        telebot.types.BotCommand("start", "🔄 Open Main Menu"),
+        telebot.types.BotCommand("pincode", "📍 Search Pincode (e.g. /pincode 843302)"),
+        telebot.types.BotCommand("ifsc", "🏦 Search IFSC (e.g. /ifsc SBIN0000001)"),
+        telebot.types.BotCommand("qr", "📱 Generate QR Code"),
+        telebot.types.BotCommand("short", "🔗 Shorten Long URL"),
+        telebot.types.BotCommand("crypto", "🪙 Check Crypto Prices"),
+        telebot.types.BotCommand("ip", "🌐 IP Address Lookup"),
+        telebot.types.BotCommand("scan", "🛡️ Scan Website Safety"),
+        telebot.types.BotCommand("github", "💻 Lookup GitHub Profile")
+    ])
+except Exception as e:
+    print(f"Error setting bot commands: {e}")
+
 # --- KEYBOARDS ---
 def force_join_menu():
     markup = types.InlineKeyboardMarkup(row_width=1)
     btn1 = types.InlineKeyboardButton("📢 Join Telegram Channel", url=f"https://t.me/{CHANNEL_USERNAME}")
     btn2 = types.InlineKeyboardButton("✅ Joined! Continue", callback_data="check_join")
     markup.add(btn1, btn2)
+    return markup
+
+# 👉 BOTTOM PERSISTENT KEYBOARD (Typing Area Ke Niche Rahne Wala Button Bar)
+def bottom_persistent_menu():
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+    btn1 = types.KeyboardButton("🤖 ASK GEMINI AI")
+    btn2 = types.KeyboardButton("📚 BATCH STORE")
+    btn3 = types.KeyboardButton("🛠️ FREE TOOLS")
+    btn4 = types.KeyboardButton("🔍 OSINT LOOKUP")
+    btn5 = types.KeyboardButton("💬 CONTACT ADMIN")
+    markup.add(btn1, btn2, btn3, btn4, btn5)
     return markup
 
 def main_menu():
@@ -188,9 +215,11 @@ def send_welcome(message):
     welcome_text = (
         "🔥 **WELCOME TO MULTI-SERVICE AI BOT** 🔥\n\n"
         "Aap yahan **Google Gemini AI** se kuch bhi pooch sakte hain, **Batches**, **Free Utility Tools**, aur **OSINT Lookups** access kar sakte hain!\n\n"
-        "👇 *Kripya apni zaroorat ke hisab se category chuniye ya seedhe message bhejiye:*"
+        "👇 *Niche diye gaye Quick Menu buttons se direct navigate karein:*"
     )
-    bot.send_message(message.chat.id, welcome_text, parse_mode="Markdown", reply_markup=main_menu())
+    # Inline Menu + Bottom Reply Keyboard
+    bot.send_message(message.chat.id, welcome_text, parse_mode="Markdown", reply_markup=bottom_persistent_menu())
+    bot.send_message(message.chat.id, "👇 **Select Category:**", reply_markup=main_menu())
 
 # --- ADMIN COMMANDS ---
 @bot.message_handler(commands=['addpremium'])
@@ -356,7 +385,8 @@ def callback_listener(call):
 
     if call.data == "check_join":
         if is_user_joined(user_id):
-            bot.send_message(call.message.chat.id, "✅ Verification Successful!", reply_markup=main_menu())
+            bot.send_message(call.message.chat.id, "✅ Verification Successful!", reply_markup=bottom_persistent_menu())
+            bot.send_message(call.message.chat.id, "👇 *Main Menu:*", reply_markup=main_menu())
         else:
             bot.send_message(call.message.chat.id, "❌ Channel join nahi kiya hai!", reply_markup=force_join_menu())
         return
@@ -418,24 +448,42 @@ def callback_listener(call):
 def auto_reply_handler(message):
     user_id = message.from_user.id
     save_user(user_id)
+    text = message.text
     
     if not is_user_joined(user_id):
         bot.reply_to(message, "⚠️ Bot use karne ke liye pehle channel join karein!", reply_markup=force_join_menu())
         return
 
-    # Agar Gemini AI Active hai
+    # Bottom Keyboard Clicks Response
+    if text == "🤖 ASK GEMINI AI":
+        bot.reply_to(message, "🤖 **Gemini AI Active!** Mujhe apna koi bhi sawal bhejien.", reply_markup=bottom_persistent_menu())
+        return
+    elif text == "📚 BATCH STORE":
+        bot.reply_to(message, "📚 **BATCH STORE:**", reply_markup=batch_menu())
+        return
+    elif text == "🛠️ FREE TOOLS":
+        bot.reply_to(message, "🛠️ **FREE PUBLIC TOOLS:**", reply_markup=public_tools_menu())
+        return
+    elif text == "🔍 OSINT LOOKUP":
+        status = "🟢 VIP PREMIUM ACTIVE" if is_premium(user_id) else "🔴 FREE USER (Limited)"
+        bot.reply_to(message, f"🔍 **OSINT LOOKUPS** ({status}):", reply_markup=osint_menu())
+        return
+    elif text == "💬 CONTACT ADMIN":
+        bot.reply_to(message, f"💬 Admin se baat karne ke liye click karein: @{ADMIN_USERNAME}")
+        return
+
+    # Normal Gemini AI Reply
     if ai_model:
         try:
             bot.send_chat_action(message.chat.id, 'typing')
-            response = ai_model.generate_content(message.text)
+            response = ai_model.generate_content(text)
             bot.reply_to(message, response.text, parse_mode="Markdown")
             return
         except Exception as e:
             print(f"Gemini Error: {e}")
-            bot.reply_to(message, "🤖 **AI Response Error:** Gemini key invalid ya expired hai. Baaki bot features working hain!")
+            bot.reply_to(message, "🤖 **AI Response Error:** Gemini AI busy hai. Kripya thodi der baad try karein.")
             return
 
-    # Fallback agar AI active na ho
     bot.reply_to(message, f"🤖 Details ke liye `/start` dabayein ya Admin @{ADMIN_USERNAME} ko contact karein.", parse_mode="Markdown")
 
 # Server Run & Polling
