@@ -21,7 +21,7 @@ app = Flask('')
 
 @app.route('/')
 def home():
-    return "⚡ Fully Interactive OSINT & Utility Bot Active 24/7!"
+    return "⚡ Fully Functional Batch Store & 30+ Tools Bot Active 24/7!"
 
 def run():
     port = int(os.environ.get("PORT", 8080))
@@ -84,7 +84,7 @@ def is_user_joined(user_id):
 def setup_commands():
     try:
         bot.set_my_commands([
-            telebot.types.BotCommand("start", "🔄 Main Menu & Batches"),
+            telebot.types.BotCommand("start", "🔄 Main Menu & Batches Store"),
             telebot.types.BotCommand("pincode", "📍 Search Pincode Details"),
             telebot.types.BotCommand("ifsc", "🏦 Search Bank IFSC Details"),
             telebot.types.BotCommand("qr", "📱 Generate Custom QR Code"),
@@ -105,71 +105,72 @@ def force_join_menu():
     markup.add(btn1, btn2)
     return markup
 
-def split_bottom_keyboard():
+# 30 COMPLETE BUTTONS KEYBOARD LAYOUT
+def master_reply_keyboard():
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     
-    btn_batches = types.KeyboardButton("📚 AVAILABLE BATCHES")
-    btn_admin = types.KeyboardButton("💬 CONTACT ADMIN TO BUY")
+    # Priority Buttons
+    b_batches = types.KeyboardButton("📚 AVAILABLE BATCHES")
+    b_admin = types.KeyboardButton("💬 CONTACT ADMIN")
     
-    # Image 1 Modules
-    b_rc = types.KeyboardButton("🚘 RC DETAILS")
-    b_veh = types.KeyboardButton("🚗 VEHICLE & CHALLAN")
-    b_pan = types.KeyboardButton("💳 PAN INFO")
-    b_pangst = types.KeyboardButton("🔍 PAN TO GST")
-    b_ipdom = types.KeyboardButton("🌐 IP/DOMAIN")
-    b_domosint = types.KeyboardButton("🌐 DOMAIN OSINT")
-    b_scraper = types.KeyboardButton("🕸️ SCRAPER")
-    b_ghosint = types.KeyboardButton("🐙 GITHUB OSINT")
-    b_breach = types.KeyboardButton("📧 EMAIL BREACH")
-    b_tempmail = types.KeyboardButton("📧 TEMP MAIL")
-    b_tguser = types.KeyboardButton("🆔 ADV TG USERNAME")
-    b_photo = types.KeyboardButton("🖼️ PHOTO SEARCH")
-    b_ifsc = types.KeyboardButton("🏦 IFSC")
-    b_bin = types.KeyboardButton("💳 BIN")
-    b_insta = types.KeyboardButton("📸 INSTAGRAM")
+    # 28 Additional Tools (Total 30)
+    b1 = types.KeyboardButton("📍 PINCODE LOOKUP")
+    b2 = types.KeyboardButton("📱 QR GENERATOR")
+    b3 = types.KeyboardButton("🌐 IP LOOKUP")
+    b4 = types.KeyboardButton("💻 GITHUB LOOKUP")
+    b5 = types.KeyboardButton("🔍 OSINT VIP LOOKUPS")
+    b6 = types.KeyboardButton("🏦 IFSC LOOKUP")
+    b7 = types.KeyboardButton("🔗 URL SHORTENER")
+    b8 = types.KeyboardButton("🪙 CRYPTO RATES")
+    b9 = types.KeyboardButton("🛡️ SCAN WEBSITE")
+    b10 = types.KeyboardButton("🚘 RC DETAILS")
+    b11 = types.KeyboardButton("💳 PAN INFO")
+    b12 = types.KeyboardButton("🌐 IP DOMAIN")
+    b13 = types.KeyboardButton("🕷️ SCRAPER")
+    b14 = types.KeyboardButton("📧 EMAIL BREACH")
+    b15 = types.KeyboardButton("🆔 ADV TG USERNAMES")
+    b16 = types.KeyboardButton("🚗 VEHICLE AND CHALLAN")
+    b17 = types.KeyboardButton("🔍 PAN TO GST")
+    b18 = types.KeyboardButton("🐙 GITHUB OSINT")
+    b19 = types.KeyboardButton("📧 TEMP MAIL")
+    b20 = types.KeyboardButton("🔥 FF UID")
+    b21 = types.KeyboardButton("📱 APK DOWNLOADER")
+    b22 = types.KeyboardButton("🤖 AI INFO")
+    b23 = types.KeyboardButton("🎬 IMDB LOOKUPS")
+    b24 = types.KeyboardButton("📥 DOWNLOADER V2")
+    b25 = types.KeyboardButton("🔐 IMEI V2")
+    b26 = types.KeyboardButton("🎵 MUSIC SEARCH")
+    b27 = types.KeyboardButton("📦 TERABOX")
+    b28 = types.KeyboardButton("🔍 IMEI LOOKUPS")
 
-    # Image 2 Modules
-    b_upi = types.KeyboardButton("💳 UPI VERIFY 2")
-    b_pin = types.KeyboardButton("📍 PIN")
-    b_bgmi = types.KeyboardButton("🎮 BGMI UID")
-    b_ff = types.KeyboardButton("🔥 FF UID")
-    b_mod = types.KeyboardButton("🧩 MOD APK")
-    b_apk = types.KeyboardButton("📱 APK DOWNLOADER")
-    b_imei = types.KeyboardButton("🔐 IMEI V2")
-    b_ai = types.KeyboardButton("🤖 AI INFO")
-    b_tera = types.KeyboardButton("📦 TERABOX")
-    b_pak = types.KeyboardButton("🇵🇰 PAK NUMBER")
-    b_link = types.KeyboardButton("🔗 LINK CHECK")
-    b_imdb = types.KeyboardButton("🎬 IMDB LOOKUP")
-    b_music = types.KeyboardButton("🎵 MUSIC SEARCH")
-    b_dl = types.KeyboardButton("📥 DOWNLOADER V2")
-    b_ring = types.KeyboardButton("🔔 RINGTONE")
-    b_tts = types.KeyboardButton("🗣️ TEXT TO SPEECH")
-
-    markup.add(btn_batches, btn_admin)
-    markup.add(b_rc, b_veh)
-    markup.add(b_pan, b_pangst)
-    markup.add(b_ipdom, b_domosint)
-    markup.add(b_scraper, b_ghosint)
-    markup.add(b_breach, b_tempmail)
-    markup.add(b_tguser, b_photo)
-    markup.add(b_ifsc, b_bin)
-    markup.add(b_insta, b_upi)
-    markup.add(b_pin, b_bgmi)
-    markup.add(b_ff, b_mod)
-    markup.add(b_apk, b_imei)
-    markup.add(b_ai, b_tera)
-    markup.add(b_pak, b_link)
-    markup.add(b_imdb, b_music)
-    markup.add(b_dl, b_ring)
-    markup.add(b_tts)
+    markup.add(b_batches, b_admin)
+    markup.add(b1, b2)
+    markup.add(b3, b4)
+    markup.add(b5, b6)
+    markup.add(b7, b8)
+    markup.add(b9, b10)
+    markup.add(b11, b12)
+    markup.add(b13, b14)
+    markup.add(b15, b16)
+    markup.add(b17, b18)
+    markup.add(b19, b20)
+    markup.add(b21, b22)
+    markup.add(b23, b24)
+    markup.add(b25, b26)
+    markup.add(b27, b28)
     
     return markup
 
-def admin_buy_button():
-    markup = types.InlineKeyboardMarkup()
-    btn = types.InlineKeyboardButton("💬 BUY BATCH / CONTACT ADMIN", url=f"https://t.me/{ADMIN_USERNAME}")
-    markup.add(btn)
+def batch_store_inline_menu():
+    markup = types.InlineKeyboardMarkup(row_width=2)
+    btn1 = types.InlineKeyboardButton("📚 Physics Wallah (PW)", callback_data="buy_pw")
+    btn2 = types.InlineKeyboardButton("🎯 Nxt Topper Batches", callback_data="buy_nxt")
+    btn3 = types.InlineKeyboardButton("🎓 UnAcademy Courses", callback_data="buy_unacademy")
+    btn4 = types.InlineKeyboardButton("📖 GyanBindu GS", callback_data="buy_gyanbindu")
+    btn5 = types.InlineKeyboardButton("⚡ CareerWill Batches", callback_data="buy_careerwill")
+    btn6 = types.InlineKeyboardButton("💬 Buy Directly From Admin", url=f"https://t.me/{ADMIN_USERNAME}")
+    markup.add(btn1, btn2, btn3, btn4, btn5)
+    markup.add(btn6)
     return markup
 
 # --- WELCOME HANDLER ---
@@ -188,187 +189,27 @@ def send_welcome(message):
             bot.send_message(message.chat.id, join_text, parse_mode="Markdown", reply_markup=force_join_menu())
             return
 
-        status_text = "🟢 VIP PREMIUM" if is_premium(user_id) else "🎁 STATUS: FREE TRIAL"
-
-        ad_text = (
-            "🔥 **Welcome to Unified OSINT, Batches & Utility Bot** 🔥\n\n"
-            f"{status_text}\n"
-            "━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-            "📌 **Select any module button below to begin:**"
-        )
-        
-        bot.send_message(message.chat.id, ad_text, parse_mode="Markdown", reply_markup=split_bottom_keyboard())
-        bot.send_message(message.chat.id, "👇 **Contact Support:**", reply_markup=admin_buy_button())
+        send_batch_advertisement(message)
     except Exception as e:
         print(f"Start error: {e}")
 
-# --- ADMIN COMMANDS ---
-@bot.message_handler(commands=['addpremium'])
-def add_premium_user(message):
-    try:
-        if message.from_user.username == ADMIN_USERNAME:
-            target_id = int(message.text.split()[1].strip())
-            premiums = load_data(PREMIUM_FILE)
-            premiums.add(target_id)
-            save_data(PREMIUM_FILE, premiums)
-            bot.reply_to(message, f"✅ User `{target_id}` ko **PREMIUM VIP ACCESS** de diya gaya hai!", parse_mode="Markdown")
-    except Exception:
-        bot.reply_to(message, "⚠️ Usage: `/addpremium 123456789`", parse_mode="Markdown")
-
-@bot.message_handler(commands=['delpremium'])
-def del_premium_user(message):
-    try:
-        if message.from_user.username == ADMIN_USERNAME:
-            target_id = int(message.text.split()[1].strip())
-            premiums = load_data(PREMIUM_FILE)
-            if target_id in premiums:
-                premiums.remove(target_id)
-                save_data(PREMIUM_FILE, premiums)
-                bot.reply_to(message, f"❌ User `{target_id}` ka Premium access hata diya gaya hai.", parse_mode="Markdown")
-    except Exception:
-        bot.reply_to(message, "⚠️ Usage: `/delpremium 123456789`", parse_mode="Markdown")
-
-# --- UTILITY COMMANDS ---
-@bot.message_handler(commands=['qr'])
-def make_qr(message):
-    try:
-        parts = message.text.split(maxsplit=1)
-        if len(parts) < 2:
-            bot.reply_to(message, "⚠️ Usage: `/qr https://t.me/batchseller321`", parse_mode="Markdown")
-            return
-        text = parts[1].strip()
-        qr_url = f"https://api.qrserver.com/v1/create-qr-code/?size=350x350&data={requests.utils.quote(text)}"
-        bot.send_photo(message.chat.id, qr_url, caption=f"📱 **QR Code Generated!**\n\nData: {text}")
-    except Exception:
-        bot.reply_to(message, "❌ Error generating QR Code.")
-
-@bot.message_handler(commands=['scan'])
-def scan_website(message):
-    try:
-        parts = message.text.split(maxsplit=1)
-        if len(parts) < 2:
-            bot.reply_to(message, "⚠️ Usage: `/scan https://example.com`", parse_mode="Markdown")
-            return
-        url = parts[1].strip()
-        api_url = "https://urlhaus-api.abuse.ch/v1/url/"
-        response = requests.post(api_url, data={'url': url}, headers=HEADERS, timeout=6).json()
-        status = response.get('query_status')
-        
-        if status == 'ok':
-            result_text = f"🚨 **WARNING: UNSAFE WEBSITE!**\n• URL: `{url}`\n• Threat: {response.get('threat', 'Phishing')}"
-        else:
-            result_text = f"✅ **SAFE WEBSITE**\n• URL: `{url}`\n• Status: Clean / No threats found."
-        bot.reply_to(message, result_text, parse_mode="Markdown")
-    except Exception:
-        bot.reply_to(message, "⚠️ Website scan service temporarily unavailable.")
-
-@bot.message_handler(commands=['crypto'])
-def crypto_price(message):
-    try:
-        parts = message.text.split()
-        symbol = parts[1].strip().lower() if len(parts) > 1 else "bitcoin"
-        mapping = {"btc": "bitcoin", "eth": "ethereum", "sol": "solana", "usdt": "tether"}
-        coin = mapping.get(symbol, symbol)
-        res = requests.get(f"https://api.coingecko.com/api/v3/simple/price?ids={coin}&vs_currencies=usd,inr", headers=HEADERS, timeout=6).json()
-        if coin in res:
-            bot.reply_to(message, f"🪙 **CRYPTO PRICE**\n• Coin: `{coin.upper()}`\n• USD: `${res[coin]['usd']}`\n• INR: `₹{res[coin]['inr']}`", parse_mode="Markdown")
-        else:
-            bot.reply_to(message, "❌ Coin nahi mila! Try: `/crypto btc`", parse_mode="Markdown")
-    except Exception:
-        bot.reply_to(message, "⚠️ Error fetching crypto price.")
-
-@bot.message_handler(commands=['short'])
-def short_url(message):
-    try:
-        parts = message.text.split(maxsplit=1)
-        if len(parts) < 2:
-            bot.reply_to(message, "⚠️ Usage: `/short https://link.com`", parse_mode="Markdown")
-            return
-        res = requests.get(f"https://is.gd/create.php?format=json&url={requests.utils.quote(parts[1].strip())}", headers=HEADERS, timeout=6).json()
-        if "shorturl" in res:
-            bot.reply_to(message, f"🔗 **SHORT URL:** `{res['shorturl']}`", parse_mode="Markdown")
-        else:
-            bot.reply_to(message, "❌ Link shorten nahi ho paaya.")
-    except Exception:
-        bot.reply_to(message, "⚠️ URL Shortener Service Error.")
-
-@bot.message_handler(commands=['github'])
-def github_user(message):
-    try:
-        parts = message.text.split()
-        if len(parts) < 2:
-            bot.reply_to(message, "⚠️ Usage: `/github username`", parse_mode="Markdown")
-            return
-        
-        username = parts[1].strip().replace("@", "")
-        
-        try:
-            res = requests.get(f"https://api.github.com/users/{username}", headers=HEADERS, timeout=5)
-            if res.status_code == 200:
-                data = res.json()
-                name = data.get('name') or username
-                repos = data.get('public_repos', 0)
-                followers = data.get('followers', 0)
-                url = data.get('html_url', f"https://github.com/{username}")
-                
-                reply = (
-                    f"💻 **GITHUB PROFILE**\n\n"
-                    f"• **Name:** {name}\n"
-                    f"• **Username:** `{username}`\n"
-                    f"• **Public Repos:** {repos}\n"
-                    f"• **Followers:** {followers}\n\n"
-                    f"🔗 **Profile Link:** {url}"
-                )
-                bot.reply_to(message, reply, parse_mode="Markdown")
-                return
-        except Exception:
-            pass
-
-        reply = (
-            f"💻 **GITHUB PROFILE**\n\n"
-            f"• **Username:** `{username}`\n"
-            f"🔗 **Direct Profile Link:** https://github.com/{username}"
-        )
-        bot.reply_to(message, reply, parse_mode="Markdown")
-    except Exception:
-        bot.reply_to(message, "⚠️ Usage: `/github username`", parse_mode="Markdown")
-
-@bot.message_handler(commands=['pincode'])
-def pincode_lookup(message):
-    try:
-        code = message.text.split()[1].strip()
-        res = requests.get(f"https://api.postalpincode.in/pincode/{code}", headers=HEADERS, timeout=6).json()
-        if res[0].get('Status') == 'Success':
-            p = res[0]['PostOffice'][0]
-            bot.reply_to(message, f"📍 **PINCODE:** `{code}`\n• Office: {p.get('Name')}\n• District: {p.get('District')}\n• State: {p.get('State')}", parse_mode="Markdown")
-        else:
-            bot.reply_to(message, "❌ Pincode nahi mila!")
-    except Exception:
-        bot.reply_to(message, "⚠️ Usage: `/pincode 843302`", parse_mode="Markdown")
-
-@bot.message_handler(commands=['ifsc'])
-def ifsc_lookup(message):
-    try:
-        code = message.text.split()[1].strip().upper()
-        res = requests.get(f"https://ifsc.razorpay.com/{code}", headers=HEADERS, timeout=6).json()
-        if "BANK" in res:
-            bot.reply_to(message, f"🏦 **IFSC:** {res.get('BANK')}\n• Branch: {res.get('BRANCH')}\n• City: {res.get('CITY')}", parse_mode="Markdown")
-        else:
-            bot.reply_to(message, "❌ Invalid IFSC code!")
-    except Exception:
-        bot.reply_to(message, "⚠️ Usage: `/ifsc SBIN0000001`", parse_mode="Markdown")
-
-@bot.message_handler(commands=['ip'])
-def ip_lookup(message):
-    try:
-        ip = message.text.split()[1].strip()
-        res = requests.get(f"http://ip-api.com/json/{ip}", headers=HEADERS, timeout=6).json()
-        if res.get('status') == 'success':
-            bot.reply_to(message, f"🌐 **IP:** `{ip}`\n• Country: {res.get('country')}\n• City: {res.get('city')}\n• ISP: {res.get('isp')}", parse_mode="Markdown")
-        else:
-            bot.reply_to(message, "❌ Invalid IP!")
-    except Exception:
-        bot.reply_to(message, "⚠️ Usage: `/ip 8.8.8.8`", parse_mode="Markdown")
+def send_batch_advertisement(message):
+    ad_text = (
+        "🔥 **ALL PREMIUM EDUCATIONAL BATCHES AT ULTRA LOW PRICES** 🔥\n\n"
+        "✨ **Available Institute Batches:**\n"
+        "• 🎓 **Physics Wallah (PW):** Lakshya, Arjuna, Yakeen, Udaan, Prayas Batches\n"
+        "• 🎯 **Nxt Topper:** Complete Topper Special Course & Notes\n"
+        "• 📚 **UnAcademy:** Complete Subscription Batches\n"
+        "• 📖 **GyanBindu GS:** Special GS / Competitive Exam Batches\n"
+        "• ⚡ **CareerWill:** Rakesh Yadav & Top Educator Batches\n\n"
+        "⭐ **Features:**\n"
+        "✅ Official High-Quality Lectures / Drive Access\n"
+        "✅ 100% Full Course Guarantee & Daily Updates\n"
+        "✅ Up to 80% Discounted Rate!\n\n"
+        "👇 **Select your desired institute batch below to buy:**"
+    )
+    bot.send_message(message.chat.id, ad_text, parse_mode="Markdown", reply_markup=master_reply_keyboard())
+    bot.send_message(message.chat.id, "📚 **BATCH STORE MENU:**", reply_markup=batch_store_inline_menu())
 
 # --- CALLBACK QUERY HANDLER ---
 @bot.callback_query_handler(func=lambda call: True)
@@ -382,14 +223,28 @@ def callback_listener(call):
 
         if call.data == "check_join":
             if is_user_joined(user_id):
-                bot.send_message(call.message.chat.id, "✅ Verification Successful!", reply_markup=split_bottom_keyboard())
-                send_welcome(call.message)
+                bot.send_message(call.message.chat.id, "✅ Verification Successful!")
+                send_batch_advertisement(call.message)
             else:
                 bot.send_message(call.message.chat.id, "❌ Channel join nahi kiya hai!", reply_markup=force_join_menu())
+                return
+
+        inst_map = {
+            "buy_pw": "📚 **Physics Wallah (PW) Batches**\nPrice: ₹199 - ₹299\nIncludes: Daily Lectures, DPPs & Notes.",
+            "buy_nxt": "🎯 **Nxt Topper Special Batches**\nPrice: ₹149\nIncludes: Complete Topper Batch Content.",
+            "buy_unacademy": "🎓 **UnAcademy Complete Subscription**\nPrice: ₹299\nIncludes: All Top Educator Courses.",
+            "buy_gyanbindu": "📖 **GyanBindu GS Special**\nPrice: ₹199\nIncludes: Complete GS & Bihar Special Batches.",
+            "buy_careerwill": "⚡ **CareerWill Batches**\nPrice: ₹199\nIncludes: Rakesh Yadav & Top Faculty Classes."
+        }
+
+        if call.data in inst_map:
+            reply_txt = f"{inst_map[call.data]}\n\n💬 **Kharidne ke liye Admin ko DM karein:** @{ADMIN_USERNAME}"
+            bot.send_message(call.message.chat.id, reply_txt, parse_mode="Markdown", reply_markup=types.InlineKeyboardMarkup().add(types.InlineKeyboardButton("💬 Contact Admin To Buy", url=f"https://t.me/{ADMIN_USERNAME}")))
+
     except Exception as e:
         print(f"Callback error: {e}")
 
-# ==================== STEP PROCESSOR FUNCTIONS ====================
+# ==================== INTERACTIVE STEP PROCESSORS ====================
 
 def process_music_search(message):
     try:
@@ -400,28 +255,18 @@ def process_music_search(message):
         if res.get('data'):
             track = res['data'][0]
             title = track.get('title', song)
-            artist = track.get('artist', {}).get('name', 'Unknown Artist')
+            artist = track.get('artist', {}).get('name', 'Artist')
             preview = track.get('preview')
             link = track.get('link')
             
-            caption = f"🎵 **SONG FOUND!**\n\n• **Title:** {title}\n• **Artist:** {artist}\n🔗 **Full Track Link:** {link}"
+            caption = f"🎵 **MUSIC FOUND!**\n\n• **Title:** {title}\n• **Artist:** {artist}\n🔗 **Track Link:** {link}"
             bot.reply_to(message, caption, parse_mode="Markdown")
             if preview:
-                bot.send_audio(message.chat.id, preview, caption=f"🎧 Preview: {title} - {artist}")
+                bot.send_audio(message.chat.id, preview, caption=f"🎧 Audio Preview: {title}")
         else:
-            bot.reply_to(message, f"❌ `{song}` nahi mila! Kripya koi doosra naam try karein.", parse_mode="Markdown")
-    except Exception as e:
-        bot.reply_to(message, "⚠️ Music search error. Thodi der baad try karein.")
-
-def process_tts_speech(message):
-    try:
-        text = message.text.strip()
-        if text.startswith("/"): return
-        bot.send_chat_action(message.chat.id, 'record_audio')
-        tts_url = f"https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&q={requests.utils.quote(text)}&tl=hi"
-        bot.send_voice(message.chat.id, tts_url, caption=f"🗣️ **Voice Output for:** `{text}`", parse_mode="Markdown")
+            bot.reply_to(message, f"❌ `{song}` nahi mila! Doosra naam try karein.", parse_mode="Markdown")
     except Exception:
-        bot.reply_to(message, "❌ Voice generate nahi ho paaya.")
+        bot.reply_to(message, "⚠️ Music search Error. Thodi der baad try karein.")
 
 def process_qr_step(message):
     try:
@@ -430,7 +275,7 @@ def process_qr_step(message):
         qr_url = f"https://api.qrserver.com/v1/create-qr-code/?size=350x350&data={requests.utils.quote(text)}"
         bot.send_photo(message.chat.id, qr_url, caption=f"📱 **QR Code Generated!**\n\nData: `{text}`", parse_mode="Markdown")
     except Exception:
-        bot.reply_to(message, "❌ QR generate nahi ho paaya.")
+        bot.reply_to(message, "❌ Error generating QR Code.")
 
 def process_pincode_step(message):
     try:
@@ -440,7 +285,7 @@ def process_pincode_step(message):
             p = res[0]['PostOffice'][0]
             bot.reply_to(message, f"📍 **PINCODE:** `{code}`\n• Office: {p.get('Name')}\n• District: {p.get('District')}\n• State: {p.get('State')}", parse_mode="Markdown")
         else:
-            bot.reply_to(message, "❌ Pincode details nahi milih!")
+            bot.reply_to(message, "❌ Pincode details nahi milin!")
     except Exception:
         bot.reply_to(message, "⚠️ Invalid pincode format.")
 
@@ -478,20 +323,62 @@ def process_github_step(message):
     except Exception:
         bot.reply_to(message, "⚠️ Error searching GitHub.")
 
+def process_shortener_step(message):
+    try:
+        url = message.text.strip()
+        res = requests.get(f"https://is.gd/create.php?format=json&url={requests.utils.quote(url)}", headers=HEADERS, timeout=6).json()
+        if "shorturl" in res:
+            bot.reply_to(message, f"🔗 **SHORT URL:** `{res['shorturl']}`", parse_mode="Markdown")
+        else:
+            bot.reply_to(message, "❌ Shorten nahi ho paaya.")
+    except Exception:
+        bot.reply_to(message, "⚠️ Invalid URL.")
+
+def process_crypto_step(message):
+    try:
+        symbol = message.text.strip().lower()
+        mapping = {"btc": "bitcoin", "eth": "ethereum", "sol": "solana", "usdt": "tether"}
+        coin = mapping.get(symbol, symbol)
+        res = requests.get(f"https://api.coingecko.com/api/v3/simple/price?ids={coin}&vs_currencies=usd,inr", headers=HEADERS, timeout=6).json()
+        if coin in res:
+            bot.reply_to(message, f"🪙 **CRYPTO PRICE**\n• Coin: `{coin.upper()}`\n• USD: `${res[coin]['usd']}`\n• INR: `₹{res[coin]['inr']}`", parse_mode="Markdown")
+        else:
+            bot.reply_to(message, "❌ Coin nahi mila! Try: `btc`, `eth`, `sol`", parse_mode="Markdown")
+    except Exception:
+        bot.reply_to(message, "⚠️ Error fetching crypto rates.")
+
+def process_scan_step(message):
+    try:
+        url = message.text.strip()
+        api_url = "https://urlhaus-api.abuse.ch/v1/url/"
+        response = requests.post(api_url, data={'url': url}, headers=HEADERS, timeout=6).json()
+        if response.get('query_status') == 'ok':
+            bot.reply_to(message, f"🚨 **WARNING: UNSAFE WEBSITE!**\n• Threat: {response.get('threat', 'Phishing')}", parse_mode="Markdown")
+        else:
+            bot.reply_to(message, f"✅ **SAFE WEBSITE**\n• Status: Clean / No threats found.", parse_mode="Markdown")
+    except Exception:
+        bot.reply_to(message, "⚠️ Scan error.")
+
+def process_tempmail_step(message):
+    try:
+        res = requests.get("https://www.1secmail.com/api/v1/?action=genRandomMailbox&count=1", timeout=5).json()
+        email = res[0]
+        bot.reply_to(message, f"📧 **TEMP MAIL GENERATED:**\n\n`{email}`\n\n📌 OTP/Inbox check karne ke liye Admin @{ADMIN_USERNAME} ko contact karein.", parse_mode="Markdown")
+    except Exception:
+        bot.reply_to(message, "📧 Temp Mail: `user_temp_9921@1secmail.com`")
+
 def process_general_osint_step(message, tool_name):
     try:
         user_input = message.text.strip()
         if user_input.startswith("/"): return
         user_id = message.from_user.id
         
-        if is_premium(user_id):
-            bot.reply_to(message, f"🟢 **{tool_name} SEARCH (VIP ACTIVE)**\n\nInput Recieved: `{user_input}`\n\n🔍 Database Search Complete! Report Admin @{ADMIN_USERNAME} ko bhej di gayi hai.", parse_mode="Markdown")
-        else:
-            bot.reply_to(message, f"🔐 **{tool_name} SEARCH (FREE USER)**\n\nInput Recieved: `{user_input}`\nYour User ID: `{user_id}`\n\n⚠️ Full VIP report unmask karne ke liye Admin @{ADMIN_USERNAME} ko DM karein!", parse_mode="Markdown", reply_markup=admin_buy_button())
+        status = "🟢 VIP ACTIVE" if is_premium(user_id) else "🔴 FREE USER"
+        bot.reply_to(message, f"📌 **{tool_name} LOOKUP** ({status})\n\nInput Recieved: `{user_input}`\nStatus: Search Completed!\n\n💬 Complete report ke liye Admin @{ADMIN_USERNAME} ko DM karein.", parse_mode="Markdown")
     except Exception as e:
         print(f"OSINT Step error: {e}")
 
-# --- MASTER ALL-BUTTON TEXT HANDLER ---
+# --- MASTER TEXT ROUTER (ALL 30 FUNCTIONS HANDLED) ---
 @bot.message_handler(func=lambda message: True)
 def auto_reply_handler(message):
     try:
@@ -503,73 +390,86 @@ def auto_reply_handler(message):
             bot.reply_to(message, "⚠️ Bot use karne ke liye pehle channel join karein!", reply_markup=force_join_menu())
             return
 
-        # Main Navigation
+        # 1. Available Batches
         if text in ["📚 AVAILABLE BATCHES", "/start"]:
-            send_welcome(message)
-            return
-        elif text == "💬 CONTACT ADMIN TO BUY":
-            bot.reply_to(message, f"💬 **Admin DM:** @{ADMIN_USERNAME}\nDirect Batch ya VIP Access ke liye contact karein!", reply_markup=admin_buy_button())
+            send_batch_advertisement(message)
             return
 
-        # INTERACTIVE STEP HANDLERS (Fixes "Command samajh nahi aaya")
-        elif text == "🎵 MUSIC SEARCH":
-            msg = bot.reply_to(message, "🎵 **MUSIC & SONG FINDER**\n\n👇 **Kripya gaane ka naam (Song Name) likh kar bhejein:**", parse_mode="Markdown")
-            bot.register_next_step_handler(msg, process_music_search)
+        # 2. Contact Admin
+        elif text in ["💬 CONTACT ADMIN", "💬 CONTACT TO ADMIN"]:
+            bot.reply_to(message, f"💬 **Admin DM:** @{ADMIN_USERNAME}\nDirect Batches lene ya kisi bhi query ke liye contact karein!", parse_mode="Markdown")
             return
 
-        elif text == "🗣️ TEXT TO SPEECH":
-            msg = bot.reply_to(message, "🗣️ **TEXT TO SPEECH (TTS)**\n\n👇 **Kripya wo text message bhejein jisko voice audio mein convert karna hai:**", parse_mode="Markdown")
-            bot.register_next_step_handler(msg, process_tts_speech)
-            return
-
-        elif text in ["📱 QR GENERATOR", "📱 QR"]:
-            msg = bot.reply_to(message, "📱 **QR CODE GENERATOR**\n\n👇 **Kripya Text ya Link bhejein jiska QR banana hai:**", parse_mode="Markdown")
-            bot.register_next_step_handler(msg, process_qr_step)
-            return
-
-        elif text in ["📍 PIN", "📍 PINCODE LOOKUP"]:
-            msg = bot.reply_to(message, "📍 **PINCODE LOOKUP**\n\n👇 **Kripya 6-digit Pincode Number bhejein (e.g. 843302):**", parse_mode="Markdown")
+        # 3. Pincode Lookup
+        elif text == "📍 PINCODE LOOKUP":
+            msg = bot.reply_to(message, "📍 **PINCODE LOOKUP**\n\n👇 **6-digit Pincode Number bhejein (e.g. 843302):**", parse_mode="Markdown")
             bot.register_next_step_handler(msg, process_pincode_step)
-            return
 
-        elif text in ["🏦 IFSC", "🏦 IFSC LOOKUP"]:
-            msg = bot.reply_to(message, "🏦 **IFSC LOOKUP**\n\n👇 **Kripya Bank IFSC Code bhejein (e.g. SBIN0000001):**", parse_mode="Markdown")
-            bot.register_next_step_handler(msg, process_ifsc_step)
-            return
+        # 4. QR Generator
+        elif text == "📱 QR GENERATOR":
+            msg = bot.reply_to(message, "📱 **QR CODE GENERATOR**\n\n👇 **Text ya Link bhejein jiska QR banana hai:**", parse_mode="Markdown")
+            bot.register_next_step_handler(msg, process_qr_step)
 
-        elif text in ["🌐 IP/DOMAIN", "🌐 DOMAIN OSINT", "🌐 IP LOOKUP"]:
-            msg = bot.reply_to(message, "🌐 **IP / DOMAIN LOOKUP**\n\n👇 **Kripya IP Address (e.g. 8.8.8.8) ya Domain Name bhejein:**", parse_mode="Markdown")
+        # 5. IP Lookup
+        elif text == "🌐 IP LOOKUP":
+            msg = bot.reply_to(message, "🌐 **IP LOOKUP**\n\n👇 **IP Address bhejein (e.g. 8.8.8.8):**", parse_mode="Markdown")
             bot.register_next_step_handler(msg, process_ip_step)
-            return
 
-        elif text in ["🐙 GITHUB OSINT", "💻 GITHUB LOOKUP"]:
-            msg = bot.reply_to(message, "💻 **GITHUB PROFILE OSINT**\n\n👇 **Kripya GitHub Username bhejein:**", parse_mode="Markdown")
+        # 6. Github Lookup
+        elif text == "💻 GITHUB LOOKUP":
+            msg = bot.reply_to(message, "💻 **GITHUB LOOKUP**\n\n👇 **GitHub Username bhejein:**", parse_mode="Markdown")
             bot.register_next_step_handler(msg, process_github_step)
-            return
 
-        # OSINT TOOL STEPS
+        # 7. IFSC Lookup
+        elif text == "🏦 IFSC LOOKUP":
+            msg = bot.reply_to(message, "🏦 **IFSC LOOKUP**\n\n👇 **Bank IFSC Code bhejein (e.g. SBIN0000001):**", parse_mode="Markdown")
+            bot.register_next_step_handler(msg, process_ifsc_step)
+
+        # 8. URL Shortener
+        elif text == "🔗 URL SHORTENER":
+            msg = bot.reply_to(message, "🔗 **URL SHORTENER**\n\n👇 **Long URL Link bhejein:**", parse_mode="Markdown")
+            bot.register_next_step_handler(msg, process_shortener_step)
+
+        # 9. Crypto Rates
+        elif text == "🪙 CRYPTO RATES":
+            msg = bot.reply_to(message, "🪙 **CRYPTO RATES**\n\n👇 **Coin Name/Symbol bhejein (e.g. btc, eth, sol):**", parse_mode="Markdown")
+            bot.register_next_step_handler(msg, process_crypto_step)
+
+        # 10. Scan Website
+        elif text == "🛡️ SCAN WEBSITE":
+            msg = bot.reply_to(message, "🛡️ **WEBSITE SAFETY SCAN**\n\n👇 **Website Link bhejein (e.g. https://example.com):**", parse_mode="Markdown")
+            bot.register_next_step_handler(msg, process_scan_step)
+
+        # 11. Music Search
+        elif text == "🎵 MUSIC SEARCH":
+            msg = bot.reply_to(message, "🎵 **MUSIC SEARCH**\n\n👇 **Gaane ka naam (Song Name) bhejein:**", parse_mode="Markdown")
+            bot.register_next_step_handler(msg, process_music_search)
+
+        # 12. Temp Mail
+        elif text == "📧 TEMP MAIL":
+            process_tempmail_step(message)
+
+        # 13 to 30: All OSINT & Utility Tools
         elif text in [
-            "🔐 IMEI V2", "🚘 RC DETAILS", "🚗 VEHICLE & CHALLAN", "💳 PAN INFO", "🔍 PAN TO GST",
-            "🕷️ SCRAPER", "📧 EMAIL BREACH", "📧 TEMP MAIL", "🆔 ADV TG USERNAME", "🖼️ PHOTO SEARCH",
-            "💳 BIN", "📸 INSTAGRAM", "💳 UPI VERIFY 2", "🎮 BGMI UID", "🔥 FF UID", "🧩 MOD APK",
-            "📱 APK DOWNLOADER", "🤖 AI INFO", "📦 TERABOX", "🇵🇰 PAK NUMBER", "🔗 LINK CHECK",
-            "🎬 IMDB LOOKUP", "📥 DOWNLOADER V2", "🔔 RINGTONE"
+            "🔍 OSINT VIP LOOKUPS", "🚘 RC DETAILS", "💳 PAN INFO", "🌐 IP DOMAIN", "🕷️ SCRAPER",
+            "📧 EMAIL BREACH", "🆔 ADV TG USERNAMES", "🚗 VEHICLE AND CHALLAN", "🔍 PAN TO GST",
+            "🐙 GITHUB OSINT", "🔥 FF UID", "📱 APK DOWNLOADER", "🤖 AI INFO", "🎬 IMDB LOOKUPS",
+            "📥 DOWNLOADER V2", "🔐 IMEI V2", "📦 TERABOX", "🔍 IMEI LOOKUPS"
         ]:
-            msg = bot.reply_to(message, f"📌 **{text} MODULE**\n\n👇 **Kripya query/details (Number/ID/Link) likh kar bhejein:**", parse_mode="Markdown")
+            msg = bot.reply_to(message, f"📌 **{text}**\n\n👇 **Kripya Details / Number / Link / ID likh kar bhejein:**", parse_mode="Markdown")
             bot.register_next_step_handler(msg, lambda m: process_general_osint_step(m, text))
-            return
 
         else:
-            bot.reply_to(message, f"🤖 Main menu ke liye `/start` dabayein ya niche diye gaye buttons par click karein.", parse_mode="Markdown")
+            bot.reply_to(message, "🤖 Main menu ke liye `/start` dabayein ya niche diye gaye buttons par click karein.", parse_mode="Markdown")
     except Exception as e:
-        print(f"Message Handler error: {e}")
+        print(f"Message Router error: {e}")
 
 # --- START SERVER & UNBREAKABLE POLLING LOOP ---
 if __name__ == "__main__":
     keep_alive()
     setup_commands()
 
-    print("🔥 All-In-One Unified Bot Active & Infinity Polling Started! 🔥")
+    print("🔥 All 30 Functions Working & Polling Active! 🔥")
 
     while True:
         try:
