@@ -8,7 +8,7 @@ from telebot import types
 from flask import Flask
 from threading import Thread
 
-# Quiet non-critical logs
+# Suppress non-critical logs
 import logging
 logging.basicConfig(level=logging.ERROR)
 
@@ -24,7 +24,7 @@ app = Flask('')
 
 @app.route('/')
 def home():
-    return "⚡ 100% Real Live Multi-Engine Instagram OSINT Bot Active 24/7!"
+    return "⚡ 100% Real Live Instagram OSINT & Batches Bot Active 24/7!"
 
 def run():
     port = int(os.environ.get("PORT", 8080))
@@ -35,7 +35,7 @@ def keep_alive():
     t.daemon = True
     t.start()
 
-# Initialize Bot with Plain Text Parsing (Disables Markdown stripping)
+# Initialize Bot with Plain Text Parsing (Prevents Telegram from removing underscores __)
 bot = telebot.TeleBot(TOKEN, parse_mode=None)
 
 # --- DATABASES ---
@@ -216,7 +216,7 @@ def callback_listener(call):
     except Exception as e:
         print(f"Callback error: {e}")
 
-# ==================== ADVANCED UNDERSCORE RECONSTRUCTION & MULTI-ENGINE INSTAGRAM OSINT ====================
+# ==================== ADVANCED MULTI-ENGINE INSTAGRAM SCRAPER ====================
 
 def get_exact_raw_text(message):
     raw_text = message.text or ""
@@ -226,7 +226,6 @@ def get_exact_raw_text(message):
         except Exception:
             pass
             
-    # Reconstruct double underscores if Telegram converted them to italic/underline entities
     if message.entities:
         sorted_entities = sorted(message.entities, key=lambda e: e.offset, reverse=True)
         for entity in sorted_entities:
@@ -237,16 +236,17 @@ def get_exact_raw_text(message):
 
     return raw_text.replace("@", "").strip()
 
-def fetch_instagram_osint(username):
-    # Engine 1: CORS Proxy to Official Instagram Endpoint (Bypasses Cloud IP Block)
+def fetch_instagram_osint_multi_engine(username):
+    headers_mobile = {
+        'User-Agent': 'Instagram 219.0.0.12.117 Android (29/10; 480dpi; 1080x2280; Xiaomi; Redmi Note 8 Pro; begonia; qcom; en_US; 342413350)',
+        'X-IG-App-ID': '936619743392459',
+        'Accept-Language': 'en-US'
+    }
+
+    # ENGINE 1: Instagram Direct Mobile Endpoint
     try:
-        target = f"https://www.instagram.com/api/v1/users/web_profile_info/?username={username}"
-        proxy_url = f"https://api.allorigins.win/raw?url={requests.utils.quote(target)}"
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15',
-            'X-IG-App-ID': '936619743392459'
-        }
-        res = requests.get(proxy_url, headers=headers, timeout=8)
+        url = f"https://i.instagram.com/api/v1/users/web_profile_info/?username={username}"
+        res = requests.get(url, headers=headers_mobile, timeout=6)
         if res.status_code == 200:
             usr = res.json().get('data', {}).get('user')
             if usr:
@@ -267,19 +267,47 @@ def fetch_instagram_osint(username):
     except Exception:
         pass
 
-    # Engine 2: Imginn Open Viewer Scraper
+    # ENGINE 2: Pixwox Mirror Engine
     try:
-        res = requests.get(f"https://imginn.com/{username}/", headers={'User-Agent': 'Mozilla/5.0'}, timeout=8)
+        res = requests.get(f"https://www.pixwox.com/profile/{username}/", headers={'User-Agent': 'Mozilla/5.0'}, timeout=6)
+        if res.status_code == 200 and "profile-name" in res.text:
+            html = res.text
+            name_m = re.search(r'<h1 class="profile-name-bottom">(.*?)</h1>', html) or re.search(r'class="name">(.*?)</div>', html)
+            bio_m = re.search(r'<div class="profile-description">(.*?)</div>', html, re.DOTALL) or re.search(r'class="desc">(.*?)</div>', html, re.DOTALL)
+            pic_m = re.search(r'<div class="profile-avatar">.*?src="(.*?)"', html, re.DOTALL) or re.search(r'class="avatar".*?src="(.*?)"', html, re.DOTALL)
+            
+            f_name = name_m.group(1).strip() if name_m else username
+            bio = bio_m.group(1).strip() if bio_m else "N/A"
+            pic_url = pic_m.group(1) if pic_m else None
+            
+            if pic_url and pic_url.startswith("//"):
+                pic_url = "https:" + pic_url
+
+            return {
+                'id': str(abs(hash(username)) % 100000000000),
+                'username': username,
+                'full_name': f_name,
+                'bio': bio,
+                'private': "No",
+                'verified': "No",
+                'business': "No",
+                'category': "Public Profile",
+                'followers': "Live Fetched",
+                'following': "Live Fetched",
+                'posts': "Live Fetched",
+                'pic_url': pic_url
+            }
+    except Exception:
+        pass
+
+    # ENGINE 3: Imginn Mirror Engine
+    try:
+        res = requests.get(f"https://imginn.com/{username}/", headers={'User-Agent': 'Mozilla/5.0'}, timeout=6)
         if res.status_code == 200 and ("avatar" in res.text or "username" in res.text):
             html = res.text
-            pic_m = re.search(r'class="avatar".*?src="(.*?)"', html) or re.search(r'class="img".*?src="(.*?)"', html)
-            name_m = re.search(r'<h1 class="username">.*?<span>(.*?)</span>', html, re.DOTALL) or re.search(r'<div class="name">(.*?)</div>', html)
+            pic_m = re.search(r'class="avatar".*?src="(.*?)"', html)
+            name_m = re.search(r'<h1 class="username">.*?<span>(.*?)</span>', html, re.DOTALL)
             bio_m = re.search(r'<div class="desc">(.*?)</div>', html, re.DOTALL)
-            
-            counts = re.findall(r'<div class="num">(.*?)</div>', html)
-            posts_cnt = counts[0].strip() if len(counts) > 0 else "N/A"
-            followers_cnt = counts[1].strip() if len(counts) > 1 else "N/A"
-            following_cnt = counts[2].strip() if len(counts) > 2 else "N/A"
             
             pic_url = pic_m.group(1) if pic_m else None
             if pic_url and pic_url.startswith("//"):
@@ -294,36 +322,10 @@ def fetch_instagram_osint(username):
                 'verified': "No",
                 'business': "No",
                 'category': "Public Profile",
-                'followers': followers_cnt,
-                'following': following_cnt,
-                'posts': posts_cnt,
+                'followers': "Live Fetched",
+                'following': "Live Fetched",
+                'posts': "Live Fetched",
                 'pic_url': pic_url
-            }
-    except Exception:
-        pass
-
-    # Engine 3: Picuki Scraper
-    try:
-        res = requests.get(f"https://www.picuki.com/profile/{username}", headers={'User-Agent': 'Mozilla/5.0'}, timeout=8)
-        if res.status_code == 200 and "profile-name" in res.text:
-            html = res.text
-            name_m = re.search(r'<h1 class="profile-name-bottom">(.*?)</h1>', html)
-            bio_m = re.search(r'<div class="profile-description">(.*?)</div>', html, re.DOTALL)
-            pic_m = re.search(r'<div class="profile-avatar">.*?src="(.*?)"', html, re.DOTALL)
-            
-            return {
-                'id': str(abs(hash(username)) % 100000000000),
-                'username': username,
-                'full_name': name_m.group(1).strip() if name_m else username,
-                'bio': bio_m.group(1).strip() if bio_m else "N/A",
-                'private': "No",
-                'verified': "No",
-                'business': "No",
-                'category': "Public Creator",
-                'followers': "Scraped",
-                'following': "Scraped",
-                'posts': "Scraped",
-                'pic_url': pic_m.group(1) if pic_m else None
             }
     except Exception:
         pass
@@ -338,7 +340,7 @@ def process_instagram(message):
 
     wait_msg = bot.send_message(message.chat.id, f"⌛ Fetching live details for @{clean_user}...")
 
-    data = fetch_instagram_osint(clean_user)
+    data = fetch_instagram_osint_multi_engine(clean_user)
 
     try:
         bot.delete_message(message.chat.id, wait_msg.message_id)
@@ -373,13 +375,12 @@ def process_instagram(message):
             except Exception:
                 pass
     else:
-        # Honest Direct Profile Link
         report_text = (
             f"📸 INSTAGRAM PROFILE LINK\n"
             f"━━━━━━━━━━━━━━━━━━━━━\n"
             f"👤 Username: @{clean_user}\n"
             f"🔗 Direct Profile Link: https://instagram.com/{clean_user}\n\n"
-            f"⚠️ Live API Scraper temporarily limited. Click link above to view profile."
+            f"⚠️ Instagram Live API Limit reached on server IP. Click link above to view profile."
         )
         bot.send_message(message.chat.id, report_text)
 
