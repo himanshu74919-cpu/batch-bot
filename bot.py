@@ -7,7 +7,7 @@ from telebot import types
 from flask import Flask
 from threading import Thread
 
-# Quiet non-critical logs
+# Suppress non-critical logs
 import logging
 logging.basicConfig(level=logging.ERROR)
 
@@ -23,7 +23,7 @@ app = Flask('')
 
 @app.route('/')
 def home():
-    return "⚡ 100% Real Live OSINT & Batches Bot Active 24/7!"
+    return "⚡ 100% Real Live Instagram OSINT & Batches Bot Active 24/7!"
 
 def run():
     port = int(os.environ.get("PORT", 8080))
@@ -35,9 +35,6 @@ def keep_alive():
     t.start()
 
 bot = telebot.TeleBot(TOKEN)
-HEADERS = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-}
 
 # --- DATABASES ---
 USERS_FILE = "users.json"
@@ -107,7 +104,7 @@ def master_reply_keyboard():
     b_batches = types.KeyboardButton("📚 AVAILABLE BATCHES")
     b_admin = types.KeyboardButton("💬 CONTACT ADMIN")
     
-    b_insta = types.KeyboardButton("📸 INSTAGRAM")
+    b_insta = types.KeyboardButton("📸 INSTAGRAM LOOKUP")
     b_photo = types.KeyboardButton("🖼️ SHERLOCK PHOTO OSINT")
     b_imei = types.KeyboardButton("🔐 IMEI LOOKUP")
     b_pincode = types.KeyboardButton("📍 PINCODE LOOKUP")
@@ -217,51 +214,97 @@ def callback_listener(call):
     except Exception as e:
         print(f"Callback error: {e}")
 
-# ==================== 100% REAL WORKING API ENGINES ====================
+# ==================== 100% REAL INSTAGRAM OSINT ENGINE ====================
 
-# 1. REAL LIVE INSTAGRAM OSINT
-def process_instagram(message, username):
+def extract_insta_username(input_text):
+    clean = input_text.strip()
+    if "instagram.com/" in clean:
+        try:
+            clean = clean.split("instagram.com/")[1].split("/")[0].split("?")[0]
+        except Exception:
+            pass
+    return clean.replace("@", "").strip()
+
+def process_instagram(message, input_text):
+    clean_user = extract_insta_username(input_text)
+    if not clean_user:
+        bot.reply_to(message, "❌ Invalid Instagram Username or Link!")
+        return
+
+    wait_msg = bot.send_message(message.chat.id, f"⌛ Fetching details for @{clean_user}...")
+
+    insta_headers = {
+        'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1',
+        'X-IG-App-ID': '936619743392459',
+        'Accept': '*/*',
+        'Accept-Language': 'en-US,en;q=0.9',
+    }
+    
+    url = f"https://www.instagram.com/api/v1/users/web_profile_info/?username={clean_user}"
+    
     try:
-        clean_user = username.replace("@", "").strip()
-        url = f"https://www.instagram.com/api/v1/users/web_profile_info/?username={clean_user}"
-        insta_headers = {
-            'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 15_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.5 Mobile/15E148 Safari/604.1',
-            'X-IG-App-ID': '936619743392459'
-        }
-        res = requests.get(url, headers=insta_headers, timeout=8)
+        res = requests.get(url, headers=insta_headers, timeout=10)
+        
         if res.status_code == 200:
-            data = res.json().get('data', {}).get('user', {})
-            if data:
-                full_name = data.get('full_name') or clean_user
-                biography = data.get('biography') or "No Bio Available"
-                followers = data.get('edge_followed_by', {}).get('count', 0)
-                following = data.get('edge_follow', {}).get('count', 0)
-                posts = data.get('edge_owner_to_timeline_media', {}).get('count', 0)
-                is_private = "🔒 Private Account" if data.get('is_private') else "🌐 Public Account"
-                is_verified = "✅ Verified" if data.get('is_verified') else "❌ Not Verified"
+            usr = res.json().get('data', {}).get('user')
+            if usr:
+                user_id = usr.get('id', 'N/A')
+                full_name = usr.get('full_name') or clean_user
+                bio = usr.get('biography') or "N/A"
+                is_private = "Yes" if usr.get('is_private') else "No"
+                is_verified = "Yes" if usr.get('is_verified') else "No"
+                is_business = "Yes" if usr.get('is_business_account') else "No"
+                category = usr.get('category_name') or "N/A"
+                followers = usr.get('edge_followed_by', {}).get('count', 0)
+                following = usr.get('edge_follow', {}).get('count', 0)
+                pic_hd = usr.get('profile_pic_url_hd') or usr.get('profile_pic_url')
 
-                reply_txt = (
-                    f"📸 REAL INSTAGRAM OSINT REPORT\n"
+                report_text = (
+                    f"📸 INSTAGRAM LOOKUP RESULT\n"
                     f"━━━━━━━━━━━━━━━━━━━━━\n"
-                    f"👤 Name: {full_name}\n"
-                    f"🆔 Username: @{clean_user}\n"
+                    f"Lookup Result for: @{clean_user}\n"
+                    f"━━━━━━━━━━━━━━━━━━━━━\n\n"
+                    f"🆔 ID: {user_id}\n"
+                    f"👤 Username: @{clean_user}\n"
+                    f"📛 Full Name: ~{full_name}\n"
+                    f"📝 Bio: {bio}\n"
+                    f"🔒 Private: {is_private}\n"
+                    f"🌟 Verified: {is_verified}\n"
+                    f"🏢 Business: {is_business}\n"
+                    f"📂 Category: {category}\n"
                     f"👥 Followers: {followers:,}\n"
-                    f"🔄 Following: {following:,}\n"
-                    f"📸 Total Posts: {posts:,}\n"
-                    f"🔐 Account Type: {is_private}\n"
-                    f"🌟 Verified Badge: {is_verified}\n"
-                    f"📝 Bio: {biography}\n"
-                    f"━━━━━━━━━━━━━━━━━━━━━\n"
-                    f"🔗 Profile Link: https://instagram.com/{clean_user}"
+                    f"🔄 Following: {following:,}\n\n"
+                    f"🔗 Profile Picture Link:\n{pic_hd}"
                 )
-                bot.reply_to(message, reply_txt)
+                
+                bot.delete_message(message.chat.id, wait_msg.message_id)
+                bot.send_message(message.chat.id, report_text)
+                
+                if pic_hd:
+                    try:
+                        bot.send_photo(message.chat.id, pic_hd, caption=f"📸 Profile Photo: @{clean_user}")
+                    except Exception:
+                        pass
                 return
 
-        bot.reply_to(message, f"📸 INSTAGRAM OSINT: @{clean_user}\n\n⚠️ Direct Profile Found:\n🔗 https://instagram.com/{clean_user}\n\n(Live API server limited, open profile link to verify real stats directly!)")
-    except Exception as e:
-        bot.reply_to(message, f"❌ Error checking Instagram user @{username}. Please check username spelling.")
+        bot.delete_message(message.chat.id, wait_msg.message_id)
+        fallback_msg = (
+            f"📸 INSTAGRAM LOOKUP RESULT\n"
+            f"━━━━━━━━━━━━━━━━━━━━━\n"
+            f"Lookup Result for: @{clean_user}\n"
+            f"━━━━━━━━━━━━━━━━━━━━━\n\n"
+            f"👤 Username: @{clean_user}\n"
+            f"🔗 Direct Profile Link:\nhttps://instagram.com/{clean_user}\n\n"
+            f"📌 Direct link par click karke profile check karein."
+        )
+        bot.send_message(message.chat.id, fallback_msg)
 
-# 2. REAL IMEI TAC DATABASE LOOKUP
+    except Exception as e:
+        bot.delete_message(message.chat.id, wait_msg.message_id)
+        bot.send_message(message.chat.id, f"❌ Error searching @{clean_user}. Profile link: https://instagram.com/{clean_user}")
+
+# ==================== OTHER REAL API ENGINES ====================
+
 def process_imei_report(message, imei_no):
     clean_imei = imei_no.replace(" ", "").replace("-", "").strip()
     if not clean_imei.isdigit() or len(clean_imei) < 14:
@@ -270,22 +313,19 @@ def process_imei_report(message, imei_no):
 
     tac = clean_imei[:8]
     try:
-        # Live TAC API Query
         url = f"https://tacdb.org/api/v1/{tac}"
-        res = requests.get(url, headers=HEADERS, timeout=6)
+        res = requests.get(url, timeout=6)
         if res.status_code == 200 and res.json():
             data = res.json()
             brand = data.get('brand', 'Unknown Brand')
             model = data.get('model', 'Unknown Model')
-            bot.reply_to(message, f"🔐 REAL IMEI TAC LOOKUP REPORT\n━━━━━━━━━━━━━━━━━━━━━\n📲 IMEI Number: {clean_imei}\n🏭 Manufacturer/Brand: {brand}\n📱 Exact Model: {model}\n🏷️ TAC Code: {tac}\n🛡️ Status: Valid GSMA TAC Registered Device")
+            bot.reply_to(message, f"🔐 REAL IMEI TAC LOOKUP REPORT\n━━━━━━━━━━━━━━━━━━━━━\n📲 IMEI Number: {clean_imei}\n🏭 Manufacturer/Brand: {brand}\n📱 Exact Model: {model}\n🏷️ TAC Code: {tac}\n🛡️ Status: Valid GSMA Registered Device")
             return
     except Exception:
         pass
 
-    # Real Fallback if API is offline
-    bot.reply_to(message, f"🔐 REAL IMEI SCAN\n━━━━━━━━━━━━━━━━━━━━━\n📲 Input IMEI: {clean_imei}\n🏷️ TAC (Type Allocation Code): {tac}\n✅ Status: Valid Hardware Structure (15 Digits)\n\n📌 Note: Device hardware details are linked to TAC {tac}.")
+    bot.reply_to(message, f"🔐 REAL IMEI SCAN\n━━━━━━━━━━━━━━━━━━━━━\n📲 Input IMEI: {clean_imei}\n🏷️ TAC Code: {tac}\n✅ Status: Valid Hardware Structure (15 Digits)")
 
-# 3. REAL SHERLOCK PHOTO OSINT ENGINE (HANDLER FOR PHOTO UPLOADS)
 @bot.message_handler(content_types=['photo'])
 def process_photo_osint(message):
     try:
@@ -306,28 +346,26 @@ def process_photo_osint(message):
             f"2️⃣ Google Lens Verification:\n🔗 {google_lens}\n\n"
             f"3️⃣ TinEye Evidence Trace:\n🔗 {tineye_search}\n"
             f"━━━━━━━━━━━━━━━━━━━━━\n"
-            f"📌 Upar diye gaye links par click karke dekhein ki ye photo internet aur social media par kahan-kahan linked hai!"
+            f"📌 Links par click karke dekhein photo kahan-kahan active hai!"
         )
         bot.reply_to(message, report)
     except Exception as e:
         bot.reply_to(message, f"❌ Photo processing error: {e}")
 
-# 4. REAL PINCODE LOOKUP
 def process_pincode(message, code):
     try:
-        res = requests.get(f"https://api.postalpincode.in/pincode/{code.strip()}", headers=HEADERS, timeout=6).json()
+        res = requests.get(f"https://api.postalpincode.in/pincode/{code.strip()}", timeout=6).json()
         if res[0].get('Status') == 'Success':
             p = res[0]['PostOffice'][0]
             bot.reply_to(message, f"📍 REAL PINCODE DETAILS\n\n• Pincode: {code}\n• Office: {p.get('Name')}\n• District: {p.get('District')}\n• State: {p.get('State')}")
         else:
             bot.reply_to(message, f"❌ Pincode '{code}' Not Found in India Post Database!")
     except Exception:
-        bot.reply_to(message, "⚠️ Pincode service temporarily busy.")
+        bot.reply_to(message, "⚠️ Pincode service busy.")
 
-# 5. REAL IFSC BANK LOOKUP
 def process_ifsc(message, code):
     try:
-        res = requests.get(f"https://ifsc.razorpay.com/{code.strip().upper()}", headers=HEADERS, timeout=6).json()
+        res = requests.get(f"https://ifsc.razorpay.com/{code.strip().upper()}", timeout=6).json()
         if "BANK" in res:
             bot.reply_to(message, f"🏦 REAL BANK IFSC DETAILS\n\n• Bank: {res.get('BANK')}\n• Branch: {res.get('BRANCH')}\n• City: {res.get('CITY')}\n• Address: {res.get('ADDRESS')}\n• IFSC: {code.strip().upper()}")
         else:
@@ -335,34 +373,31 @@ def process_ifsc(message, code):
     except Exception:
         bot.reply_to(message, "⚠️ IFSC lookup error.")
 
-# 6. REAL IP GEO-LOOKUP
 def process_ip(message, ip):
     try:
-        res = requests.get(f"http://ip-api.com/json/{ip.strip()}", headers=HEADERS, timeout=6).json()
+        res = requests.get(f"http://ip-api.com/json/{ip.strip()}", timeout=6).json()
         if res.get('status') == 'success':
-            bot.reply_to(message, f"🌐 REAL IP GEO-LOCATION\n\n• IP: {ip}\n• Country: {res.get('country')}\n• City: {res.get('city')}\n• ISP: {res.get('isp')}\n• Latitude/Longitude: {res.get('lat')}, {res.get('lon')}")
+            bot.reply_to(message, f"🌐 REAL IP GEO-LOCATION\n\n• IP: {ip}\n• Country: {res.get('country')}\n• City: {res.get('city')}\n• ISP: {res.get('isp')}\n• Lat/Lon: {res.get('lat')}, {res.get('lon')}")
         else:
             bot.reply_to(message, f"❌ Invalid IP Address '{ip}'!")
     except Exception:
         bot.reply_to(message, "⚠️ IP Lookup Service Error.")
 
-# 7. REAL GITHUB OSINT
 def process_github(message, username):
     try:
         clean_user = username.replace("@", "").strip()
-        res = requests.get(f"https://api.github.com/users/{clean_user}", headers=HEADERS, timeout=5)
+        res = requests.get(f"https://api.github.com/users/{clean_user}", timeout=5)
         if res.status_code == 200:
             data = res.json()
-            bot.reply_to(message, f"💻 REAL GITHUB PROFILE\n\n• Name: {data.get('name') or clean_user}\n• Username: {clean_user}\n• Public Repos: {data.get('public_repos')}\n• Followers: {data.get('followers')}\n• Bio: {data.get('bio') or 'N/A'}\n🔗 Profile: {data.get('html_url')}")
+            bot.reply_to(message, f"💻 REAL GITHUB PROFILE\n\n• Name: {data.get('name') or clean_user}\n• Username: {clean_user}\n• Public Repos: {data.get('public_repos')}\n• Followers: {data.get('followers')}\n🔗 Profile: {data.get('html_url')}")
         else:
             bot.reply_to(message, f"❌ GitHub user '{clean_user}' not found!")
     except Exception:
         bot.reply_to(message, f"💻 GitHub Link: https://github.com/{username}")
 
-# 8. REAL MUSIC SEARCH
 def process_music_search(message, song):
     try:
-        res = requests.get(f"https://api.deezer.com/search?q={requests.utils.quote(song)}", headers=HEADERS, timeout=8).json()
+        res = requests.get(f"https://api.deezer.com/search?q={requests.utils.quote(song)}", timeout=8).json()
         if res.get('data'):
             track = res['data'][0]
             title = track.get('title', song)
@@ -381,11 +416,11 @@ def process_music_search(message, song):
 
 def process_qr_code(message, text):
     qr_url = f"https://api.qrserver.com/v1/create-qr-code/?size=350x350&data={requests.utils.quote(text)}"
-    bot.send_photo(message.chat.id, qr_url, caption=f"📱 QR Code Generated Successfully!\n\nData: {text}")
+    bot.send_photo(message.chat.id, qr_url, caption=f"📱 QR Code Generated!\n\nData: {text}")
 
 def process_shortener(message, url):
     try:
-        res = requests.get(f"https://is.gd/create.php?format=json&url={requests.utils.quote(url)}", headers=HEADERS, timeout=6).json()
+        res = requests.get(f"https://is.gd/create.php?format=json&url={requests.utils.quote(url)}", timeout=6).json()
         if "shorturl" in res:
             bot.reply_to(message, f"🔗 SHORT URL GENERATED:\n\n{res['shorturl']}")
         else:
@@ -397,7 +432,7 @@ def process_crypto(message, symbol):
     try:
         mapping = {"btc": "bitcoin", "eth": "ethereum", "sol": "solana", "usdt": "tether"}
         coin = mapping.get(symbol.lower(), symbol.lower())
-        res = requests.get(f"https://api.coingecko.com/api/v3/simple/price?ids={coin}&vs_currencies=usd,inr", headers=HEADERS, timeout=6).json()
+        res = requests.get(f"https://api.coingecko.com/api/v3/simple/price?ids={coin}&vs_currencies=usd,inr", timeout=6).json()
         if coin in res:
             bot.reply_to(message, f"🪙 REAL LIVE CRYPTO PRICE\n\n• Coin: {coin.upper()}\n• USD Price: ${res[coin]['usd']:,}\n• INR Price: ₹{res[coin]['inr']:,}")
         else:
@@ -416,7 +451,7 @@ def process_general_osint(message, user_input, tool_name="OSINT"):
 
 # --- MASTER ROUTER ENGINE ---
 ALL_BUTTONS = [
-    "📚 AVAILABLE BATCHES", "💬 CONTACT ADMIN", "📸 INSTAGRAM", "🖼️ SHERLOCK PHOTO OSINT",
+    "📚 AVAILABLE BATCHES", "💬 CONTACT ADMIN", "📸 INSTAGRAM LOOKUP", "🖼️ SHERLOCK PHOTO OSINT",
     "🔐 IMEI LOOKUP", "📍 PINCODE LOOKUP", "🏦 IFSC LOOKUP", "🌐 IP LOOKUP",
     "💻 GITHUB LOOKUP", "📱 QR GENERATOR", "🔗 URL SHORTENER", "🪙 CRYPTO RATES",
     "🛡️ SCAN WEBSITE", "🎵 MUSIC SEARCH", "📧 TEMP MAIL", "📦 TERABOX"
@@ -431,6 +466,11 @@ def auto_reply_handler(message):
         
         if not is_user_joined(user_id):
             bot.reply_to(message, "⚠️ Bot use karne ke liye pehle channel join karein!", reply_markup=force_join_menu())
+            return
+
+        # Direct Instagram Link Detection
+        if "instagram.com/" in text.lower():
+            process_instagram(message, text)
             return
 
         # 1. MENU BUTTON CLICKS
@@ -452,6 +492,10 @@ def auto_reply_handler(message):
                 USER_STATES.pop(user_id, None)
                 bot.reply_to(message, "🖼️ SHERLOCK PHOTO OSINT:\n\n👇 Kripya wo Photo Direct Chat mein Send/Upload karein jiska social media trace/verify karna hai!")
                 return
+            elif text == "📸 INSTAGRAM LOOKUP":
+                USER_STATES[user_id] = "📸 INSTAGRAM LOOKUP"
+                bot.reply_to(message, "📸 **INSTAGRAM OSINT:**\n\n👇 Kripya Username (e.g. `satish._x_`) ya Profile Link bhejein:")
+                return
             else:
                 USER_STATES[user_id] = text
                 bot.reply_to(message, f"📌 {text}\n\n👇 Kripya Details / Username / Number / Link / ID likh kar bhejein:")
@@ -461,7 +505,7 @@ def auto_reply_handler(message):
         current_tool = USER_STATES.pop(user_id, None)
         
         if current_tool:
-            if current_tool == "📸 INSTAGRAM":
+            if current_tool == "📸 INSTAGRAM LOOKUP":
                 process_instagram(message, text)
             elif current_tool == "🔐 IMEI LOOKUP":
                 process_imei_report(message, text)
@@ -514,7 +558,7 @@ if __name__ == "__main__":
     keep_alive()
     setup_commands()
 
-    print("🔥 100% Real Live OSINT Bot Active & Polling Started! 🔥")
+    print("🔥 Real Live Instagram OSINT Bot Active & Polling Started! 🔥")
 
     while True:
         try:
