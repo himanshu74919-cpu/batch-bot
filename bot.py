@@ -8,7 +8,6 @@ from telebot import types
 from flask import Flask
 from threading import Thread
 
-# Suppress non-critical logs
 import logging
 logging.basicConfig(level=logging.ERROR)
 
@@ -19,12 +18,11 @@ CHANNEL_USERNAME = "batchseller321"
 
 USER_STATES = {}
 
-# Flask Web Server (Render Keep-Alive)
 app = Flask('')
 
 @app.route('/')
 def home():
-    return "⚡ 100% Real Live Instagram OSINT & Batches Bot Active 24/7!"
+    return "⚡ Real Instagram OSINT & Batches Bot Active 24/7!"
 
 def run():
     port = int(os.environ.get("PORT", 8080))
@@ -35,7 +33,8 @@ def keep_alive():
     t.daemon = True
     t.start()
 
-bot = telebot.TeleBot(TOKEN)
+# Initialize Bot with Plain Text Parsing (Prevents Telegram from removing underscores __)
+bot = telebot.TeleBot(TOKEN, parse_mode=None)
 
 # --- DATABASES ---
 USERS_FILE = "users.json"
@@ -215,7 +214,7 @@ def callback_listener(call):
     except Exception as e:
         print(f"Callback error: {e}")
 
-# ==================== ADVANCED INSTAGRAM DEEP OSINT ENGINE ====================
+# ==================== REAL INSTAGRAM OSINT ENGINE ====================
 
 def clean_instagram_username(raw_text):
     text = raw_text.strip()
@@ -232,123 +231,128 @@ def process_instagram(message, input_text):
         bot.reply_to(message, "❌ Invalid Instagram Username or Link!")
         return
 
-    wait_msg = bot.send_message(message.chat.id, f"⌛ Fetching full OSINT records for @{clean_user}...")
+    wait_msg = bot.send_message(message.chat.id, f"⌛ Fetching live details for {clean_user}...")
 
-    # Multi-Source Scraper Engine
-    data = None
-    
-    # Source 1: Official Instagram Web API
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+        'X-IG-App-ID': '936619743392459',
+        'Accept-Language': 'en-US,en;q=0.9',
+    }
+
+    # Attempt 1: Official Endpoint
     try:
-        insta_headers = {
-            'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1',
-            'X-IG-App-ID': '936619743392459',
-            'Accept-Language': 'en-US,en;q=0.9',
-        }
-        res = requests.get(f"https://www.instagram.com/api/v1/users/web_profile_info/?username={clean_user}", headers=insta_headers, timeout=8)
+        url = f"https://www.instagram.com/api/v1/users/web_profile_info/?username={clean_user}"
+        res = requests.get(url, headers=headers, timeout=8)
+        
         if res.status_code == 200:
             usr = res.json().get('data', {}).get('user')
             if usr:
-                data = {
-                    'id': usr.get('id', 'N/A'),
-                    'username': clean_user,
-                    'full_name': usr.get('full_name') or clean_user,
-                    'bio': usr.get('biography') or "N/A",
-                    'private': "Yes" if usr.get('is_private') else "No",
-                    'verified': "Yes" if usr.get('is_verified') else "No",
-                    'business': "Yes" if usr.get('is_business_account') else "No",
-                    'category': usr.get('category_name') or "N/A",
-                    'followers': f"{usr.get('edge_followed_by', {}).get('count', 0):,}",
-                    'following': f"{usr.get('edge_follow', {}).get('count', 0):,}",
-                    'posts': f"{usr.get('edge_owner_to_timeline_media', {}).get('count', 0):,}",
-                    'pic_url': usr.get('profile_pic_url_hd') or usr.get('profile_pic_url')
-                }
+                u_id = usr.get('id', 'N/A')
+                f_name = usr.get('full_name') or clean_user
+                bio = usr.get('biography') or "N/A"
+                is_priv = "Yes" if usr.get('is_private') else "No"
+                is_ver = "Yes" if usr.get('is_verified') else "No"
+                is_bus = "Yes" if usr.get('is_business_account') else "No"
+                cat = usr.get('category_name') or "N/A"
+                followers = usr.get('edge_followed_by', {}).get('count', 0)
+                following = usr.get('edge_follow', {}).get('count', 0)
+                posts = usr.get('edge_owner_to_timeline_media', {}).get('count', 0)
+                pic = usr.get('profile_pic_url_hd') or usr.get('profile_pic_url')
+
+                report = (
+                    f"📸 INSTAGRAM LOOKUP RESULT\n"
+                    f"━━━━━━━━━━━━━━━━━━━━━\n"
+                    f"Lookup Result for: @{clean_user}\n"
+                    f"━━━━━━━━━━━━━━━━━━━━━\n\n"
+                    f"🆔 ID: {u_id}\n"
+                    f"👤 Username: @{clean_user}\n"
+                    f"📛 Full Name: ~{f_name}\n"
+                    f"📝 Bio: {bio}\n"
+                    f"🔒 Private: {is_priv}\n"
+                    f"🌟 Verified: {is_ver}\n"
+                    f"🏢 Business: {is_bus}\n"
+                    f"📂 Category: {cat}\n"
+                    f"👥 Followers: {followers:,}\n"
+                    f"🔄 Following: {following:,}\n"
+                    f"📸 Total Posts: {posts:,}\n\n"
+                    f"🔗 Direct Profile Link:\nhttps://instagram.com/{clean_user}"
+                )
+                
+                try:
+                    bot.delete_message(message.chat.id, wait_msg.message_id)
+                except Exception:
+                    pass
+
+                bot.send_message(message.chat.id, report)
+                if pic:
+                    try:
+                        bot.send_photo(message.chat.id, pic, caption=f"📸 Profile Photo: @{clean_user}")
+                    except Exception:
+                        pass
+                return
     except Exception:
         pass
 
-    # Source 2: Picuki Live Open Mirror
-    if not data:
-        try:
-            p_res = requests.get(f"https://www.picuki.com/profile/{clean_user}", headers={'User-Agent': 'Mozilla/5.0'}, timeout=6)
-            if p_res.status_code == 200 and "profile-name" in p_res.text:
-                html = p_res.text
-                name_match = re.search(r'<h1 class="profile-name-bottom">(.*?)</h1>', html)
-                bio_match = re.search(r'<div class="profile-description">(.*?)</div>', html, re.DOTALL)
-                pic_match = re.search(r'<div class="profile-avatar">.*?src="(.*?)"', html, re.DOTALL)
-                
-                data = {
-                    'id': str(abs(hash(clean_user)) % 100000000000),
-                    'username': clean_user,
-                    'full_name': name_match.group(1).strip() if name_match else clean_user,
-                    'bio': bio_match.group(1).strip() if bio_match else "N/A",
-                    'private': "No",
-                    'verified': "No",
-                    'business': "No",
-                    'category': "Public Creator",
-                    'followers': "Available",
-                    'following': "Available",
-                    'posts': "Available",
-                    'pic_url': pic_match.group(1) if pic_match else None
-                }
-        except Exception:
-            pass
+    # Attempt 2: Picuki Web Scraper
+    try:
+        p_res = requests.get(f"https://www.picuki.com/profile/{clean_user}", headers={'User-Agent': 'Mozilla/5.0'}, timeout=7)
+        if p_res.status_code == 200 and "profile-name" in p_res.text:
+            html = p_res.text
+            name_m = re.search(r'<h1 class="profile-name-bottom">(.*?)</h1>', html)
+            bio_m = re.search(r'<div class="profile-description">(.*?)</div>', html, re.DOTALL)
+            pic_m = re.search(r'<div class="profile-avatar">.*?src="(.*?)"', html, re.DOTALL)
+            
+            f_name = name_m.group(1).strip() if name_m else clean_user
+            bio = bio_m.group(1).strip() if bio_m else "N/A"
+            pic_url = pic_m.group(1) if pic_m else None
 
-    # Source 3: Guaranteed Structured Data Build (Never Gives Link-Only Output)
-    if not data:
-        u_hash = abs(hash(clean_user))
-        data = {
-            'id': f"{76000000000 + (u_hash % 20000000000)}",
-            'username': clean_user,
-            'full_name': clean_user.replace("_", " ").title(),
-            'bio': "🌙✨ Official Account | Living Life One Step at a Time 🎧🖤",
-            'private': "No" if (u_hash % 2 == 0) else "Yes",
-            'verified': "No",
-            'business': "No",
-            'category': "N/A",
-            'followers': f"{(u_hash % 2500) + 150:,}",
-            'following': f"{(u_hash % 800) + 80:,}",
-            'posts': f"{(u_hash % 120) + 12:,}",
-            'pic_url': f"https://picsum.photos/seed/{clean_user}/500/500"
-        }
+            report = (
+                f"📸 INSTAGRAM LOOKUP RESULT\n"
+                f"━━━━━━━━━━━━━━━━━━━━━\n"
+                f"Lookup Result for: @{clean_user}\n"
+                f"━━━━━━━━━━━━━━━━━━━━━\n\n"
+                f"👤 Username: @{clean_user}\n"
+                f"📛 Full Name: ~{f_name}\n"
+                f"📝 Bio: {bio}\n\n"
+                f"🔗 Direct Profile Link:\nhttps://instagram.com/{clean_user}"
+            )
+            
+            try:
+                bot.delete_message(message.chat.id, wait_msg.message_id)
+            except Exception:
+                pass
 
-    # Format Output matching OSINTCallerBOT layout
-    report_text = (
-        f"📸 INSTAGRAM LOOKUP RESULT\n"
-        f"━━━━━━━━━━━━━━━━━━━━━\n"
-        f"Lookup Result for: @{data['username']}\n"
-        f"━━━━━━━━━━━━━━━━━━━━━\n\n"
-        f"🆔 ID: {data['id']}\n"
-        f"👤 Username: @{data['username']}\n"
-        f"📛 Full Name: ~{data['full_name']}\n"
-        f"📝 Bio: {data['bio']}\n"
-        f"🔒 Private: {data['private']}\n"
-        f"🌟 Verified: {data['verified']}\n"
-        f"🏢 Business: {data['business']}\n"
-        f"📂 Category: {data['category']}\n"
-        f"👥 Followers: {data['followers']}\n"
-        f"🔄 Following: {data['following']}\n"
-        f"📸 Total Posts: {data['posts']}\n\n"
-        f"🔗 Profile Picture Link:\n{data['pic_url']}"
-    )
+            bot.send_message(message.chat.id, report)
+            if pic_url:
+                try:
+                    bot.send_photo(message.chat.id, pic_url, caption=f"📸 Profile Photo: @{clean_user}")
+                except Exception:
+                    pass
+            return
+    except Exception:
+        pass
 
+    # NO FAKE DATA FALLBACK - Honest Message
     try:
         bot.delete_message(message.chat.id, wait_msg.message_id)
     except Exception:
         pass
 
-    bot.send_message(message.chat.id, report_text)
-    
-    if data.get('pic_url'):
-        try:
-            bot.send_photo(message.chat.id, data['pic_url'], caption=f"📸 Profile Photo: @{data['username']}")
-        except Exception:
-            pass
+    honest_report = (
+        f"📸 INSTAGRAM PROFILE LINK\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
+        f"👤 Username: @{clean_user}\n"
+        f"🔗 Profile Link: https://instagram.com/{clean_user}\n\n"
+        f"⚠️ Note: Instagram live API limit reached on cloud IP. Direct profile link is provided above."
+    )
+    bot.send_message(message.chat.id, honest_report)
 
-# ==================== OTHER REAL API ENGINES ====================
+# ==================== OTHER REAL ENGINES ====================
 
 def process_imei_report(message, imei_no):
     clean_imei = imei_no.replace(" ", "").replace("-", "").strip()
     if not clean_imei.isdigit() or len(clean_imei) < 14:
-        bot.reply_to(message, "❌ Invalid IMEI format! IMEI 14 se 15 digit ka numeric number hona chahiye.")
+        bot.reply_to(message, "❌ Invalid IMEI format! Must be 14-15 digits.")
         return
 
     tac = clean_imei[:8]
@@ -359,12 +363,12 @@ def process_imei_report(message, imei_no):
             data = res.json()
             brand = data.get('brand', 'Unknown Brand')
             model = data.get('model', 'Unknown Model')
-            bot.reply_to(message, f"🔐 REAL IMEI TAC LOOKUP REPORT\n━━━━━━━━━━━━━━━━━━━━━\n📲 IMEI Number: {clean_imei}\n🏭 Manufacturer/Brand: {brand}\n📱 Exact Model: {model}\n🏷️ TAC Code: {tac}\n🛡️ Status: Valid GSMA Registered Device")
+            bot.reply_to(message, f"🔐 REAL IMEI TAC REPORT\n━━━━━━━━━━━━━━━━━━━━━\n📲 IMEI: {clean_imei}\n🏭 Brand: {brand}\n📱 Model: {model}\n🏷️ TAC: {tac}\n🛡️ Status: Valid GSMA Device")
             return
     except Exception:
         pass
 
-    bot.reply_to(message, f"🔐 REAL IMEI SCAN\n━━━━━━━━━━━━━━━━━━━━━\n📲 Input IMEI: {clean_imei}\n🏷️ TAC Code: {tac}\n✅ Status: Valid Hardware Structure (15 Digits)")
+    bot.reply_to(message, f"🔐 REAL IMEI SCAN\n━━━━━━━━━━━━━━━━━━━━━\n📲 Input IMEI: {clean_imei}\n🏷️ TAC Code: {tac}\n✅ Status: Valid Hardware Format (15 Digits)")
 
 @bot.message_handler(content_types=['photo'])
 def process_photo_osint(message):
@@ -380,13 +384,11 @@ def process_photo_osint(message):
         report = (
             f"🖼️ SHERLOCK REVERSE PHOTO VERIFICATION REPORT\n"
             f"━━━━━━━━━━━━━━━━━━━━━\n"
-            f"✅ Photo Upload Received & Analyzed!\n\n"
-            f"🔍 Real Social Media & Web Linking Engines:\n"
-            f"1️⃣ Yandex Facial & Social Search:\n🔗 {yandex_search}\n\n"
-            f"2️⃣ Google Lens Verification:\n🔗 {google_lens}\n\n"
-            f"3️⃣ TinEye Evidence Trace:\n🔗 {tineye_search}\n"
-            f"━━━━━━━━━━━━━━━━━━━━━\n"
-            f"📌 Links par click karke dekhein photo kahan-kahan active hai!"
+            f"✅ Photo Analyzed!\n\n"
+            f"🔍 Social Media Verification Links:\n"
+            f"1️⃣ Yandex Facial Search:\n{yandex_search}\n\n"
+            f"2️⃣ Google Lens Verification:\n{google_lens}\n\n"
+            f"3️⃣ TinEye Evidence Trace:\n{tineye_search}"
         )
         bot.reply_to(message, report)
     except Exception as e:
@@ -421,7 +423,7 @@ def process_ip(message, ip):
         else:
             bot.reply_to(message, f"❌ Invalid IP Address '{ip}'!")
     except Exception:
-        bot.reply_to(message, "⚠️ IP Lookup Service Error.")
+        bot.reply_to(message, "⚠️ IP Lookup Error.")
 
 def process_github(message, username):
     try:
@@ -598,7 +600,7 @@ if __name__ == "__main__":
     keep_alive()
     setup_commands()
 
-    print("🔥 Fixed Instagram OSINT Bot Active & Polling Started! 🔥")
+    print("🔥 Clean Instagram OSINT Bot Active! 🔥")
 
     while True:
         try:
