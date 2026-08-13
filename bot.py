@@ -9,11 +9,11 @@ from flask import Flask
 from threading import Thread
 import logging
 
-# Enable detailed logging to track errors
+# Detailed Logging for Render
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
-# --- MASTER CONFIGURATIONS ---
-TOKEN = '8871003871:AAH8D3NTbmMZcWTJqoVWp05_G0mcsV94Zww'
+# --- MASTER CONFIGURATIONS (UPDATED WITH YOUR NEW TOKEN) ---
+TOKEN = '8871003871:AAEgqm_V2fBxTo8ZEa42uOdgepvVg8nUzNo'
 ADMIN_USERNAME = "the_himanshu1"         
 CHANNEL_USERNAME = "batchseller321"     
 
@@ -310,14 +310,13 @@ def auto_reply_handler(message):
 if __name__ == "__main__":
     keep_alive()
     
-    # Remove stale webhooks to ensure polling receives messages immediately
     try:
         bot.remove_webhook()
         time.sleep(1)
     except Exception as e:
         print(f"Webhook remove note: {e}")
 
-    print("🔥 Master Bot Polling Started 🔥")
+    print("🔥 Master Bot Polling Started Successfully! 🔥")
 
     while True:
         try:
