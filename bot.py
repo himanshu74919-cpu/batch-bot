@@ -8,21 +8,23 @@ from telebot import types
 from flask import Flask
 from threading import Thread
 
+# Suppress non-critical logs
 import logging
 logging.basicConfig(level=logging.ERROR)
 
-# --- CONFIGURATIONS ---
-TOKEN = '8871003871:AAHKYffl2ncAxcri7iBSJeHheGzhfON0C6o'
+# --- MASTER CONFIGURATIONS ---
+TOKEN = '8871003871:AAH8D3NTbmMZcWTJqoVWp05_G0mcsV94Zww'
 ADMIN_USERNAME = "the_himanshu1"         
 CHANNEL_USERNAME = "batchseller321"     
 
 USER_STATES = {}
 
+# Flask Web Server (Render 24/7 Keep-Alive)
 app = Flask('')
 
 @app.route('/')
 def home():
-    return "⚡ 100% Working Proxy-Bypassed Instagram OSINT Bot Active 24/7!"
+    return "⚡ Master Protection OSINT & Batches Bot Active 24/7!"
 
 def run():
     port = int(os.environ.get("PORT", 8080))
@@ -33,12 +35,11 @@ def keep_alive():
     t.daemon = True
     t.start()
 
-# Plain Text Mode to Protect Underscores __
+# Initialize Bot in Plain-Text Mode (Prevents Telegram from swallowing __ underscores)
 bot = telebot.TeleBot(TOKEN, parse_mode=None)
 
 # --- DATABASES ---
 USERS_FILE = "users.json"
-PREMIUM_FILE = "premium_users.json"
 
 def load_data(file_path):
     if os.path.exists(file_path):
@@ -214,7 +215,7 @@ def callback_listener(call):
     except Exception as e:
         print(f"Callback error: {e}")
 
-# ==================== PROXY-BYPASSED INSTAGRAM OSINT ENGINE ====================
+# ==================== ADVANCED INSTAGRAM DEEP OSINT ENGINE ====================
 
 def get_exact_raw_text(message):
     raw_text = message.text or ""
@@ -234,10 +235,9 @@ def get_exact_raw_text(message):
 
     return raw_text.replace("@", "").strip()
 
-def fetch_instagram_osint_proxy(username):
+def fetch_instagram_osint(username):
     target_url = f"https://www.instagram.com/api/v1/users/web_profile_info/?username={username}"
     
-    # List of Proxy Gateways to Bypass Cloud IP Block
     proxy_gateways = [
         f"https://api.allorigins.win/raw?url={requests.utils.quote(target_url)}",
         f"https://corsproxy.io/?{requests.utils.quote(target_url)}"
@@ -301,9 +301,9 @@ def fetch_instagram_osint_proxy(username):
                     'verified': "No",
                     'business': "No",
                     'category': "Public Profile",
-                    'followers': "Verified Active",
-                    'following': "Verified Active",
-                    'posts': "Verified Active",
+                    'followers': "Active",
+                    'following': "Active",
+                    'posts': "Active",
                     'pic_url': pic_url
                 }
     except Exception:
@@ -319,7 +319,7 @@ def process_instagram(message):
 
     wait_msg = bot.send_message(message.chat.id, f"⌛ Fetching live details for @{clean_user}...")
 
-    data = fetch_instagram_osint_proxy(clean_user)
+    data = fetch_instagram_osint(clean_user)
 
     try:
         bot.delete_message(message.chat.id, wait_msg.message_id)
@@ -363,7 +363,7 @@ def process_instagram(message):
         )
         bot.send_message(message.chat.id, report_text)
 
-# ==================== OTHER REAL ENGINES ====================
+# ==================== OTHER REAL API ENGINES ====================
 
 def process_imei_report(message, imei_no):
     clean_imei = imei_no.replace(" ", "").replace("-", "").strip()
@@ -616,11 +616,18 @@ if __name__ == "__main__":
     keep_alive()
     setup_commands()
 
-    print("🔥 Proxy Bypassed Instagram Bot Active! 🔥")
+    # Clear stale webhooks to fix unresponsive bot immediately
+    try:
+        bot.remove_webhook()
+        time.sleep(1)
+    except Exception:
+        pass
+
+    print("🔥 Master Protection Bot Fully Operational! 🔥")
 
     while True:
         try:
-            bot.infinity_polling(timeout=15, long_polling_timeout=10, skip_pending=True)
+            bot.infinity_polling(timeout=20, long_polling_timeout=15, skip_pending=True)
         except Exception as e:
             print(f"⚡ Connection Glitch Auto-Recovered: {e}")
             time.sleep(3)
