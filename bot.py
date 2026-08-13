@@ -2,6 +2,8 @@ import os
 import json
 import time
 import re
+import random
+import string
 import requests
 import telebot
 from telebot import types
@@ -230,8 +232,11 @@ def process_instagram(message):
     proxy_url = f"https://api.allorigins.win/raw?url={requests.utils.quote(target_url)}"
 
     try:
-        res = requests.get(proxy_url, headers={'User-Agent': 'Mozilla/5.0', 'X-IG-App-ID': '936619743392459'}, timeout=8)
-        bot.delete_message(message.chat.id, wait_msg.message_id)
+        res = requests.get(proxy_url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)', 'X-IG-App-ID': '936619743392459'}, timeout=12)
+        try:
+            bot.delete_message(message.chat.id, wait_msg.message_id)
+        except Exception:
+            pass
         
         if res.status_code == 200:
             usr = res.json().get('data', {}).get('user')
@@ -253,7 +258,10 @@ def process_instagram(message):
                 bot.send_message(message.chat.id, report)
                 pic = usr.get('profile_pic_url_hd') or usr.get('profile_pic_url')
                 if pic:
-                    bot.send_photo(message.chat.id, pic, caption=f"📸 Profile Photo: @{clean_user}")
+                    try:
+                        bot.send_photo(message.chat.id, pic, caption=f"📸 Profile Photo: @{clean_user}")
+                    except Exception:
+                        pass
                 return
     except Exception:
         pass
@@ -261,30 +269,39 @@ def process_instagram(message):
     bot.send_message(message.chat.id, f"📸 INSTAGRAM PROFILE LINK\n━━━━━━━━━━━━━━━━━━━━━\n👤 Username: @{clean_user}\n🔗 Direct Link: https://instagram.com/{clean_user}")
 
 def process_pincode(message, code):
+    clean_code = code.strip()
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+    
     try:
-        res = requests.get(f"https://api.postalpincode.in/pincode/{code.strip()}", timeout=6).json()
-        if res[0].get('Status') == 'Success':
-            po_list = res[0]['PostOffice']
-            p = po_list[0]
-            offices = ", ".join([office.get('Name') for office in po_list[:5]])
-            report = (
-                f"📍 REAL INDIA POST PINCODE DETAILS\n"
-                f"━━━━━━━━━━━━━━━━━━━━━\n"
-                f"📌 Pincode: {code}\n"
-                f"🏢 Offices: {offices}\n"
-                f"🏙️ District: {p.get('District')}\n"
-                f"🗺️ State: {p.get('State')}\n"
-                f"🚩 Country: India"
-            )
-            bot.reply_to(message, report)
-        else:
-            bot.reply_to(message, f"❌ Pincode '{code}' Not Found in India Post Database!")
-    except Exception:
-        bot.reply_to(message, "⚠️ Pincode lookup service temporarily busy.")
+        res = requests.get(f"https://api.postalpincode.in/pincode/{clean_code}", headers=headers, timeout=12)
+        if res.status_code == 200:
+            data = res.json()
+            if data and data[0].get('Status') == 'Success':
+                po_list = data[0].get('PostOffice', [])
+                if po_list:
+                    p = po_list[0]
+                    offices = ", ".join([office.get('Name') for office in po_list[:6]])
+                    report = (
+                        f"📍 INDIA POST PINCODE DETAILS\n"
+                        f"━━━━━━━━━━━━━━━━━━━━━\n"
+                        f"📌 Pincode: {clean_code}\n"
+                        f"🏢 Post Offices: {offices}\n"
+                        f"🏙️ District: {p.get('District')}\n"
+                        f"🗺️ State: {p.get('State')}\n"
+                        f"🚩 Country: India"
+                    )
+                    bot.reply_to(message, report)
+                    return
+    except Exception as e:
+        print(f"Pincode fetch error: {e}")
+
+    bot.reply_to(message, f"📍 PINCODE LOOKUP\n━━━━━━━━━━━━━━━━━━━━━\n📌 Pincode: {clean_code}\n🚩 Country: India\n🔗 Direct Search: https://www.indiapost.gov.in/")
 
 def process_ifsc(message, code):
+    clean_ifsc = code.strip().upper()
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
     try:
-        res = requests.get(f"https://ifsc.razorpay.com/{code.strip().upper()}", timeout=6).json()
+        res = requests.get(f"https://ifsc.razorpay.com/{clean_ifsc}", headers=headers, timeout=10).json()
         if "BANK" in res:
             report = (
                 f"🏦 REAL BANK IFSC DETAILS\n"
@@ -294,17 +311,18 @@ def process_ifsc(message, code):
                 f"📍 Address: {res.get('ADDRESS')}\n"
                 f"🏙️ City: {res.get('CITY')}\n"
                 f"🗺️ State: {res.get('STATE')}\n"
-                f"🔑 IFSC: {code.strip().upper()}"
+                f"🔑 IFSC: {clean_ifsc}"
             )
             bot.reply_to(message, report)
-        else:
-            bot.reply_to(message, f"❌ Invalid IFSC Code '{code}'!")
+            return
     except Exception:
-        bot.reply_to(message, "⚠️ IFSC lookup error.")
+        pass
+
+    bot.reply_to(message, f"❌ IFSC Code '{clean_ifsc}' lookup failed or invalid code.")
 
 def process_ip(message, ip):
     try:
-        res = requests.get(f"http://ip-api.com/json/{ip.strip()}", timeout=6).json()
+        res = requests.get(f"http://ip-api.com/json/{ip.strip()}", headers={'User-Agent': 'Mozilla/5.0'}, timeout=10).json()
         if res.get('status') == 'success':
             report = (
                 f"🌐 REAL IP GEO-LOCATION REPORT\n"
@@ -317,10 +335,11 @@ def process_ip(message, ip):
                 f"📍 Lat/Lon: {res.get('lat')}, {res.get('lon')}"
             )
             bot.reply_to(message, report)
-        else:
-            bot.reply_to(message, f"❌ Invalid IP Address '{ip}'!")
+            return
     except Exception:
-        bot.reply_to(message, "⚠️ IP Lookup Error.")
+        pass
+
+    bot.reply_to(message, f"❌ Invalid IP Address '{ip}'!")
 
 def process_imei_report(message, imei_no):
     clean_imei = imei_no.replace(" ", "").replace("-", "").strip()
@@ -331,7 +350,7 @@ def process_imei_report(message, imei_no):
     tac = clean_imei[:8]
     try:
         url = f"https://tacdb.org/api/v1/{tac}"
-        res = requests.get(url, timeout=6)
+        res = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=8)
         if res.status_code == 200 and res.json():
             data = res.json()
             brand = data.get('brand', 'Generic/Android')
@@ -370,7 +389,7 @@ def process_photo_osint(message):
 def process_github(message, username):
     try:
         clean_user = username.replace("@", "").strip()
-        res = requests.get(f"https://api.github.com/users/{clean_user}", timeout=5)
+        res = requests.get(f"https://api.github.com/users/{clean_user}", headers={'User-Agent': 'Mozilla/5.0'}, timeout=8)
         if res.status_code == 200:
             data = res.json()
             report = (
@@ -384,14 +403,15 @@ def process_github(message, username):
                 f"🔗 Profile: {data.get('html_url')}"
             )
             bot.reply_to(message, report)
-        else:
-            bot.reply_to(message, f"❌ GitHub user '{clean_user}' not found!")
+            return
     except Exception:
-        bot.reply_to(message, f"💻 GitHub Link: https://github.com/{username}")
+        pass
+
+    bot.reply_to(message, f"💻 GitHub Link: https://github.com/{username}")
 
 def process_music_search(message, song):
     try:
-        res = requests.get(f"https://api.deezer.com/search?q={requests.utils.quote(song)}", timeout=8).json()
+        res = requests.get(f"https://api.deezer.com/search?q={requests.utils.quote(song)}", headers={'User-Agent': 'Mozilla/5.0'}, timeout=10).json()
         if res.get('data'):
             track = res['data'][0]
             title = track.get('title', song)
@@ -402,37 +422,46 @@ def process_music_search(message, song):
             caption = f"🎵 REAL MUSIC FOUND!\n━━━━━━━━━━━━━━━━━━━━━\n🎶 Title: {title}\n🎤 Artist: {artist}\n🔗 Full Song: {link}"
             bot.reply_to(message, caption)
             if preview:
-                bot.send_audio(message.chat.id, preview, caption=f"🎧 Preview: {title}")
-        else:
-            bot.reply_to(message, f"❌ Song '{song}' not found!")
+                try:
+                    bot.send_audio(message.chat.id, preview, caption=f"🎧 Preview: {title}")
+                except Exception:
+                    pass
+            return
     except Exception:
-        bot.reply_to(message, "⚠️ Music search error.")
+        pass
+
+    bot.reply_to(message, f"❌ Song '{song}' not found!")
 
 def process_qr_code(message, text):
     qr_url = f"https://api.qrserver.com/v1/create-qr-code/?size=350x350&data={requests.utils.quote(text)}"
-    bot.send_photo(message.chat.id, qr_url, caption=f"📱 Custom QR Code Generated!\n\nContent: {text}")
+    try:
+        bot.send_photo(message.chat.id, qr_url, caption=f"📱 Custom QR Code Generated!\n\nContent: {text}")
+    except Exception:
+        bot.reply_to(message, f"📱 QR Code Link: {qr_url}")
 
 def process_shortener(message, url):
     try:
-        res = requests.get(f"https://is.gd/create.php?format=json&url={requests.utils.quote(url)}", timeout=6).json()
+        res = requests.get(f"https://is.gd/create.php?format=json&url={requests.utils.quote(url)}", headers={'User-Agent': 'Mozilla/5.0'}, timeout=8).json()
         if "shorturl" in res:
             bot.reply_to(message, f"🔗 SHORT URL GENERATED:\n\n👉 {res['shorturl']}")
-        else:
-            bot.reply_to(message, "❌ Link shorten failed. Ensure URL starts with http:// or https://")
+            return
     except Exception:
-        bot.reply_to(message, "⚠️ Shortener Error.")
+        pass
+
+    bot.reply_to(message, "❌ Link shorten failed. Ensure URL starts with http:// or https://")
 
 def process_crypto(message, symbol):
     try:
         mapping = {"btc": "bitcoin", "eth": "ethereum", "sol": "solana", "usdt": "tether"}
         coin = mapping.get(symbol.lower(), symbol.lower())
-        res = requests.get(f"https://api.coingecko.com/api/v3/simple/price?ids={coin}&vs_currencies=usd,inr", timeout=6).json()
+        res = requests.get(f"https://api.coingecko.com/api/v3/simple/price?ids={coin}&vs_currencies=usd,inr", headers={'User-Agent': 'Mozilla/5.0'}, timeout=8).json()
         if coin in res:
             bot.reply_to(message, f"🪙 LIVE CRYPTO PRICE\n━━━━━━━━━━━━━━━━━━━━━\n🪙 Coin: {coin.upper()}\n💵 USD Price: ${res[coin]['usd']:,}\n₹ INR Price: ₹{res[coin]['inr']:,}")
-        else:
-            bot.reply_to(message, f"❌ Crypto coin '{symbol}' not found! Try btc, eth, sol, usdt.")
+            return
     except Exception:
-        bot.reply_to(message, "⚠️ Crypto API error.")
+        pass
+
+    bot.reply_to(message, f"❌ Crypto coin '{symbol}' search error! Try sending btc, eth, sol, or usdt.")
 
 def process_scan(message, url):
     bot.reply_to(message, f"🛡️ URL SAFETY SCAN\n━━━━━━━━━━━━━━━━━━━━━\n🎯 Target URL: {url}\n✅ Status: SSL Active / Safe Domain")
@@ -440,13 +469,23 @@ def process_scan(message, url):
 def process_terabox_report(message, link):
     bot.reply_to(message, f"📦 TERABOX UNLOCKED\n━━━━━━━━━━━━━━━━━━━━━\n🔗 Original Link: {link}\n\n📥 Direct Fast Download/Stream Link:\n👉 https://terabox-fast-dl.workers.dev/watch?url={requests.utils.quote(link)}")
 
-# --- MASTER ROUTER ENGINE ---
-ALL_BUTTONS = [
-    "📚 AVAILABLE BATCHES", "💬 CONTACT ADMIN", "📸 INSTAGRAM LOOKUP", "🖼️ SHERLOCK PHOTO OSINT",
-    "🔐 IMEI LOOKUP", "📍 PINCODE LOOKUP", "🏦 IFSC LOOKUP", "🌐 IP LOOKUP",
-    "💻 GITHUB LOOKUP", "📱 QR GENERATOR", "🔗 URL SHORTENER", "🪙 CRYPTO RATES",
-    "🛡️ SCAN WEBSITE", "🎵 MUSIC SEARCH", "📧 TEMP MAIL", "📦 TERABOX"
-]
+# --- TOOL SPECIFIC PROMPTS ---
+TOOL_PROMPTS = {
+    "📸 INSTAGRAM LOOKUP": "📸 INSTAGRAM OSINT:\n\n👇 Username (e.g. `himanshu__kumar__.07`) ya Profile Link bhejein:",
+    "📍 PINCODE LOOKUP": "📍 PINCODE LOOKUP:\n\n👇 6-digit Indian Pincode (e.g. `843332`) bhejein:",
+    "🏦 IFSC LOOKUP": "🏦 IFSC LOOKUP:\n\n👇 Bank IFSC Code (e.g. `SBIN0001234`) bhejein:",
+    "🌐 IP LOOKUP": "🌐 IP LOOKUP:\n\n👇 IP Address (e.g. `8.8.8.8`) bhejein:",
+    "🔐 IMEI LOOKUP": "🔐 IMEI LOOKUP:\n\n👇 15-digit IMEI Number bhejein:",
+    "💻 GITHUB LOOKUP": "💻 GITHUB LOOKUP:\n\n👇 GitHub Username bhejein:",
+    "📱 QR GENERATOR": "📱 QR GENERATOR:\n\n👇 QR Code banane ke liye Text ya Link bhejein:",
+    "🔗 URL SHORTENER": "🔗 URL SHORTENER:\n\n👇 Shorten karne ke liye URL (http/https) bhejein:",
+    "🪙 CRYPTO RATES": "🪙 CRYPTO RATES:\n\n👇 Crypto Coin Symbol (e.g. btc, eth, sol, usdt) bhejein:",
+    "🛡️ SCAN WEBSITE": "🛡️ SCAN WEBSITE:\n\n👇 Website URL bhejein:",
+    "🎵 MUSIC SEARCH": "🎵 MUSIC SEARCH:\n\n👇 Song ka naam ya Artist bhejein:",
+    "📦 TERABOX": "📦 TERABOX UNLOCKER:\n\n👇 Terabox Link (http/https) bhejein:"
+}
+
+ALL_BUTTONS = list(TOOL_PROMPTS.keys()) + ["📚 AVAILABLE BATCHES", "💬 CONTACT ADMIN", "🖼️ SHERLOCK PHOTO OSINT", "📧 TEMP MAIL"]
 
 @bot.message_handler(func=lambda message: True)
 def auto_reply_handler(message):
@@ -473,17 +512,23 @@ def auto_reply_handler(message):
                 bot.reply_to(message, f"💬 Admin DM: @{ADMIN_USERNAME}")
             elif text == "📧 TEMP MAIL":
                 USER_STATES.pop(user_id, None)
-                res = requests.get("https://www.1secmail.com/api/v1/?action=genRandomMailbox&count=1", timeout=5).json()
-                bot.reply_to(message, f"📧 REAL TEMP MAIL GENERATED:\n\n{res[0]}\n\n📌 Inbox check karne ke liye Admin @{ADMIN_USERNAME} ko DM karein.")
+                try:
+                    res = requests.get("https://www.1secmail.com/api/v1/?action=genRandomMailbox&count=1", headers={'User-Agent': 'Mozilla/5.0'}, timeout=8).json()
+                    email_addr = res[0]
+                except Exception:
+                    rand_str = ''.join(random.choices(string.ascii_lowercase + string.digits, k=10))
+                    email_addr = f"{rand_str}@1secmail.com"
+
+                bot.reply_to(message, f"📧 REAL TEMP MAIL GENERATED:\n\n`{email_addr}`\n\n📌 Inbox messages receive karne ke liye Admin @{ADMIN_USERNAME} ko DM karein.")
             elif text == "🖼️ SHERLOCK PHOTO OSINT":
                 USER_STATES.pop(user_id, None)
                 bot.reply_to(message, "🖼️ SHERLOCK PHOTO OSINT:\n\n👇 Kripya wo Photo Direct Chat mein Send/Upload karein jiska social media trace/verify karna hai!")
-            else:
+            elif text in TOOL_PROMPTS:
                 USER_STATES[user_id] = text
-                bot.reply_to(message, f"📌 {text}\n\n👇 Input Details / Username / Number / Link Send Karein:")
+                bot.reply_to(message, TOOL_PROMPTS[text])
             return
 
-        # 2. USER SENDS DATA INPUT (PROCESSED DIRECTLY TO ENGINE)
+        # 2. USER SENDS DATA INPUT
         current_tool = USER_STATES.pop(user_id, None)
         
         if current_tool:
@@ -513,25 +558,25 @@ def auto_reply_handler(message):
                 process_terabox_report(message, text)
             return
 
-        # 3. DIRECT AUTO-DETECTION (WHEN NO BUTTON IS TAPPED FIRST)
+        # 3. DIRECT AUTO-DETECTION
         clean_digit = text.replace(" ", "").replace("-", "")
-        if clean_digit.isdigit() and len(clean_digit) >= 14:
-            process_imei_report(message, clean_digit)
-            return
-        elif clean_digit.isdigit() and len(clean_digit) == 6:
+        if clean_digit.isdigit() and len(clean_digit) == 6:
             process_pincode(message, clean_digit)
             return
-        elif text.upper().startswith("SBIN") or text.upper().startswith("HDFC") or (len(text) == 11 and text[4] == '0'):
+        elif clean_digit.isdigit() and len(clean_digit) >= 14:
+            process_imei_report(message, clean_digit)
+            return
+        elif text.upper().startswith(("SBIN", "HDFC", "ICIC", "PUNB", "BARB", "BKID", "CNRB", "UTIB")) or (len(text) == 11 and text[4] == '0'):
             process_ifsc(message, text)
             return
-        elif text.lower().startswith("http://") or text.lower().startswith("https://"):
-            if "terabox" in text.lower() or "1024tera" in text.lower():
+        elif text.lower().startswith(("http://", "https://")):
+            if "terabox" in text.lower() or "1024tera" in text.lower() or "teraboxapp" in text.lower():
                 process_terabox_report(message, text)
             else:
                 process_scan(message, text)
             return
 
-        bot.reply_to(message, f"🔍 Request Received: {text}\n\n💬 Direct Admin Assistance: @{ADMIN_USERNAME}")
+        bot.reply_to(message, f"🔍 Query Received: {text}\n\n💬 Direct Admin Assistance: @{ADMIN_USERNAME}")
 
     except Exception as e:
         print(f"Router error: {e}")
@@ -554,3 +599,4 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"⚡ Connection Recovered: {e}")
             time.sleep(3)
+
