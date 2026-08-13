@@ -18,9 +18,9 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# 🔑 FIXED BOT TOKEN
+# 🔑 FIXED BOT TOKEN & ADMIN CREDENTIALS
 API_TOKEN = '8871003871:AAGdSTB3uvJkEkgvanN6vaYhv1ButVHJUP0'
-ADMIN_ID = 123456789  # Replace with your Telegram Numerical User ID if needed
+ADMIN_ID = 7990500822  # Fixed from your screenshot!
 ADMIN_USERNAME = 'the_himanshu1'
 CHANNEL_USERNAME = 'batchseller321'
 WEB_APP_URL = 'https://himanshu74919-cpu.github.io/batchseller-hub/'
@@ -261,7 +261,6 @@ INSTITUTES = {
     }
 }
 
-# Motivation Quotes Generator
 MOTIVATIONAL_QUOTES = [
     "“Padhai aaj karo, kal safalta tumhare kadam choomegi.” 🚀",
     "“Mehnat itni khamoshi se karo ki tumhari kamyabi shor macha de!” 🔥",
@@ -269,7 +268,6 @@ MOTIVATIONAL_QUOTES = [
     "“₹149 ka investment aapki zindagi aur career badal sakta hai!” 📚"
 ]
 
-# User States for multi-step conversations
 USER_STATES = {}
 
 # ==============================================================================
@@ -278,7 +276,6 @@ USER_STATES = {}
 def get_main_keyboard():
     markup = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
     
-    # Web App Button
     web_btn = types.KeyboardButton(
         text="🌐 OPEN WEB STORE",
         web_app=types.WebAppInfo(url=WEB_APP_URL)
@@ -330,9 +327,7 @@ def command_start(message):
     username = message.from_user.username
     first_name = message.from_user.first_name
     
-    # Save User to DB
     db_add_user(user_id, username, first_name)
-    
     quote = random.choice(MOTIVATIONAL_QUOTES)
     
     welcome_text = (
@@ -368,7 +363,8 @@ def command_help(message):
         "• `/batches` - Sabhi batches ki list dekhein\n"
         "• `/search <name>` - Koi bhi batch khojein\n"
         "• `/orders` - Apne khareede hue orders dekhein\n"
-        "• `/support` - Direct Admin/Founder contact\n\n"
+        "• `/support` - Direct Admin/Founder contact\n"
+        "• `/admin` - Admin Panel (Only for Himanshu)\n\n"
         "💬 **Direct Admin Assistance:** `@the_himanshu1`"
     )
     bot.send_message(message.chat.id, help_text)
@@ -402,7 +398,7 @@ def command_orders(message):
     bot.send_message(message.chat.id, res)
 
 # ==============================================================================
-# 👑 ADMIN PANEL & COMMANDS
+# 👑 ADMIN PANEL & COMMANDS (UNLOCKED FOR HIMANSHU: 7990500822)
 # ==============================================================================
 
 @bot.message_handler(commands=['admin'])
@@ -414,10 +410,9 @@ def command_admin(message):
 
     admin_text = (
         "👑 **BATCHSELLER HUB - ADMIN PANEL**\n\n"
-        "Welcome Himanshu Bhai! Niche diye gaye commands use karein:\n\n"
-        "📊 `/stats` - Check total registered users\n"
+        "Welcome Himanshu Bhai! Aapka Admin access verified hai.\n\n"
+        "📊 `/stats` - Check total registered users & orders\n"
         "📢 `/broadcast <message>` - Send message to all users\n"
-        "🎟️ `/addcoupon <code> <discount%>` - Create new coupon code"
     )
     bot.send_message(message.chat.id, admin_text)
 
@@ -438,7 +433,7 @@ def command_stats(message):
     bot.send_message(
         message.chat.id,
         f"📊 **BOT REAL-TIME STATISTICS:**\n\n"
-        f"👤 **Total Users:** {len(users)}\n"
+        f"👤 **Total Registered Users:** {len(users)}\n"
         f"📦 **Total Orders Initiated:** {total_orders}\n"
         f"⭐ **Feedbacks Received:** {total_feedback}"
     )
@@ -480,7 +475,6 @@ def handle_text_messages(message):
     text = message.text
     user_id = message.from_user.id
     
-    # Check if user is in a state
     if user_id in USER_STATES:
         state = USER_STATES[user_id]
         if state == "AWAITING_SEARCH":
@@ -490,10 +484,9 @@ def handle_text_messages(message):
         elif state == "AWAITING_FEEDBACK":
             USER_STATES.pop(user_id, None)
             db_add_feedback(user_id, 5, text)
-            bot.send_message(message.chat.id, "✅ **Thank you for your valuable feedback!** Himanshu Bhai tak aapka message pahunch gaya hai.")
+            bot.send_message(message.chat.id, "✅ **Thank you for your feedback!** Himanshu Bhai tak aapka review pahunch gaya hai.")
             return
 
-    # Menu Buttons
     if text == "📚 All Institutes (12)":
         bot.send_message(
             message.chat.id,
@@ -502,12 +495,12 @@ def handle_text_messages(message):
         )
     elif text == "🔍 Search Batch":
         USER_STATES[user_id] = "AWAITING_SEARCH"
-        bot.send_message(message.chat.id, "🔍 **Aap kaun sa batch ya subject khoj rahe hain?**\n(E.g., Laksha, Khan Sir, DSA, UPSC, Class 10 type karke bhejein)")
+        bot.send_message(message.chat.id, "🔍 **Aap kaun sa batch ya subject khoj rahe hain?**\n(E.g., Lakshya, Khan Sir, DSA, UPSC, Class 10 type karein)")
     
     elif text == "🔥 Offer & Pricing":
         offer_text = (
             "🎉 **SPECIAL FLAT ₹149 OFFER DETAILS**\n\n"
-            "💎 **Original Market Price:** ~~₹2,999 to ₹9,999~~\n"
+            "💎 **Original Price:** ~~₹2,999 to ₹9,999~~\n"
             "🔥 **Our Special Price:** **FLAT ₹149 ONLY!**\n\n"
             "✨ **What You Get:**\n"
             "• 100% Full HD Recorded Lectures\n"
@@ -563,13 +556,13 @@ def perform_search(message, query):
                 results.append((code, c_id, course["name"], course["price"], inst["name"]))
 
     if not results:
-        bot.send_message(message.chat.id, f"❌ Aapke search query **'{query}'** ke liye koi batch nahi mila.\n\n'📚 All Institutes (12)' button daba kar sabhi batches browser karein!")
+        bot.send_message(message.chat.id, f"❌ Aapke search query **'{query}'** ke liye koi batch nahi mila.\n\n'📚 All Institutes (12)' button daba kar sabhi batches browse karein!")
         return
 
     res_text = f"🔍 **SEARCH RESULTS FOR '{query.upper()}':**\n\n"
     markup = types.InlineKeyboardMarkup(row_width=1)
 
-    for res in results[:5]:  # Limit top 5
+    for res in results[:5]:
         inst_code, c_id, name, price, inst_name = res
         res_text += f"• **{name}** ({inst_name}) - ₹{price}\n"
         markup.add(types.InlineKeyboardButton(f"👉 View {name}", callback_data=f"course_{inst_code}_{c_id}"))
@@ -584,7 +577,6 @@ def perform_search(message, query):
 def handle_inline_callbacks(call):
     data = call.data
 
-    # Back to main institutes menu
     if data == "back_to_institutes":
         bot.edit_message_text(
             chat_id=call.message.chat.id,
@@ -594,7 +586,6 @@ def handle_inline_callbacks(call):
         )
         return
 
-    # Institute selection -> Show Sub-courses
     if data.startswith("inst_"):
         inst_code = data.replace("inst_", "")
         if inst_code in INSTITUTES:
@@ -612,7 +603,6 @@ def handle_inline_callbacks(call):
             )
         return
 
-    # Course selection -> Show full details & Buy button
     if data.startswith("course_"):
         parts = data.split("_")
         inst_code = parts[1]
@@ -635,7 +625,6 @@ def handle_inline_callbacks(call):
                 f"⚡ **Delivery:** Instant Access Link upon payment"
             )
 
-            # Create buy URL with pre-typed message to Admin
             buy_msg = f"Hi Himanshu, I want to buy {course['name']} ({inst['name']}) for Rs.149. My Order ID is {order_id}"
             encoded_msg = buy_msg.replace(" ", "%20")
             buy_url = f"https://t.me/{ADMIN_USERNAME}?text={encoded_msg}"
@@ -649,7 +638,6 @@ def handle_inline_callbacks(call):
             markup.add(web_app_btn)
             markup.add(back_btn)
 
-            # Record pending order in DB
             db_create_order(order_id, call.from_user.id, inst_code, course['name'], course['price'])
 
             bot.edit_message_text(
@@ -666,7 +654,7 @@ def handle_inline_callbacks(call):
 if __name__ == "__main__":
     print("================================================")
     print("🚀 BATCHSELLER HUB ULTRA BOT STARTED SUCCESSFULLY!")
-    print(f"👤 Admin Username: @{ADMIN_USERNAME}")
+    print(f"👤 Admin ID: {ADMIN_ID} (@{ADMIN_USERNAME})")
     print(f"🌐 Web App URL: {WEB_APP_URL}")
     print("================================================")
     
