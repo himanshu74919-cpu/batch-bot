@@ -18,13 +18,12 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# 🔑 FIXED BOT TOKEN & ADMIN CREDENTIALS
+# 🔑 BOT CREDENTIALS & ADMIN SETUP
 API_TOKEN = '8871003871:AAGdSTB3uvJkEkgvanN6vaYhv1ButVHJUP0'
-ADMIN_ID = 7990500822  # Fixed from your screenshot!
+ADMIN_ID = 7990500822  # Himanshu's Telegram ID
 ADMIN_USERNAME = 'the_himanshu1'
 CHANNEL_USERNAME = 'batchseller321'
 WEB_APP_URL = 'https://himanshu74919-cpu.github.io/batchseller-hub/'
-FOUNDER_EMAIL = 'himanshu74919@gmail.com'
 
 bot = telebot.TeleBot(API_TOKEN, parse_mode="Markdown")
 
@@ -37,7 +36,6 @@ def init_db():
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
     
-    # Users table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS users (
             user_id INTEGER PRIMARY KEY,
@@ -47,7 +45,6 @@ def init_db():
         )
     ''')
     
-    # Orders table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS orders (
             order_id TEXT PRIMARY KEY,
@@ -60,7 +57,6 @@ def init_db():
         )
     ''')
     
-    # Feedback table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS feedback (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -70,19 +66,6 @@ def init_db():
             date TEXT
         )
     ''')
-    
-    # Coupons table
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS coupons (
-            code TEXT PRIMARY KEY,
-            discount_percent INTEGER,
-            is_active INTEGER
-        )
-    ''')
-    
-    # Default Coupons
-    cursor.execute("INSERT OR IGNORE INTO coupons VALUES ('HIMANSHU10', 10, 1)")
-    cursor.execute("INSERT OR IGNORE INTO coupons VALUES ('BATCH50', 20, 1)")
 
     conn.commit()
     conn.close()
@@ -136,7 +119,7 @@ def db_add_feedback(user_id, rating, comment):
     conn.close()
 
 # ==============================================================================
-# 📚 COMPLETE 12 INSTITUTES & SUB-BATCHES DATABASE
+# 📚 12 INSTITUTES & BATCHES DATA
 # ==============================================================================
 INSTITUTES = {
     "pw": {
@@ -146,9 +129,8 @@ INSTITUTES = {
         "courses": {
             "pw_lakshya": {"name": "Lakshya JEE/NEET 2026", "price": 149, "faculty": "Alakh Pandey & Team", "features": "HD Lectures, Class Notes, Solved DPPs, Test Series"},
             "pw_arjuna": {"name": "Arjuna JEE/NEET 2026", "price": 149, "faculty": "Top Kota Faculties", "features": "Full Class 11th Syllabus, Daily DPPs, PDF Notes"},
-            "pw_yakeen": {"name": "Yakeen NEET Dropper Batch", "price": 149, "faculty": "Tarun Sir, MD Sir & Team", "features": "Complete Dropper Syllabus, Revision Sheets, DPPs"},
-            "pw_prayas": {"name": "Prayas JEE Dropper Batch", "price": 149, "faculty": "MS Chouhan Sir & Team", "features": "Advanced Math & Physics Problem Solving Sets"},
-            "pw_parishram": {"name": "Parishram Board Special Class 12", "price": 149, "faculty": "PW Board Experts", "features": "Sample Papers, NCERT Solutions, Chapter Revision"}
+            "pw_yakeen": {"name": "Yakeen NEET Dropper Batch", "price": 149, "faculty": "Tarun Sir, MD Sir & Team", "features": "Complete Dropper Syllabus, Revision Sheets"},
+            "pw_prayas": {"name": "Prayas JEE Dropper Batch", "price": 149, "faculty": "MS Chouhan Sir & Team", "features": "Advanced Math & Physics Problem Solving Sets"}
         }
     },
     "next_topper": {
@@ -157,18 +139,16 @@ INSTITUTES = {
         "description": "Comprehensive Special Batches for Board & Entrance Excellence.",
         "courses": {
             "nt_class10": {"name": "Class 10th Board Target Batch", "price": 149, "faculty": "Next Topper Core Team", "features": "Complete Science, Math, SST & English Notes"},
-            "nt_class12": {"name": "Class 12th Topper Special Batch", "price": 149, "faculty": "Subject Specialists", "features": "Handwritten Notes, Sample Paper Analysis, DPPs"},
-            "nt_target": {"name": "Competitive Entrance Foundation", "price": 149, "faculty": "Senior Mentors", "features": "Basic to Advanced Level Video Lectures"}
+            "nt_class12": {"name": "Class 12th Topper Special Batch", "price": 149, "faculty": "Subject Specialists", "features": "Handwritten Notes, Sample Paper Analysis"}
         }
     },
     "unacademy": {
         "name": "📚 UnAcademy Subscriptions",
         "icon": "📚",
-        "description": "Full Drive Access to Top UnAcademy Educators for Various Competitive Exams.",
+        "description": "Full Drive Access to Top UnAcademy Educators.",
         "courses": {
-            "una_jee": {"name": "Unacademy JEE Ultimate Batch", "price": 149, "faculty": "Top Educators (Namrata Ma'am, Sameer Sir)", "features": "Live Recorded Batch, Mega Quiz Notes"},
-            "una_neet": {"name": "Unacademy NEET Excellence", "price": 149, "faculty": "Dr. SK Singh & Team", "features": "Complete Biology, Organic Chemistry Masterclass"},
-            "una_upsc": {"name": "Unacademy UPSC GS Complete", "price": 149, "faculty": "Mrunal Patel & Top Mentors", "features": "Mrunal Economy Notes, Art & Culture, History"}
+            "una_jee": {"name": "Unacademy JEE Ultimate Batch", "price": 149, "faculty": "Top Educators", "features": "Live Recorded Batch, Mega Quiz Notes"},
+            "una_neet": {"name": "Unacademy NEET Excellence", "price": 149, "faculty": "Dr. SK Singh & Team", "features": "Complete Biology, Organic Chemistry Masterclass"}
         }
     },
     "careerwill": {
@@ -176,9 +156,8 @@ INSTITUTES = {
         "icon": "🚀",
         "description": "Government Job Competitive Exam Preparation Platform.",
         "courses": {
-            "cw_maths": {"name": "Rakesh Yadav Sir Maths Special", "price": 149, "faculty": "Rakesh Yadav Sir", "features": "Arithmetic + Advanced Maths Class Concept & Notes"},
-            "cw_english": {"name": "Jaideep Sir English Special", "price": 149, "faculty": "Jaideep Sir", "features": "Grammar, Vocab, Reading Comprehension Mastery"},
-            "cw_reasoning": {"name": "Piyush Varshney Reasoning", "price": 149, "faculty": "Piyush Varshney Sir", "features": "Verbal & Non-Verbal Complete Tricks & Practice"}
+            "cw_maths": {"name": "Rakesh Yadav Sir Maths Special", "price": 149, "faculty": "Rakesh Yadav Sir", "features": "Arithmetic + Advanced Maths Class Concept"},
+            "cw_reasoning": {"name": "Piyush Varshney Reasoning", "price": 149, "faculty": "Piyush Varshney Sir", "features": "Verbal & Non-Verbal Complete Tricks"}
         }
     },
     "study_ias": {
@@ -186,9 +165,7 @@ INSTITUTES = {
         "icon": "🏛️",
         "description": "Civil Services Preliminary & Mains Target Course Content.",
         "courses": {
-            "ias_gs": {"name": "UPSC GS Foundation (Pre + Mains)", "price": 149, "faculty": "Ex-Civil Servants & Senior GS Faculty", "features": "Polity, Economy, Geography, History Notes"},
-            "ias_csat": {"name": "CSAT Comprehensive Mastery Batch", "price": 149, "faculty": "CSAT Quant & Logical Reasoning Experts", "features": "Passage Comprehension, Math Tricks, Mock Tests"},
-            "ias_answer": {"name": "Mains Answer Writing Special", "price": 149, "faculty": "UPSC Interview Appeared Mentors", "features": "Model Answers, Structural Answer Writing Guide"}
+            "ias_gs": {"name": "UPSC GS Foundation (Pre + Mains)", "price": 149, "faculty": "Ex-Civil Servants", "features": "Polity, Economy, Geography, History Notes"}
         }
     },
     "gyan_bindu": {
@@ -196,9 +173,7 @@ INSTITUTES = {
         "icon": "✍️",
         "description": "Premier Academy for Bihar Exams & General Studies Mastery.",
         "courses": {
-            "gb_daroga": {"name": "Bihar Daroga (SI) Target Batch", "price": 149, "faculty": "Roshan Sir & Gyan Bindu Team", "features": "High-Yield GS Questions, Class Notes, Online Tests"},
-            "gb_bssc": {"name": "BSSC Inter Level Complete Course", "price": 149, "faculty": "Gyan Bindu Senior Faculties", "features": "Science & GK Hand-written Classroom Material"},
-            "gb_gs_special": {"name": "GS Special Master Batch", "price": 149, "faculty": "Roshan Anand Sir", "features": "Complete General Knowledge Deep Dive Lectures"}
+            "gb_daroga": {"name": "Bihar Daroga (SI) Target Batch", "price": 149, "faculty": "Roshan Sir & Team", "features": "High-Yield GS Questions, Class Notes"}
         }
     },
     "kgs": {
@@ -206,9 +181,7 @@ INSTITUTES = {
         "icon": "🌐",
         "description": "Official Courses by Khan Sir & KGS Academic Team.",
         "courses": {
-            "kgs_upsc": {"name": "Khan Sir UPSC Foundation Batch", "price": 149, "faculty": "Khan Sir & Delhi Faculties", "features": "Easy Explanation Video Lectures, Atlas Map Notes"},
-            "kgs_gs": {"name": "Khan Sir GS Special Batch", "price": 149, "faculty": "Khan Sir", "features": "History, Geography, Polity & Economics Master Class"},
-            "kgs_map": {"name": "Khan Sir Indian & World Map Special", "price": 149, "faculty": "Khan Sir", "features": "Complete Mapping Atlas, Diagrammatic Notes"}
+            "kgs_gs": {"name": "Khan Sir GS Special Batch", "price": 149, "faculty": "Khan Sir", "features": "History, Geography, Polity & Economics Master Class"}
         }
     },
     "apna_college": {
@@ -216,9 +189,8 @@ INSTITUTES = {
         "icon": "💻",
         "description": "Coding, Software Engineering & Placement Preparation Courses.",
         "courses": {
-            "ac_alpha": {"name": "Alpha 2.0 Java + DSA Batch", "price": 149, "faculty": "Shradha Khapra Ma'am", "features": "Data Structures, Algorithms, Coding Interview Questions"},
-            "ac_delta": {"name": "Delta 3.0 Web Development", "price": 149, "faculty": "Aman Dhattarwal & Shradha Khapra", "features": "HTML, CSS, JS, React, Node.js, Express, MongoDB"},
-            "ac_sigma": {"name": "Sigma Full Stack Web Dev + DSA", "price": 149, "faculty": "Apna College Core Mentors", "features": "End-to-End MERN Stack Projects, Git/GitHub, DSA"}
+            "ac_alpha": {"name": "Alpha Java + DSA Batch", "price": 149, "faculty": "Shradha Khapra Ma'am", "features": "Data Structures, Algorithms, Coding Questions"},
+            "ac_delta": {"name": "Delta Web Development", "price": 149, "faculty": "Aman Dhattarwal & Team", "features": "HTML, CSS, JS, React, Node.js, Express, MongoDB"}
         }
     },
     "master_sahab": {
@@ -226,9 +198,7 @@ INSTITUTES = {
         "icon": "🕉️",
         "description": "Dedicated Sanskrit Grammar & Board Exam Preparation.",
         "courses": {
-            "ms_vyakaran": {"name": "Sanskrit Vyakaran Masterclass", "price": 149, "faculty": "Master Sahab Sanskrit Experts", "features": "Sandi, Samas, Karak, Dhatu Roop Complete Grammar"},
-            "ms_board10": {"name": "Class 10th Sanskrit Board Special", "price": 149, "faculty": "Master Sahab Team", "features": "Book Translation, NCERT Questions, Model Papers"},
-            "ms_anuvad": {"name": "Sanskrit Anuvad & Essay Writing", "price": 149, "faculty": "Senior Sanskrit Acharya", "features": "Hindi to Sanskrit Translation Shortcuts & Practice"}
+            "ms_vyakaran": {"name": "Sanskrit Vyakaran Masterclass", "price": 149, "faculty": "Master Sahab Experts", "features": "Complete Sanskrit Grammar Practice"}
         }
     },
     "vibrant": {
@@ -236,8 +206,7 @@ INSTITUTES = {
         "icon": "🧪",
         "description": "Kota's Legendary JEE Advanced & NEET Coaching Material.",
         "courses": {
-            "vib_jee": {"name": "Vibrant Kota IIT-JEE Advanced", "price": 149, "faculty": "Vibrant Directors & HODs", "features": "Classroom Problem Sheets, Advanced Micro Exercises"},
-            "vib_neet": {"name": "Vibrant NEET Rankers Batch", "price": 149, "faculty": "Kota Biology & Chemistry Experts", "features": "NCERT Line-by-Line Video Breakdown & DPPs"}
+            "vib_jee": {"name": "Vibrant Kota IIT-JEE Advanced", "price": 149, "faculty": "Vibrant Directors", "features": "Classroom Problem Sheets & Advanced Exercises"}
         }
     },
     "selection_way": {
@@ -245,8 +214,7 @@ INSTITUTES = {
         "icon": "🏆",
         "description": "Focused Competitive Exam Selection Targeted Coursework.",
         "courses": {
-            "sw_ssc": {"name": "SSC CGL / CHSL Target Batch", "price": 149, "faculty": "Selection Way Experts", "features": "Maths, Reasoning, English, GS Full Revision"},
-            "sw_railway": {"name": "Railway RRB NTPC & Group D", "price": 149, "faculty": "Railway Exam Specialists", "features": "General Science & Maths High Scoring Tricks"}
+            "sw_ssc": {"name": "SSC CGL / CHSL Target Batch", "price": 149, "faculty": "Selection Way Experts", "features": "Maths, Reasoning, English, GS Full Revision"}
         }
     },
     "rwa": {
@@ -254,24 +222,15 @@ INSTITUTES = {
         "icon": "🛡️",
         "description": "Most Popular Defense & State Police Competitive Exam Courses.",
         "courses": {
-            "rwa_upp": {"name": "UP Police Constable Khaki Batch", "price": 149, "faculty": "Ankit Bhati Sir & Team", "features": "Hindi, Math, Reasoning, UP GK Complete Package"},
-            "rwa_sscgd": {"name": "SSC GD Avatar Batch", "price": 149, "faculty": "RWA Defense Experts", "features": "Daily Live Recorded Classes, Practice Sets, PDFs"},
-            "rwa_delhi": {"name": "Delhi Police Constable Special", "price": 149, "faculty": "Ankit Bhati Sir & Team", "features": "Computer, Reasoning, Math & GS Detailed Classes"}
+            "rwa_upp": {"name": "UP Police Constable Khaki Batch", "price": 149, "faculty": "Ankit Bhati Sir & Team", "features": "Hindi, Math, Reasoning, UP GK Complete Package"}
         }
     }
 }
 
-MOTIVATIONAL_QUOTES = [
-    "“Padhai aaj karo, kal safalta tumhare kadam choomegi.” 🚀",
-    "“Mehnat itni khamoshi se karo ki tumhari kamyabi shor macha de!” 🔥",
-    "“Sapne wo nahi jo hum sote hue dekhte hain, sapne wo hain jo humein sone nahi dete.” 💫",
-    "“₹149 ka investment aapki zindagi aur career badal sakta hai!” 📚"
-]
-
 USER_STATES = {}
 
 # ==============================================================================
-# ⌨️ KEYBOARD CREATORS
+# ⌨️ KEYBOARDS
 # ==============================================================================
 def get_main_keyboard():
     markup = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
@@ -328,7 +287,6 @@ def command_start(message):
     first_name = message.from_user.first_name
     
     db_add_user(user_id, username, first_name)
-    quote = random.choice(MOTIVATIONAL_QUOTES)
     
     welcome_text = (
         f"👋 **Namaste {first_name}! Welcome to BatchSeller Hub Bot!**\n\n"
@@ -340,7 +298,6 @@ def command_start(message):
         f"• Khan Global Studies • Apna College\n"
         f"• Master Sahab • Vibrant Academy\n"
         f"• Selection Way • Rojgar With Ankit\n\n"
-        f"💭 *Quote:* {quote}\n\n"
         f"👇 Niche **'🌐 OPEN WEB STORE'** button dabayein ya options select karein:"
     )
     
@@ -350,62 +307,17 @@ def command_start(message):
         reply_markup=get_main_keyboard()
     )
 
-@bot.message_handler(commands=['help'])
-def command_help(message):
-    help_text = (
-        "❓ **BATCHSELLER HUB - HELP & GUIDE**\n\n"
-        "1️⃣ **Batch Kaise Buy Karein?**\n"
-        "• '📚 All Institutes' par click karein.\n"
-        "• Apna pasandida institute select karein.\n"
-        "• Apne course ke '🛒 Buy Now' button par click karke Admin ko direct message bhejein.\n\n"
-        "2️⃣ **Commands List:**\n"
-        "• `/start` - Bot Restart karein\n"
-        "• `/batches` - Sabhi batches ki list dekhein\n"
-        "• `/search <name>` - Koi bhi batch khojein\n"
-        "• `/orders` - Apne khareede hue orders dekhein\n"
-        "• `/support` - Direct Admin/Founder contact\n"
-        "• `/admin` - Admin Panel (Only for Himanshu)\n\n"
-        "💬 **Direct Admin Assistance:** `@the_himanshu1`"
-    )
-    bot.send_message(message.chat.id, help_text)
-
-@bot.message_handler(commands=['batches'])
-def command_batches(message):
-    bot.send_message(
-        message.chat.id,
-        "📚 **Select any Educational Institute below to explore sub-courses:**",
-        reply_markup=get_institutes_inline_keyboard()
-    )
-
-@bot.message_handler(commands=['orders'])
-def command_orders(message):
-    user_id = message.from_user.id
-    orders = db_get_user_orders(user_id)
-    
-    if not orders:
-        bot.send_message(message.chat.id, "📦 Aapne abhi tak koi order record nahi banaya hai. '📚 All Institutes' se batch select karein!")
-        return
-
-    res = "📦 **YOUR ORDER HISTORY:**\n\n"
-    for order in orders:
-        res += f"🆔 **Order ID:** `{order[0]}`\n"
-        res += f"📖 **Batch:** {order[1]}\n"
-        res += f"💰 **Price:** ₹{order[2]}\n"
-        res += f"📌 **Status:** `{order[3]}`\n"
-        res += f"📅 **Date:** {order[4]}\n"
-        res += "-----------------------------\n"
-    
-    bot.send_message(message.chat.id, res)
-
-# ==============================================================================
-# 👑 ADMIN PANEL & COMMANDS (UNLOCKED FOR HIMANSHU: 7990500822)
-# ==============================================================================
-
+# 👑 ADMIN PANEL WITH BULLETPROOF ACCESS
 @bot.message_handler(commands=['admin'])
 def command_admin(message):
     user_id = message.from_user.id
-    if user_id != ADMIN_ID:
-        bot.send_message(message.chat.id, "❌ Aapke paas admin access nahi hai.")
+    
+    # Check String and Integer match
+    if user_id != ADMIN_ID and str(user_id) != str(ADMIN_ID):
+        bot.send_message(
+            message.chat.id, 
+            f"❌ **Access Denied!**\nAapka User ID (`{user_id}`) Admin ID se match nahi kar raha hai."
+        )
         return
 
     admin_text = (
@@ -418,7 +330,7 @@ def command_admin(message):
 
 @bot.message_handler(commands=['stats'])
 def command_stats(message):
-    if message.from_user.id != ADMIN_ID:
+    if message.from_user.id != ADMIN_ID and str(message.from_user.id) != str(ADMIN_ID):
         return
     
     users = db_get_all_users()
@@ -426,21 +338,18 @@ def command_stats(message):
     cursor = conn.cursor()
     cursor.execute("SELECT COUNT(*) FROM orders")
     total_orders = cursor.fetchone()[0]
-    cursor.execute("SELECT COUNT(*) FROM feedback")
-    total_feedback = cursor.fetchone()[0]
     conn.close()
 
     bot.send_message(
         message.chat.id,
         f"📊 **BOT REAL-TIME STATISTICS:**\n\n"
         f"👤 **Total Registered Users:** {len(users)}\n"
-        f"📦 **Total Orders Initiated:** {total_orders}\n"
-        f"⭐ **Feedbacks Received:** {total_feedback}"
+        f"📦 **Total Orders Initiated:** {total_orders}"
     )
 
 @bot.message_handler(commands=['broadcast'])
 def command_broadcast(message):
-    if message.from_user.id != ADMIN_ID:
+    if message.from_user.id != ADMIN_ID and str(message.from_user.id) != str(ADMIN_ID):
         return
     
     msg_parts = message.text.split(" ", 1)
@@ -469,24 +378,11 @@ def command_broadcast(message):
 # ==============================================================================
 # 💬 TEXT MESSAGE ROUTING
 # ==============================================================================
-
 @bot.message_handler(func=lambda msg: True)
 def handle_text_messages(message):
     text = message.text
     user_id = message.from_user.id
     
-    if user_id in USER_STATES:
-        state = USER_STATES[user_id]
-        if state == "AWAITING_SEARCH":
-            USER_STATES.pop(user_id, None)
-            perform_search(message, text)
-            return
-        elif state == "AWAITING_FEEDBACK":
-            USER_STATES.pop(user_id, None)
-            db_add_feedback(user_id, 5, text)
-            bot.send_message(message.chat.id, "✅ **Thank you for your feedback!** Himanshu Bhai tak aapka review pahunch gaya hai.")
-            return
-
     if text == "📚 All Institutes (12)":
         bot.send_message(
             message.chat.id,
@@ -494,85 +390,24 @@ def handle_text_messages(message):
             reply_markup=get_institutes_inline_keyboard()
         )
     elif text == "🔍 Search Batch":
-        USER_STATES[user_id] = "AWAITING_SEARCH"
-        bot.send_message(message.chat.id, "🔍 **Aap kaun sa batch ya subject khoj rahe hain?**\n(E.g., Lakshya, Khan Sir, DSA, UPSC, Class 10 type karein)")
+        bot.send_message(message.chat.id, "🔍 Type karein aapko kaunsa batch chahiye (e.g. Lakshya, Khan Sir, DSA):")
     
     elif text == "🔥 Offer & Pricing":
-        offer_text = (
-            "🎉 **SPECIAL FLAT ₹149 OFFER DETAILS**\n\n"
-            "💎 **Original Price:** ~~₹2,999 to ₹9,999~~\n"
-            "🔥 **Our Special Price:** **FLAT ₹149 ONLY!**\n\n"
-            "✨ **What You Get:**\n"
-            "• 100% Full HD Recorded Lectures\n"
-            "• Official Class Notes (PDFs)\n"
-            "• Daily Practice Problems (DPPs) with Solutions\n"
-            "• Mock Tests & Revision Series\n"
-            "• Permanent Google Drive / Telegram Access\n\n"
-            "⚡ **Instant Delivery Guarantee!**"
-        )
-        bot.send_message(message.chat.id, offer_text)
+        bot.send_message(message.chat.id, "🎉 **SPECIAL FLAT ₹149 OFFER**\n\nIndia ke sabhi top 12 Institutes ke batches milenge sirf ₹149 mein!")
 
     elif text == "👤 My Account / Orders":
         orders = db_get_user_orders(user_id)
-        account_text = (
-            f"👤 **USER PROFILE:**\n\n"
-            f"• **Name:** {message.from_user.first_name}\n"
-            f"• **Telegram ID:** `{user_id}`\n"
-            f"• **Total Orders:** {len(orders)}\n\n"
-            f"👉 Type `/orders` to view detailed history."
-        )
-        bot.send_message(message.chat.id, account_text)
+        bot.send_message(message.chat.id, f"👤 **USER PROFILE:**\n• Name: {message.from_user.first_name}\n• Telegram ID: `{user_id}`\n• Orders: {len(orders)}")
 
     elif text == "☎️ Support & Founder":
-        support_text = (
-            "👤 **FOUNDER & SUPPORT INFORMATION**\n\n"
-            "👑 **Founder & Owner:** Himanshu Kumar\n"
-            "📧 **Official Email:** `himanshu74919@gmail.com`\n"
-            "💬 **Direct Telegram DM:** `@the_himanshu1`\n"
-            "📢 **Official Telegram Channel:** `@batchseller321`\n"
-            "📸 **Instagram:** [Click Here to Visit Profile](https://www.instagram.com/himanshu__kumar__.07?igsh=ejNvYWNyZ253cGs4)\n\n"
-            "✨ **24/7 Support Available for Payment & Link Access Queries!**"
-        )
-        bot.send_message(message.chat.id, support_text, disable_web_page_preview=True)
-
-    elif text == "⭐ Leave Feedback":
-        USER_STATES[user_id] = "AWAITING_FEEDBACK"
-        bot.send_message(message.chat.id, "✍️ **Aapka experience kaisa raha?**\nKripya apna review/feedback type karke bhejein:")
+        bot.send_message(message.chat.id, "👤 **Founder & Support:**\nOwner: Himanshu Kumar\nTelegram: `@the_himanshu1`")
 
     else:
-        bot.send_message(message.chat.id, "🤖 Mujhe ye samajh nahi aaya. Kripya niche diye gaye menu buttons use karein ya `/start` type karein.")
-
-# ==============================================================================
-# 🔍 SEARCH FUNCTIONALITY
-# ==============================================================================
-
-def perform_search(message, query):
-    query = query.lower().strip()
-    results = []
-
-    for code, inst in INSTITUTES.items():
-        for c_id, course in inst["courses"].items():
-            if query in course["name"].lower() or query in inst["name"].lower() or query in course["features"].lower():
-                results.append((code, c_id, course["name"], course["price"], inst["name"]))
-
-    if not results:
-        bot.send_message(message.chat.id, f"❌ Aapke search query **'{query}'** ke liye koi batch nahi mila.\n\n'📚 All Institutes (12)' button daba kar sabhi batches browse karein!")
-        return
-
-    res_text = f"🔍 **SEARCH RESULTS FOR '{query.upper()}':**\n\n"
-    markup = types.InlineKeyboardMarkup(row_width=1)
-
-    for res in results[:5]:
-        inst_code, c_id, name, price, inst_name = res
-        res_text += f"• **{name}** ({inst_name}) - ₹{price}\n"
-        markup.add(types.InlineKeyboardButton(f"👉 View {name}", callback_data=f"course_{inst_code}_{c_id}"))
-
-    bot.send_message(message.chat.id, res_text, reply_markup=markup)
+        bot.send_message(message.chat.id, "🤖 Options dekhne ke liye `/start` dabaayein ya menu buttons use karein.")
 
 # ==============================================================================
 # 🔘 INLINE BUTTON CALLBACK HANDLERS
 # ==============================================================================
-
 @bot.callback_query_handler(func=lambda call: True)
 def handle_inline_callbacks(call):
     data = call.data
@@ -590,15 +425,10 @@ def handle_inline_callbacks(call):
         inst_code = data.replace("inst_", "")
         if inst_code in INSTITUTES:
             inst = INSTITUTES[inst_code]
-            inst_text = (
-                f"{inst['icon']} **{inst['name']}**\n\n"
-                f"📝 **Description:** {inst['description']}\n\n"
-                f"👇 **Niche se apna specific Sub-Batch select karein:**"
-            )
             bot.edit_message_text(
                 chat_id=call.message.chat.id,
                 message_id=call.message.message_id,
-                text=inst_text,
+                text=f"{inst['icon']} **{inst['name']}**\n\n{inst['description']}",
                 reply_markup=get_courses_inline_keyboard(inst_code)
             )
         return
@@ -611,56 +441,27 @@ def handle_inline_callbacks(call):
         if inst_code in INSTITUTES and c_id in INSTITUTES[inst_code]["courses"]:
             inst = INSTITUTES[inst_code]
             course = inst["courses"][c_id]
-
             order_id = f"BSH{random.randint(10000, 99999)}"
 
-            detail_text = (
-                f"📖 **BATCH DETAILS**\n\n"
-                f"🏛️ **Institute:** {inst['name']}\n"
-                f"🎯 **Course Name:** {course['name']}\n"
-                f"👨‍🏫 **Faculty:** {course['faculty']}\n"
-                f"✨ **Includes:** {course['features']}\n\n"
-                f"💰 **Offer Price:** `₹{course['price']}` (Flat Offer)\n"
-                f"🆔 **Generated Order ID:** `{order_id}`\n\n"
-                f"⚡ **Delivery:** Instant Access Link upon payment"
-            )
-
-            buy_msg = f"Hi Himanshu, I want to buy {course['name']} ({inst['name']}) for Rs.149. My Order ID is {order_id}"
-            encoded_msg = buy_msg.replace(" ", "%20")
-            buy_url = f"https://t.me/{ADMIN_USERNAME}?text={encoded_msg}"
+            buy_msg = f"Hi Himanshu, I want to buy {course['name']} for Rs.149. Order ID: {order_id}"
+            buy_url = f"https://t.me/{ADMIN_USERNAME}?text={buy_msg.replace(' ', '%20')}"
 
             markup = types.InlineKeyboardMarkup(row_width=1)
-            buy_btn = types.InlineKeyboardButton("🛒 Proceed To Buy @ ₹149", url=buy_url)
-            web_app_btn = types.InlineKeyboardButton("🌐 Open Web App Store", web_app=types.WebAppInfo(url=WEB_APP_URL))
-            back_btn = types.InlineKeyboardButton("🔙 Back to Courses", callback_data=f"inst_{inst_code}")
-
-            markup.add(buy_btn)
-            markup.add(web_app_btn)
-            markup.add(back_btn)
+            markup.add(types.InlineKeyboardButton("🛒 Buy Now @ ₹149", url=buy_url))
+            markup.add(types.InlineKeyboardButton("🔙 Back", callback_data=f"inst_{inst_code}"))
 
             db_create_order(order_id, call.from_user.id, inst_code, course['name'], course['price'])
 
             bot.edit_message_text(
                 chat_id=call.message.chat.id,
                 message_id=call.message.message_id,
-                text=detail_text,
+                text=f"📖 **{course['name']}**\n\n💰 Price: ₹{course['price']}\n🆔 Order ID: `{order_id}`",
                 reply_markup=markup
             )
-        return
 
 # ==============================================================================
-# ⚡ MAIN EXECUTION LOOP
+# ⚡ MAIN LOOP
 # ==============================================================================
 if __name__ == "__main__":
-    print("================================================")
-    print("🚀 BATCHSELLER HUB ULTRA BOT STARTED SUCCESSFULLY!")
-    print(f"👤 Admin ID: {ADMIN_ID} (@{ADMIN_USERNAME})")
-    print(f"🌐 Web App URL: {WEB_APP_URL}")
-    print("================================================")
-    
-    while True:
-        try:
-            bot.infinity_polling(timeout=10, long_polling_timeout=5)
-        except Exception as e:
-            logger.error(f"Bot Polling Error: {e}")
-            time.sleep(5)
+    print("🚀 Bot Started! Admin ID set to 7990500822")
+    bot.infinity_polling(timeout=10, long_polling_timeout=5)
