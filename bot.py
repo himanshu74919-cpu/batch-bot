@@ -635,4 +635,3 @@ if __name__ == "__main__":
         except Exception as e:
             logger.error(f"Polling Exception Caught: {e}")
             time.sleep(3)
-
