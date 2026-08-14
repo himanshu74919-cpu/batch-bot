@@ -6,8 +6,28 @@ import random
 import logging
 import sqlite3
 from datetime import datetime
+from threading import Thread
+from flask import Flask
 import telebot
 from telebot import types
+
+# ==============================================================================
+# 🌐 DUMMY FLASK WEB SERVER FOR RENDER (24/7 KEEP-ALIVE)
+# ==============================================================================
+app = Flask('')
+
+@app.route('/')
+def home():
+    return "BatchSeller Bot is Live and Running 24/7!"
+
+def run_flask():
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host='0.0.0.0', port=port)
+
+def keep_alive():
+    t = Thread(target=run_flask)
+    t.daemon = True
+    t.start()
 
 # ==============================================================================
 # ⚙️ LOGGING & CONFIGURATION
@@ -339,23 +359,24 @@ def command_start(message):
         send_force_join_message(message.chat.id)
         return
 
+    # VERTICAL LIST (1 to 12 SIDHI LINE MEIN)
     welcome_text = (
         f"👑 **WELCOME TO HIMANSHU'S BATCHSELLER HUB!**\n"
         f"━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
         f"👋 **Namaste {first_name}!** India ke sabhi top educational platforms ke premium batches ab aapko milenge **FLAT ₹149** mein!\n\n"
         f"📂 **AVAILABLE ALL 12 INSTITUTES:**\n"
-        f"1. Physics Wallah (PW)\n"
-        f"2. Next Topper Special\n"
-        f"3. UnAcademy Subscriptions\n"
-        f"4. CareerWill Batches\n"
-        f"5. Study IAS (UPSC)\n"
-        f"6. Gyan Bindu GS Academy\n"
-        f"7. Khan Global Studies (KGS)\n"
-        f"8. Apna College\n"
-        f"9. Master Sahab\n"
-        f"10. Vibrant Academy (Kota)\n"
-        f"11. Selection Way\n"
-        f"12. Rojgar With Ankit (RWA)\n\n"
+        f"1. ⚡ Physics Wallah (PW)\n"
+        f"2. 🎯 Next Topper Special\n"
+        f"3. 📚 UnAcademy Subscriptions\n"
+        f"4. 🚀 CareerWill Batches\n"
+        f"5. 🏛️ Study IAS (UPSC)\n"
+        f"6. ✍️ Gyan Bindu GS Academy\n"
+        f"7. 🌐 Khan Global Studies (KGS)\n"
+        f"8. 💻 Apna College\n"
+        f"9. 🕉️ Master Sahab\n"
+        f"10. 🧪 Vibrant Academy (Kota)\n"
+        f"11. 🏆 Selection Way\n"
+        f"12. 🛡️ Rojgar With Ankit (RWA)\n\n"
         f"👇 Niche **'🌐 OPEN WEB STORE'** button dabayein ya options select karein:"
     )
     
@@ -468,9 +489,9 @@ def handle_text_messages(message):
         bot.send_message(ADMIN_ID, f"⭐ **NEW FEEDBACK RECEIVED:**\nFrom: {message.from_user.first_name} (`{user_id}`)\n\n💬 {text}")
         return
 
-    # LOWERCASE MATCHING TO FIX BUTTON IGNORING
     text_lower = text.lower()
 
+    # EXACT SUPPORT & FOUNDER TEXT RESPONDER
     if "support" in text_lower or "founder" in text_lower:
         support_text = (
             "👤 **FOUNDER & SUPPORT INFORMATION**\n\n"
@@ -607,10 +628,13 @@ def handle_inline_callbacks(call):
             )
 
 # ==============================================================================
-# ⚡ MAIN LOOP
+# ⚡ MAIN EXECUTION WITH FLASK KEEP-ALIVE
 # ==============================================================================
 if __name__ == "__main__":
-    print("🚀 Master Bot Online!")
+    print("🚀 Starting Web Server for Render Keep-Alive...")
+    keep_alive()  # Runs Flask Server in Background on Port 8080
+    
+    print("🚀 Master Bot Online! Auto-polling started...")
     while True:
         try:
             bot.infinity_polling(timeout=20, long_polling_timeout=10)
