@@ -45,7 +45,7 @@ CHANNEL_LINK = 'https://t.me/batchseller321'
 WEB_APP_URL = 'https://himanshu74919-cpu.github.io/batchseller-hub/'
 INSTAGRAM_LINK = 'https://www.instagram.com/himanshu__kumar__.07?igsh=ejNvYWNyZ253cGs4'
 
-# PARSE_MODE HTML PREVENTS CRASHES ON UNDERSCORES
+# PARSE_MODE HTML PREVENTS ALL CRASHES
 bot = telebot.TeleBot(API_TOKEN, parse_mode="HTML")
 
 USER_STATES = {}
@@ -169,7 +169,7 @@ def send_force_join_message(chat_id):
     bot.send_message(chat_id, text, reply_markup=markup)
 
 # ==============================================================================
-# 📚 INSTITUTES DATA
+# 📚 INSTITUTES DATA (ALL 12 PLATFORMS)
 # ==============================================================================
 INSTITUTES = {
     "pw": {
@@ -337,7 +337,7 @@ def get_courses_inline_keyboard(inst_code):
     return markup
 
 # ==============================================================================
-# 🚀 COMMAND HANDLERS
+# 🚀 CORE COMMAND FUNCTIONS
 # ==============================================================================
 
 @bot.message_handler(commands=['start'])
@@ -445,12 +445,24 @@ def command_broadcast(message):
     bot.send_message(message.chat.id, f"✅ <b>Broadcast Completed!</b>\n\n<b>Success:</b> {success}\n<b>Failed:</b> {failed}")
 
 # ==============================================================================
-# 💬 TEXT MESSAGE ROUTING
+# 💬 TEXT MESSAGE ROUTING (WITH COMMAND FAIL-SAFE INTERCEPTOR)
 # ==============================================================================
 @bot.message_handler(func=lambda msg: True)
 def handle_text_messages(message):
     user_id = message.from_user.id
     text = message.text.strip()
+
+    # 🛡️ FAIL-SAFE: IF A COMMAND COMES HERE BYPASSING TELEBOT ROUTER
+    if text.startswith('/'):
+        cmd = text.split()[0].lower()
+        if cmd == '/stats':
+            return command_stats(message)
+        elif cmd == '/broadcast':
+            return command_broadcast(message)
+        elif cmd == '/admin':
+            return command_admin(message)
+        elif cmd == '/start':
+            return command_start(message)
 
     if not check_channel_subscription(user_id):
         send_force_join_message(message.chat.id)
