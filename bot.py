@@ -18,13 +18,14 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# 🔑 BOT CREDENTIALS & ADMIN SETUP
+# 🔑 BOT CREDENTIALS & CONFIG
 API_TOKEN = '8871003871:AAGdSTB3uvJkEkgvanN6vaYhv1ButVHJUP0'
 ADMIN_ID = 7990500822  # Himanshu's Telegram ID
 ADMIN_USERNAME = 'the_himanshu1'
 CHANNEL_USERNAME = '@batchseller321'
 CHANNEL_LINK = 'https://t.me/batchseller321'
 WEB_APP_URL = 'https://himanshu74919-cpu.github.io/batchseller-hub/'
+INSTAGRAM_LINK = 'https://instagram.com/'  # Change to your Instagram profile URL if needed
 
 bot = telebot.TeleBot(API_TOKEN, parse_mode="Markdown")
 
@@ -134,7 +135,7 @@ def check_channel_subscription(user_id):
         return False
     except Exception as e:
         logger.error(f"Force Join Check Error: {e}")
-        return True  # Fallback to prevent bot blocking if admin rights are missing
+        return True  # Fallback if bot is not admin in channel yet
 
 def send_force_join_message(chat_id):
     markup = types.InlineKeyboardMarkup(row_width=1)
@@ -274,13 +275,13 @@ INSTITUTES = {
 }
 
 # ==============================================================================
-# ⌨️ KEYBOARDS
+# ⌨️ KEYBOARDS (EXACT SCREENSHOT LAYOUT)
 # ==============================================================================
 def get_main_keyboard():
     markup = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
     
     web_btn = types.KeyboardButton(
-        text="🌐 OPEN ULTRA WEB STORE",
+        text="🌐 OPEN WEB STORE",
         web_app=types.WebAppInfo(url=WEB_APP_URL)
     )
     
@@ -341,23 +342,14 @@ def command_start(message):
         f"👑 **WELCOME TO HIMANSHU'S BATCHSELLER HUB!**\n"
         f"━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
         f"👋 **Namaste {first_name}!** India ke sabhi top educational platforms ke premium batches ab aapko milenge **FLAT ₹149** mein!\n\n"
-        f"📂 **CATEGORY-WISE INSTITUTES LIST:**\n\n"
-        f"🎓 **1. JEE / NEET / BOARDS:**\n"
-        f"• ⚡ Physics Wallah (PW)\n"
-        f"• 🎯 Next Topper Special\n"
-        f"• 📚 UnAcademy Subscriptions\n"
-        f"• 🧪 Vibrant Academy (Kota)\n\n"
-        f"🏛️ **2. GOVT EXAMS & CIVIL SERVICES:**\n"
-        f"• 🏛️ Study IAS (UPSC)\n"
-        f"• ✍️ Gyan Bindu GS Academy\n"
-        f"• 🌐 Khan Global Studies (KGS)\n"
-        f"• 🚀 CareerWill Batches\n"
-        f"• 🏆 Selection Way\n"
-        f"• 🛡️ Rojgar With Ankit (RWA)\n\n"
-        f"💻 **3. CODING & SPECIALIZED:**\n"
-        f"• 💻 Apna College (Alpha/Delta)\n"
-        f"• 🕉️ Master Sahab (Sanskrit Vyakaran)\n\n"
-        f"👇 Niche **'🌐 OPEN ULTRA WEB STORE'** button dabayein ya options select karein:"
+        f"📂 **AVAILABLE TOP INSTITUTES:**\n"
+        f"• Physics Wallah (PW) • Next Topper\n"
+        f"• Unacademy • CareerWill\n"
+        f"• Study IAS • Gyan Bindu GS\n"
+        f"• Khan Global Studies • Apna College\n"
+        f"• Master Sahab • Vibrant Academy\n"
+        f"• Selection Way • Rojgar With Ankit\n\n"
+        f"👇 Niche **'🌐 OPEN WEB STORE'** button dabayein ya options select karein:"
     )
     
     bot.send_message(
@@ -490,7 +482,9 @@ def handle_text_messages(message):
             "India ke top 12 Institutes ke saare Premium Batches available hain FLAT ₹149 mein!\n\n"
             "✅ Complete Video Lectures\n"
             "✅ Daily Practice Papers (DPP)\n"
-            "✅ Solved Test Series & Notes"
+            "✅ Solved Test Series & Notes\n"
+            "✅ Permanent Google Drive / Telegram Access\n\n"
+            "⚡ **Instant Delivery Guarantee!**"
         )
 
     elif text in ["👤 My Account / Orders", "👤 My Account"]:
@@ -505,14 +499,18 @@ def handle_text_messages(message):
             f"📦 **Your Orders History:**\n{order_text}"
         )
 
+    # EXACT MATCH WITH SCREENSHOT IMAGE
     elif text in ["☎️ Support & Founder", "☎️ Support & Admin"]:
-        bot.send_message(
-            message.chat.id, 
-            f"👤 **FOUNDER & OFFICIAL SUPPORT:**\n\n"
-            f"• **Owner:** Himanshu Kumar\n"
-            f"• **Telegram Admin:** @{ADMIN_USERNAME}\n"
-            f"• **Updates Channel:** {CHANNEL_LINK}"
+        support_text = (
+            "👤 **FOUNDER & SUPPORT INFORMATION**\n\n"
+            "👑 **Founder & Owner:** Himanshu Kumar\n"
+            "✉️ **Official Email:** `himanshu74919@gmail.com`\n"
+            "💬 **Direct Telegram DM:** @the_himanshu1\n"
+            "📢 **Official Telegram Channel:** @batchseller321\n"
+            f"📸 **Instagram:** [Click Here to Visit Profile]({INSTAGRAM_LINK})\n\n"
+            "✨ **24/7 Support Available for Payment & Link Access Queries!**"
         )
+        bot.send_message(message.chat.id, support_text, disable_web_page_preview=True)
 
     elif text == "⭐ Leave Feedback":
         USER_STATES[user_id] = 'WAITING_FEEDBACK'
@@ -541,7 +539,7 @@ def handle_inline_callbacks(call):
                 f"🎉 **VERIFICATION SUCCESSFUL!** 🎉\n"
                 f"━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
                 f"👋 Welcome to **Himanshu's BatchSeller Hub**!\n\n"
-                f"👇 Menu choose karein ya **'OPEN ULTRA WEB STORE'** button dabayein:"
+                f"👇 Menu choose karein ya **'OPEN WEB STORE'** button dabayein:"
             )
             bot.send_message(call.message.chat.id, welcome_text, reply_markup=get_main_keyboard())
         else:
@@ -602,7 +600,7 @@ def handle_inline_callbacks(call):
             )
 
 # ==============================================================================
-# ⚡ MAIN LOOP
+# ⚡ MAIN LOOP (CRASH-PROOF AUTO RE-CONNECT)
 # ==============================================================================
 if __name__ == "__main__":
     print("🚀 Master Bot Online! Auto-reconnecting enabled...")
