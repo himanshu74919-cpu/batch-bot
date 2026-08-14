@@ -22,10 +22,11 @@ logger = logging.getLogger(__name__)
 API_TOKEN = '8871003871:AAGdSTB3uvJkEkgvanN6vaYhv1ButVHJUP0'
 ADMIN_ID = 7990500822  # Himanshu's Telegram ID
 ADMIN_USERNAME = 'the_himanshu1'
+ALT_ADMIN_USERNAME = 'himanshu_kumar__.07'
 CHANNEL_USERNAME = '@batchseller321'
 CHANNEL_LINK = 'https://t.me/batchseller321'
 WEB_APP_URL = 'https://himanshu74919-cpu.github.io/batchseller-hub/'
-INSTAGRAM_LINK = 'https://instagram.com/'  # Change to your Instagram profile URL if needed
+INSTAGRAM_LINK = 'https://www.instagram.com/himanshu__kumar__.07?igsh=ejNvYWNyZ253cGs4'
 
 bot = telebot.TeleBot(API_TOKEN, parse_mode="Markdown")
 
@@ -135,7 +136,7 @@ def check_channel_subscription(user_id):
         return False
     except Exception as e:
         logger.error(f"Force Join Check Error: {e}")
-        return True  # Fallback if bot is not admin in channel yet
+        return True
 
 def send_force_join_message(chat_id):
     markup = types.InlineKeyboardMarkup(row_width=1)
@@ -275,7 +276,7 @@ INSTITUTES = {
 }
 
 # ==============================================================================
-# ⌨️ KEYBOARDS (EXACT SCREENSHOT LAYOUT)
+# ⌨️ KEYBOARDS
 # ==============================================================================
 def get_main_keyboard():
     markup = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
@@ -342,13 +343,19 @@ def command_start(message):
         f"👑 **WELCOME TO HIMANSHU'S BATCHSELLER HUB!**\n"
         f"━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
         f"👋 **Namaste {first_name}!** India ke sabhi top educational platforms ke premium batches ab aapko milenge **FLAT ₹149** mein!\n\n"
-        f"📂 **AVAILABLE TOP INSTITUTES:**\n"
-        f"• Physics Wallah (PW) • Next Topper\n"
-        f"• Unacademy • CareerWill\n"
-        f"• Study IAS • Gyan Bindu GS\n"
-        f"• Khan Global Studies • Apna College\n"
-        f"• Master Sahab • Vibrant Academy\n"
-        f"• Selection Way • Rojgar With Ankit\n\n"
+        f"📂 **AVAILABLE ALL 12 INSTITUTES:**\n"
+        f"1. Physics Wallah (PW)\n"
+        f"2. Next Topper Special\n"
+        f"3. UnAcademy Subscriptions\n"
+        f"4. CareerWill Batches\n"
+        f"5. Study IAS (UPSC)\n"
+        f"6. Gyan Bindu GS Academy\n"
+        f"7. Khan Global Studies (KGS)\n"
+        f"8. Apna College\n"
+        f"9. Master Sahab\n"
+        f"10. Vibrant Academy (Kota)\n"
+        f"11. Selection Way\n"
+        f"12. Rojgar With Ankit (RWA)\n\n"
         f"👇 Niche **'🌐 OPEN WEB STORE'** button dabayein ya options select karein:"
     )
     
@@ -421,20 +428,19 @@ def command_broadcast(message):
     bot.send_message(message.chat.id, f"✅ **Broadcast Completed!**\nSuccess: {success}\nFailed: {failed}")
 
 # ==============================================================================
-# 💬 TEXT MESSAGE ROUTING
+# 💬 TEXT MESSAGE ROUTING & FLEXIBLE BUTTON HANDLERS
 # ==============================================================================
 @bot.message_handler(func=lambda msg: True)
 def handle_text_messages(message):
     user_id = message.from_user.id
-    
+    text = message.text.strip()
+
     # Check Channel Subscription
     if not check_channel_subscription(user_id):
         send_force_join_message(message.chat.id)
         return
 
-    text = message.text
-
-    # Check User Input States (Search / Feedback)
+    # User Input States
     if USER_STATES.get(user_id) == 'WAITING_SEARCH':
         USER_STATES[user_id] = None
         query = text.lower()
@@ -462,19 +468,33 @@ def handle_text_messages(message):
         bot.send_message(ADMIN_ID, f"⭐ **NEW FEEDBACK RECEIVED:**\nFrom: {message.from_user.first_name} (`{user_id}`)\n\n💬 {text}")
         return
 
-    # Button Handlers (Matches screenshot buttons)
-    if text in ["📚 All Institutes (12)", "📚 All 12 Institutes"]:
+    # LOWERCASE MATCHING TO FIX BUTTON IGNORING
+    text_lower = text.lower()
+
+    if "support" in text_lower or "founder" in text_lower:
+        support_text = (
+            "👤 **FOUNDER & SUPPORT INFORMATION**\n\n"
+            "👑 **Founder & Owner:** Himanshu Kumar\n"
+            "📧 **Official Email:** himanshu74919@gmail.com\n"
+            "💬 **Direct Telegram DM:** @the_himanshu1 / @himanshu_kumar__.07\n"
+            "📢 **Official Telegram Channel:** @batchseller321\n"
+            f"📸 **Instagram:** [Click Here to Visit Profile]({INSTAGRAM_LINK})\n\n"
+            "✨ **24/7 Support Available for Payment & Link Access Queries!**"
+        )
+        bot.send_message(message.chat.id, support_text, disable_web_page_preview=True)
+
+    elif "all institutes" in text_lower or "institutes" in text_lower or "batches" in text_lower:
         bot.send_message(
             message.chat.id,
             "🔥 **SELECT ANY EDUCATIONAL INSTITUTE BELOW TO SEE COURSES:**",
             reply_markup=get_institutes_inline_keyboard()
         )
 
-    elif text in ["🔍 Search Batch", "🔍 Search Any Batch"]:
+    elif "search" in text_lower:
         USER_STATES[user_id] = 'WAITING_SEARCH'
         bot.send_message(message.chat.id, "🔍 **Search Batch:** Aapko jo bhi batch chahiye uska naam likh kar bhejiye (e.g. *Lakshya*, *Khan Sir*, *DSA*, *Arjuna*):")
 
-    elif text in ["🔥 Offer & Pricing", "🔥 VIP Offer (FLAT ₹149)"]:
+    elif "offer" in text_lower or "pricing" in text_lower:
         bot.send_message(
             message.chat.id,
             "🎉 **SPECIAL FLAT ₹149 OFFER**\n"
@@ -487,7 +507,7 @@ def handle_text_messages(message):
             "⚡ **Instant Delivery Guarantee!**"
         )
 
-    elif text in ["👤 My Account / Orders", "👤 My Account"]:
+    elif "account" in text_lower or "order" in text_lower or "profile" in text_lower:
         orders = db_get_user_orders(user_id)
         order_text = "\n".join([f"• `{o[0]}` | {o[1]} | ₹{o[2]} ({o[3]})" for o in orders]) if orders else "Koi active order nahi hai."
         
@@ -499,25 +519,12 @@ def handle_text_messages(message):
             f"📦 **Your Orders History:**\n{order_text}"
         )
 
-    # EXACT MATCH WITH SCREENSHOT IMAGE
-    elif text in ["☎️ Support & Founder", "☎️ Support & Admin"]:
-        support_text = (
-            "👤 **FOUNDER & SUPPORT INFORMATION**\n\n"
-            "👑 **Founder & Owner:** Himanshu Kumar\n"
-            "✉️ **Official Email:** `himanshu74919@gmail.com`\n"
-            "💬 **Direct Telegram DM:** @the_himanshu1\n"
-            "📢 **Official Telegram Channel:** @batchseller321\n"
-            f"📸 **Instagram:** [Click Here to Visit Profile]({INSTAGRAM_LINK})\n\n"
-            "✨ **24/7 Support Available for Payment & Link Access Queries!**"
-        )
-        bot.send_message(message.chat.id, support_text, disable_web_page_preview=True)
-
-    elif text == "⭐ Leave Feedback":
+    elif "feedback" in text_lower:
         USER_STATES[user_id] = 'WAITING_FEEDBACK'
         bot.send_message(message.chat.id, "⭐ Aapko humari service kaisi lagi? Niche apna feedback likh kar bhejein:")
 
     else:
-        bot.send_message(message.chat.id, "🤖 Direct options dekhne ke liye `/start` bhejien ya menu buttons use karein.")
+        bot.send_message(message.chat.id, "🤖 Direct options dekhne ke liye `/start` bhejien ya niche wale buttons tap karein.", reply_markup=get_main_keyboard())
 
 # ==============================================================================
 # 🔘 INLINE BUTTON CALLBACK HANDLERS
@@ -600,10 +607,10 @@ def handle_inline_callbacks(call):
             )
 
 # ==============================================================================
-# ⚡ MAIN LOOP (CRASH-PROOF AUTO RE-CONNECT)
+# ⚡ MAIN LOOP
 # ==============================================================================
 if __name__ == "__main__":
-    print("🚀 Master Bot Online! Auto-reconnecting enabled...")
+    print("🚀 Master Bot Online!")
     while True:
         try:
             bot.infinity_polling(timeout=20, long_polling_timeout=10)
