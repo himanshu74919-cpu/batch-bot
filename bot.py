@@ -10,7 +10,7 @@ import telebot
 from telebot import types
 
 # ==============================================================================
-# 🌐 DUMMY FLASK WEB SERVER FOR RENDER (24/7 KEEP-ALIVE)
+# 🌐 FLASK KEEP-ALIVE WEB SERVER FOR RENDER
 # ==============================================================================
 app = Flask('')
 
@@ -28,7 +28,7 @@ def keep_alive():
     t.start()
 
 # ==============================================================================
-# ⚙️ LOGGING & CONFIGURATION
+# ⚙️ LOGGING & CONFIGURATION (HTML MODE TO PREVENT CRASHES)
 # ==============================================================================
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -36,28 +36,28 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# 🔑 BOT CREDENTIALS & CONFIG
+# 🔑 BOT CREDENTIALS
 API_TOKEN = '8871003871:AAGdSTB3uvJkEkgvanN6vaYhv1ButVHJUP0'
-ADMIN_ID = 7990500822  # Himanshu's Telegram ID
-ADMIN_USERNAME = 'the_himanshu1'  # Cleaned Telegram Username
+ADMIN_ID = 7990500822
+ADMIN_USERNAME = 'the_himanshu1'
 CHANNEL_USERNAME = '@batchseller321'
 CHANNEL_LINK = 'https://t.me/batchseller321'
 WEB_APP_URL = 'https://himanshu74919-cpu.github.io/batchseller-hub/'
 INSTAGRAM_LINK = 'https://www.instagram.com/himanshu__kumar__.07?igsh=ejNvYWNyZ253cGs4'
 
-bot = telebot.TeleBot(API_TOKEN, parse_mode="Markdown")
+# PARSE_MODE IS NOW HTML (NO CRASH ON UNDERSCORES)
+bot = telebot.TeleBot(API_TOKEN, parse_mode="HTML")
 
 USER_STATES = {}
 
 # ==============================================================================
-# 🗄️ DATABASE SETUP (SQLite3)
+# 🗄️ DATABASE SETUP
 # ==============================================================================
 DB_NAME = "batchseller_hub.db"
 
 def init_db():
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
-    
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS users (
             user_id INTEGER PRIMARY KEY,
@@ -66,7 +66,6 @@ def init_db():
             joined_date TEXT
         )
     ''')
-    
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS orders (
             order_id TEXT PRIMARY KEY,
@@ -78,7 +77,6 @@ def init_db():
             created_at TEXT
         )
     ''')
-    
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS feedback (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -88,7 +86,6 @@ def init_db():
             date TEXT
         )
     ''')
-
     conn.commit()
     conn.close()
 
@@ -152,7 +149,7 @@ def check_channel_subscription(user_id):
             return True
         return False
     except Exception as e:
-        logger.error(f"Force Join Check Error (Make sure bot is admin in channel!): {e}")
+        logger.error(f"Force Join Error: {e}")
         return False
 
 def send_force_join_message(chat_id):
@@ -162,12 +159,12 @@ def send_force_join_message(chat_id):
     markup.add(btn_channel, btn_verify)
     
     text = (
-        "🔒 **MUST JOIN TELEGRAM CHANNEL TO ACCESS BOT**\n"
+        "<b>🔒 MUST JOIN TELEGRAM CHANNEL TO ACCESS BOT</b>\n"
         "━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
-        "👋 Welcome! Bot aur 12 Institutes ke batches access karne ke liye aapko humare **Official Channel** ko join karna compulsory hai.\n\n"
-        "📌 **Instructions:**\n"
-        "1️⃣ Pehle niche **'📢 Join Official Telegram Channel'** par click karke channel join karein.\n"
-        "2️⃣ Phir **'✅ I Have Joined'** button dabayein!"
+        "👋 Welcome! Bot aur 12 Institutes ke batches access karne ke liye aapko humare <b>Official Channel</b> ko join karna compulsory hai.\n\n"
+        "📌 <b>Instructions:</b>\n"
+        "1️⃣ Pehle niche <b>'📢 Join Official Telegram Channel'</b> par click karke channel join karein.\n"
+        "2️⃣ Phir <b>'✅ I Have Joined'</b> button dabayein!"
     )
     bot.send_message(chat_id, text, reply_markup=markup)
 
@@ -351,16 +348,15 @@ def command_start(message):
     
     db_add_user(user_id, username, first_name)
 
-    # Force Channel Join Verification
     if not check_channel_subscription(user_id):
         send_force_join_message(message.chat.id)
         return
 
     welcome_text = (
-        f"👑 **WELCOME TO HIMANSHU'S BATCHSELLER HUB!**\n"
+        f"👑 <b>WELCOME TO HIMANSHU'S BATCHSELLER HUB!</b>\n"
         f"━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
-        f"👋 **Namaste {first_name}!** India ke sabhi top educational platforms ke premium batches ab aapko milenge **FLAT ₹149** mein!\n\n"
-        f"📂 **AVAILABLE ALL 12 INSTITUTES:**\n"
+        f"👋 <b>Namaste {first_name}!</b> India ke sabhi top educational platforms ke premium batches ab aapko milenge <b>FLAT ₹149</b> mein!\n\n"
+        f"📂 <b>AVAILABLE ALL 12 INSTITUTES:</b>\n"
         f"1. ⚡ Physics Wallah (PW)\n"
         f"2. 🎯 Next Topper Special\n"
         f"3. 📚 UnAcademy Subscriptions\n"
@@ -373,7 +369,7 @@ def command_start(message):
         f"10. 🧪 Vibrant Academy (Kota)\n"
         f"11. 🏆 Selection Way\n"
         f"12. 🛡️ Rojgar With Ankit (RWA)\n\n"
-        f"👇 Niche **'🌐 OPEN WEB STORE'** button dabayein ya options select karein:"
+        f"👇 Niche <b>'🌐 OPEN WEB STORE'</b> button dabayein ya options select karein:"
     )
     
     bot.send_message(
@@ -390,11 +386,11 @@ def command_admin(message):
         return
 
     admin_text = (
-        "👑 **BATCHSELLER HUB - ADMIN CONTROL PANEL**\n"
+        "👑 <b>BATCHSELLER HUB - ADMIN CONTROL PANEL</b>\n"
         "━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
         "Welcome Himanshu Bhai! Admin commands:\n\n"
-        "📊 `/stats` - Check live user & order statistics\n"
-        "📢 `/broadcast <message>` - Send broadcast message to all users\n"
+        "📊 <code>/stats</code> - Check live user & order statistics\n"
+        "📢 <code>/broadcast &lt;message&gt;</code> - Send broadcast message to all users\n"
     )
     bot.send_message(message.chat.id, admin_text)
 
@@ -406,7 +402,6 @@ def handle_text_messages(message):
     user_id = message.from_user.id
     text = message.text.strip()
 
-    # Force Channel Join Check
     if not check_channel_subscription(user_id):
         send_force_join_message(message.chat.id)
         return
@@ -426,7 +421,7 @@ def handle_text_messages(message):
             for inst_code, c_id, c_data in results:
                 markup.add(types.InlineKeyboardButton(text=f"📖 {c_data['name']} (₹{c_data['price']})", callback_data=f"course_{inst_code}_{c_id}"))
             
-            bot.send_message(message.chat.id, f"🔎 **Found {len(results)} Matching Batches:**", reply_markup=markup)
+            bot.send_message(message.chat.id, f"🔎 <b>Found {len(results)} Matching Batches:</b>", reply_markup=markup)
         else:
             bot.send_message(message.chat.id, "❌ Koi matching batch nahi mila. Please '📚 All Institutes (12)' se browse karein.")
         return
@@ -434,60 +429,60 @@ def handle_text_messages(message):
     if USER_STATES.get(user_id) == 'WAITING_FEEDBACK':
         USER_STATES[user_id] = None
         db_add_feedback(user_id, message.from_user.first_name, text)
-        bot.send_message(message.chat.id, "🎉 **Thank you!** Aapka feedback Himanshu tak pahunch gaya hai.")
-        bot.send_message(ADMIN_ID, f"⭐ **NEW FEEDBACK RECEIVED:**\nFrom: {message.from_user.first_name} (`{user_id}`)\n\n💬 {text}")
+        bot.send_message(message.chat.id, "🎉 <b>Thank you!</b> Aapka feedback Himanshu tak pahunch gaya hai.")
+        bot.send_message(ADMIN_ID, f"⭐ <b>NEW FEEDBACK RECEIVED:</b>\nFrom: {message.from_user.first_name} (<code>{user_id}</code>)\n\n💬 {text}")
         return
 
     text_lower = text.lower()
 
-    # EXACT & CLEAN SUPPORT/FOUNDER TEXT
+    # 100% BULLETPROOF SUPPORT & FOUNDER TEXT (SAFE FROM ALL PARSING ERRORS)
     if "support" in text_lower or "founder" in text_lower:
         support_text = (
-            "👤 **FOUNDER & SUPPORT INFORMATION**\n"
+            "👤 <b>FOUNDER & SUPPORT INFORMATION</b>\n"
             "━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
-            "👑 **Founder & Owner:** Himanshu Kumar\n"
-            "📧 **Official Email:** himanshu74919@gmail.com\n"
-            "💬 **Direct Telegram DM:** @the_himanshu1\n"
-            "📢 **Official Telegram Channel:** @batchseller321\n"
-            f"📸 **Instagram Profile:** [Click Here to Visit (@himanshu__kumar__.07)]({INSTAGRAM_LINK})\n\n"
-            "✨ **24/7 Support Available for Payment & Link Access Queries!**"
+            "👑 <b>Founder & Owner:</b> Himanshu Kumar\n"
+            "📧 <b>Official Email:</b> himanshu74919@gmail.com\n"
+            "💬 <b>Direct Telegram DM:</b> @the_himanshu1\n"
+            "📢 <b>Official Telegram Channel:</b> @batchseller321\n"
+            f'📸 <b>Instagram Profile:</b> <a href="{INSTAGRAM_LINK}">Click Here to Visit Profile</a>\n\n'
+            "✨ <b>24/7 Support Available for Payment & Link Access Queries!</b>"
         )
         bot.send_message(message.chat.id, support_text, disable_web_page_preview=True)
 
     elif "all institutes" in text_lower or "institutes" in text_lower or "batches" in text_lower:
         bot.send_message(
             message.chat.id,
-            "🔥 **SELECT ANY EDUCATIONAL INSTITUTE BELOW TO SEE COURSES:**",
+            "🔥 <b>SELECT ANY EDUCATIONAL INSTITUTE BELOW TO SEE COURSES:</b>",
             reply_markup=get_institutes_inline_keyboard()
         )
 
     elif "search" in text_lower:
         USER_STATES[user_id] = 'WAITING_SEARCH'
-        bot.send_message(message.chat.id, "🔍 **Search Batch:** Aapko jo bhi batch chahiye uska naam likh kar bhejiye (e.g. *Lakshya*, *Khan Sir*, *DSA*, *Arjuna*):")
+        bot.send_message(message.chat.id, "🔍 <b>Search Batch:</b> Aapko jo bhi batch chahiye uska naam likh kar bhejiye (e.g. <i>Lakshya</i>, <i>Khan Sir</i>, <i>DSA</i>):")
 
     elif "offer" in text_lower or "pricing" in text_lower:
         bot.send_message(
             message.chat.id,
-            "🎉 **SPECIAL FLAT ₹149 OFFER**\n"
+            "🎉 <b>SPECIAL FLAT ₹149 OFFER</b>\n"
             "━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
             "India ke top 12 Institutes ke saare Premium Batches available hain FLAT ₹149 mein!\n\n"
             "✅ Complete Video Lectures\n"
             "✅ Daily Practice Papers (DPP)\n"
             "✅ Solved Test Series & Notes\n"
             "✅ Permanent Google Drive / Telegram Access\n\n"
-            "⚡ **Instant Delivery Guarantee!**"
+            "⚡ <b>Instant Delivery Guarantee!</b>"
         )
 
     elif "account" in text_lower or "order" in text_lower or "profile" in text_lower:
         orders = db_get_user_orders(user_id)
-        order_text = "\n".join([f"• `{o[0]}` | {o[1]} | ₹{o[2]} ({o[3]})" for o in orders]) if orders else "Koi active order nahi hai."
+        order_text = "\n".join([f"• <code>{o[0]}</code> | {o[1]} | ₹{o[2]} ({o[3]})" for o in orders]) if orders else "Koi active order nahi hai."
         
         bot.send_message(
             message.chat.id, 
-            f"👤 **YOUR PROFILE:**\n\n"
-            f"• **Name:** {message.from_user.first_name}\n"
-            f"• **Telegram ID:** `{user_id}`\n\n"
-            f"📦 **Your Orders History:**\n{order_text}"
+            f"👤 <b>YOUR PROFILE:</b>\n\n"
+            f"• <b>Name:</b> {message.from_user.first_name}\n"
+            f"• <b>Telegram ID:</b> <code>{user_id}</code>\n\n"
+            f"📦 <b>Your Orders History:</b>\n{order_text}"
         )
 
     elif "feedback" in text_lower:
@@ -495,7 +490,7 @@ def handle_text_messages(message):
         bot.send_message(message.chat.id, "⭐ Aapko humari service kaisi lagi? Niche apna feedback likh kar bhejein:")
 
     else:
-        bot.send_message(message.chat.id, "🤖 Direct options dekhne ke liye `/start` bhejien ya niche wale buttons tap karein.", reply_markup=get_main_keyboard())
+        bot.send_message(message.chat.id, "🤖 Direct options dekhne ke liye /start bhejien ya niche wale buttons tap karein.", reply_markup=get_main_keyboard())
 
 # ==============================================================================
 # 🔘 INLINE CALLBACK HANDLERS
@@ -514,10 +509,10 @@ def handle_inline_callbacks(call):
                 pass
             
             welcome_text = (
-                f"🎉 **VERIFICATION SUCCESSFUL!** 🎉\n"
+                f"🎉 <b>VERIFICATION SUCCESSFUL!</b> 🎉\n"
                 f"━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
-                f"👋 Welcome to **Himanshu's BatchSeller Hub**!\n\n"
-                f"👇 Menu choose karein ya **'OPEN WEB STORE'** button dabayein:"
+                f"👋 Welcome to <b>Himanshu's BatchSeller Hub</b>!\n\n"
+                f"👇 Menu choose karein ya <b>'OPEN WEB STORE'</b> button dabayein:"
             )
             bot.send_message(call.message.chat.id, welcome_text, reply_markup=get_main_keyboard())
         else:
@@ -528,7 +523,7 @@ def handle_inline_callbacks(call):
         bot.edit_message_text(
             chat_id=call.message.chat.id,
             message_id=call.message.message_id,
-            text="🔥 **SELECT ANY EDUCATIONAL INSTITUTE BELOW TO SEE COURSES:**",
+            text="🔥 <b>SELECT ANY EDUCATIONAL INSTITUTE BELOW TO SEE COURSES:</b>",
             reply_markup=get_institutes_inline_keyboard()
         )
         return
@@ -540,7 +535,7 @@ def handle_inline_callbacks(call):
             bot.edit_message_text(
                 chat_id=call.message.chat.id,
                 message_id=call.message.message_id,
-                text=f"{inst['icon']} **{inst['name']}**\n📌 *Category:* {inst['category']}\n\n{inst['description']}\n\n👇 **Select Batch Below:**",
+                text=f"{inst['icon']} <b>{inst['name']}</b>\n📌 <i>Category:</i> {inst['category']}\n\n{inst['description']}\n\n👇 <b>Select Batch Below:</b>",
                 reply_markup=get_courses_inline_keyboard(inst_code)
             )
         return
@@ -568,17 +563,17 @@ def handle_inline_callbacks(call):
                 chat_id=call.message.chat.id,
                 message_id=call.message.message_id,
                 text=(
-                    f"📖 **SELECTED COURSE:** {course['name']}\n"
-                    f"🏢 **Institute:** {inst['name']}\n"
-                    f"💰 **Offer Price:** ₹{course['price']}\n"
-                    f"🆔 **Order Reference:** `{order_id}`\n\n"
-                    f"👇 Direct Admin se batch access lene ke liye **'Instant Buy Now'** click karein:"
+                    f"📖 <b>SELECTED COURSE:</b> {course['name']}\n"
+                    f"🏢 <b>Institute:</b> {inst['name']}\n"
+                    f"💰 <b>Offer Price:</b> ₹{course['price']}\n"
+                    f"🆔 <b>Order Reference:</b> <code>{order_id}</code>\n\n"
+                    f"👇 Direct Admin se batch access lene ke liye <b>'Instant Buy Now'</b> click karein:"
                 ),
                 reply_markup=markup
             )
 
 # ==============================================================================
-# ⚡ MAIN EXECUTION
+# ⚡ MAIN EXECUTION (NON-STOP AUTORESTART)
 # ==============================================================================
 if __name__ == "__main__":
     print("🚀 Starting Web Server for Render Keep-Alive...")
@@ -589,5 +584,5 @@ if __name__ == "__main__":
         try:
             bot.infinity_polling(timeout=20, long_polling_timeout=10)
         except Exception as e:
-            logger.error(f"Polling Exception: {e}")
+            logger.error(f"Polling Exception Caught: {e}")
             time.sleep(3)
