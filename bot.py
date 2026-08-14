@@ -2,19 +2,20 @@ import os
 import time
 import logging
 import sqlite3
+from datetime import datetime
 from threading import Thread
 from flask import Flask
 import telebot
 from telebot import types
 
 # ==============================================================================
-# 🌐 1. FLASK KEEP-ALIVE SERVER (FOR RENDER 24/7 ONLINE)
+# 🌐 1. FLASK KEEP-ALIVE WEB SERVER FOR RENDER
 # ==============================================================================
 app = Flask('')
 
 @app.route('/')
 def home():
-    return "✅ BatchSeller Bot Server is 100% Online & Running 24/7!"
+    return "✅ BatchSeller Master Bot is 100% Online & Running 24/7!"
 
 def run_flask():
     port = int(os.environ.get('PORT', 8080))
@@ -26,26 +27,28 @@ def keep_alive():
     t.start()
 
 # ==============================================================================
-# 🤖 2. BOT CONFIGURATION & DATABASE SETUP
+# 🤖 2. BOT & DATABASE CONFIGURATION
 # ==============================================================================
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# Aapka New API Token
+# Config
 API_TOKEN = '8871003871:AAGY_gBpiSOpMteUKEnDgocqYsdogw9Q5Dg'
 ADMIN_USERNAME = "the_himanshu1"
+ADMIN_ID = 0  # Aapna numeric Telegram ID yahan daal sakte hain (optional)
 
-bot = telebot.TeleBot(API_TOKEN)
+bot = telebot.TeleBot(API_TOKEN, parse_mode="Markdown")
 
-# SQLite Database for User Tracking
+# SQLite Database Initialization
 def init_db():
-    conn = sqlite3.connect("bot_database.db")
+    conn = sqlite3.connect("batch_bot.db")
     cursor = conn.cursor()
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS users (
             user_id INTEGER PRIMARY KEY,
             username TEXT,
-            first_name TEXT
+            first_name TEXT,
+            joined_at TEXT
         )
     ''')
     conn.commit()
@@ -53,31 +56,42 @@ def init_db():
 
 def add_user(user_id, username, first_name):
     try:
-        conn = sqlite3.connect("bot_database.db")
+        conn = sqlite3.connect("batch_bot.db")
         cursor = conn.cursor()
-        cursor.execute("INSERT OR IGNORE INTO users (user_id, username, first_name) VALUES (?, ?, ?)", 
-                       (user_id, username, first_name))
+        joined_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        cursor.execute("INSERT OR IGNORE INTO users (user_id, username, first_name, joined_at) VALUES (?, ?, ?, ?)", 
+                       (user_id, username, first_name, joined_at))
         conn.commit()
         conn.close()
     except Exception as e:
         logger.error(f"DB Error: {e}")
 
+def get_total_users():
+    try:
+        conn = sqlite3.connect("batch_bot.db")
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM users")
+        count = cursor.fetchone()[0]
+        conn.close()
+        return count
+    except Exception:
+        return 0
+
 # ==============================================================================
-# 🎯 3. UI KEYBOARDS & MENUS
+# 🎯 3. KEYBOARDS & MENU DESIGN
 # ==============================================================================
-def main_menu_keyboard():
+def main_menu():
     markup = types.InlineKeyboardMarkup(row_width=2)
-    btn_store = types.InlineKeyboardButton("🛒 Open Batch Store", callback_data="open_store")
-    btn_offers = types.InlineKeyboardButton("🔥 Special Discount Batches", callback_data="special_offers")
-    btn_help = types.InlineKeyboardButton("❓ Guarantee & Info", callback_data="help_info")
-    btn_admin = types.InlineKeyboardButton("💬 Contact Admin", url=f"https://t.me/{ADMIN_USERNAME}")
-    
-    markup.add(btn_store)
-    markup.add(btn_offers, btn_help)
-    markup.add(btn_admin)
+    btn1 = types.InlineKeyboardButton("🛒 Browse Batch Store", callback_data="store")
+    btn2 = types.InlineKeyboardButton("🔥 Special Discount Packs", callback_data="discounts")
+    btn3 = types.InlineKeyboardButton("🛡️ Guarantee & Proofs", callback_data="guarantee")
+    btn4 = types.InlineKeyboardButton("💬 Contact Admin Direct", url=f"https://t.me/{ADMIN_USERNAME}")
+    markup.add(btn1)
+    markup.add(btn2, btn3)
+    markup.add(btn4)
     return markup
 
-def categories_keyboard():
+def store_menu():
     markup = types.InlineKeyboardMarkup(row_width=2)
     btn_pw = types.InlineKeyboardButton("🟡 Physics Wallah (PW)", callback_data="cat_pw")
     btn_nt = types.InlineKeyboardButton("🔵 Next Topper", callback_data="cat_nt")
@@ -96,109 +110,126 @@ def categories_keyboard():
 # 📩 4. COMMAND HANDLERS
 # ==============================================================================
 @bot.message_handler(commands=['start'])
-def send_welcome(message):
+def start_cmd(message):
     user_id = message.from_user.id
     username = message.from_user.username or "NoUsername"
     first_name = message.from_user.first_name or "User"
     
     add_user(user_id, username, first_name)
     
-    welcome_text = (
-        f"👋 **Hello {first_name}! Welcome to Batch Seller Bot.**\n\n"
-        f"Yahan aapko sabhi top institutes ke premium paid batches **ultra-low prices** par milenge with **100% Full Access Guarantee**!\n\n"
-        f"👇 Niche diye gaye menu se store explore karein:"
+    text = (
+        f"👋 **Welcome {first_name}!**\n\n"
+        f"🏪 **Batch Seller Official Bot**\n"
+        f"Yahan aapko sabhi major educational platforms ke premium paid batches **ultra-cheap rates** par milenge.\n\n"
+        f"✨ **Key Features:**\n"
+        f"• Full Lectures + Notes + DPPs Access\n"
+        f"• 100% Genuine & Instant Delivery\n"
+        f"• Exam till validity support\n\n"
+        f"👇 Below menu se categories explore karein:"
     )
-    
-    bot.send_message(message.chat.id, welcome_text, parse_mode="Markdown", reply_markup=main_menu_keyboard())
+    bot.send_message(message.chat.id, text, reply_markup=main_menu())
 
-@bot.message_handler(commands=['help'])
-def help_command(message):
-    bot.send_message(message.chat.id, "Agar aapko koi bhi dikkat aaye toh admin se sampark karein: @the_himanshu1")
+@bot.message_handler(commands=['stats'])
+def stats_cmd(message):
+    total = get_total_users()
+    bot.reply_to(message, f"📊 **Bot Statistics:**\n\nTotal Registered Users: `{total}`")
 
 # ==============================================================================
-# 🔘 5. CALLBACK BUTTON HANDLERS
+# 🔘 5. CALLBACK HANDLERS (BUTTON CLICKS)
 # ==============================================================================
 @bot.callback_query_handler(func=lambda call: True)
-def handle_callbacks(call):
+def handle_clicks(call):
     chat_id = call.message.chat.id
-    message_id = call.message.message_id
-    
-    if call.data == "main_menu":
-        welcome_text = (
-            f"👋 **Welcome Back to Batch Seller Bot!**\n\n"
-            f"Niche diye gaye options se apne pasand ka platform select karein:"
-        )
-        bot.edit_message_text(welcome_text, chat_id, message_id, parse_mode="Markdown", reply_markup=main_menu_keyboard())
+    msg_id = call.message.message_id
+    data = call.data
 
-    elif call.data == "open_store":
-        store_text = "📚 **Choose Institute / Category:**\n\nJis platform ka batch chahiye us par click karein:"
-        bot.edit_message_text(store_text, chat_id, message_id, parse_mode="Markdown", reply_markup=categories_keyboard())
+    try:
+        if data == "main_menu":
+            text = "👋 **Welcome Back!** Select an option from the menu below:"
+            bot.edit_message_text(text, chat_id, msg_id, reply_markup=main_menu())
 
-    elif call.data.startswith("cat_"):
-        cat_name = call.data.replace("cat_", "").upper()
-        
-        # Batch options response
-        text = (
-            f"🎯 **{cat_name} Available Batches:**\n\n"
-            f"1️⃣ All Latest 2025-2026 Batches Available\n"
-            f"2️⃣ Direct Lectures + DPPs + Notes Access\n"
-            f"3️⃣ Instant Activation\n\n"
-            f"💰 Price: **80% OFF Normal Price**\n\n"
-            f"👇 Batch buy karne ke liye Admin ko message karein:"
-        )
-        
-        markup = types.InlineKeyboardMarkup()
-        btn_buy = types.InlineKeyboardButton("💳 Buy / Inquire Batch", url=f"https://t.me/{ADMIN_USERNAME}?text=Hi%20Admin,%20I%20want%20to%20buy%20{cat_name}%20batch")
-        btn_back = types.InlineKeyboardButton("⬅️ Back to Categories", callback_data="open_store")
-        markup.add(btn_buy)
-        markup.add(btn_back)
-        
-        bot.edit_message_text(text, chat_id, message_id, parse_mode="Markdown", reply_markup=markup)
+        elif data == "store":
+            text = "📚 **Select Institute / Platform:**\n\nApne pasand ke platform par click karein:"
+            bot.edit_message_text(text, chat_id, msg_id, reply_markup=store_menu())
 
-    elif call.data == "special_offers":
-        text = (
-            "🔥 **SPECIAL OFFERS & COMBO PACKS** 🔥\n\n"
-            "🌟 All Batches Lifetime Access Combo\n"
-            "🌟 Physics + Chemistry + Maths/Bio Full Pack\n\n"
-            "Limited seats left! Contact admin directly to claim offer."
-        )
-        markup = types.InlineKeyboardMarkup()
-        btn_claim = types.InlineKeyboardButton("⚡ Claim Offer Now", url=f"https://t.me/{ADMIN_USERNAME}?text=Hi,%20I%20want%20Special%20Offer")
-        btn_back = types.InlineKeyboardButton("⬅️ Back", callback_data="main_menu")
-        markup.add(btn_claim)
-        markup.add(btn_back)
-        
-        bot.edit_message_text(text, chat_id, message_id, parse_mode="Markdown", reply_markup=markup)
+        elif data.startswith("cat_"):
+            cat_map = {
+                "cat_pw": "Physics Wallah (PW)",
+                "cat_nt": "Next Topper",
+                "cat_cw": "Careerwill",
+                "cat_unacademy": "Unacademy",
+                "cat_ca": "CA / Commerce Wallah"
+            }
+            name = cat_map.get(data, "Educational Batch")
+            
+            text = (
+                f"🎓 **{name} Available Batches:**\n\n"
+                f"✅ All 2025 - 2026 Batches Available\n"
+                f"✅ Full Video Lectures + PDF Notes + DPPs\n"
+                f"✅ Daily Updates & Backup Support\n\n"
+                f"💰 **Price:** Up to 80% OFF original price!\n\n"
+                f"👇 Direct buy karne ke liye Admin ko message karein:"
+            )
+            markup = types.InlineKeyboardMarkup()
+            buy_btn = types.InlineKeyboardButton("💳 Buy Batch Now", url=f"https://t.me/{ADMIN_USERNAME}?text=Hi%20Admin,%20I%20want%20to%20buy%20{name}%20batch")
+            back_btn = types.InlineKeyboardButton("⬅️ Back to Institutes", callback_data="store")
+            markup.add(buy_btn)
+            markup.add(back_btn)
+            
+            bot.edit_message_text(text, chat_id, msg_id, reply_markup=markup)
 
-    elif call.data == "help_info":
-        text = (
-            "🛡️ **100% Safety & Guarantee Info:**\n\n"
-            "✅ Complete course videos & PDF notes\n"
-            "✅ Regular Updates till exams\n"
-            "✅ Instant access after payment\n"
-            "✅ Dedicated support team\n\n"
-            "For any queries, DM: @the_himanshu1"
-        )
-        markup = types.InlineKeyboardMarkup()
-        btn_back = types.InlineKeyboardButton("⬅️ Back to Main Menu", callback_data="main_menu")
-        markup.add(btn_back)
-        
-        bot.edit_message_text(text, chat_id, message_id, parse_mode="Markdown", reply_markup=markup)
+        elif data == "discounts":
+            text = (
+                "🔥 **SPECIAL DISCOUNTS & COMBOS** 🔥\n\n"
+                "🎁 **All-In-One Combo Pass:** Sabhi platforms ke batches ek saath discounts par!\n"
+                "⚡ **Group Discount:** 2 ya usse zyada batches par flat extra discount.\n\n"
+                "Offers claim karne ke liye Admin ko DM karein:"
+            )
+            markup = types.InlineKeyboardMarkup()
+            btn1 = types.InlineKeyboardButton("⚡ Claim Offer", url=f"https://t.me/{ADMIN_USERNAME}?text=Hi,%20I%20want%20Combo%20Offer")
+            btn2 = types.InlineKeyboardButton("⬅️ Back", callback_data="main_menu")
+            markup.add(btn1)
+            markup.add(btn2)
+            bot.edit_message_text(text, chat_id, msg_id, reply_markup=markup)
 
-    bot.answer_callback_query(call.id)
+        elif data == "guarantee":
+            text = (
+                "🛡️ **100% Satisfaction & Security Guarantee:**\n\n"
+                "1️⃣ **Instant Access:** Payment hote hi batch link aur access mil jayega.\n"
+                "2️⃣ **No Interruption:** Course poore exam session tak bina ruke chalega.\n"
+                "3️⃣ **Trusted Seller:** Hazaaron students pehle se Jude hue hain.\n\n"
+                "Koi query hai? Contact: @the_himanshu1"
+            )
+            markup = types.InlineKeyboardMarkup()
+            markup.add(types.InlineKeyboardButton("⬅️ Back to Menu", callback_data="main_menu"))
+            bot.edit_message_text(text, chat_id, msg_id, reply_markup=markup)
+
+        bot.answer_callback_query(call.id)
+    except Exception as e:
+        logger.error(f"Callback error: {e}")
 
 # ==============================================================================
-# ⚡ 6. BOT POLLING LOOP WITH AUTO-RESTART
+# ⚡ 6. CRASH-PROOF POLLING ENGINE WITH WEBHOOK RESET
 # ==============================================================================
 if __name__ == "__main__":
     init_db()
     keep_alive()
-    logger.info("Keep-alive server started.")
-    logger.info("Starting Telegram Bot Master Polling...")
+    logger.info("Flask keep-alive server active.")
     
+    # TELEGRAM CONFLIT / WEBHOOK CLEARING
+    try:
+        logger.info("Clearing old webhooks & pending updates...")
+        bot.remove_webhook()
+        time.sleep(1)
+    except Exception as e:
+        logger.warning(f"Webhook clear warning: {e}")
+
+    logger.info("Starting Master Polling Engine...")
+    
+    # Continuous Polling Loop with auto-reconnect
     while True:
         try:
-            bot.infinity_polling(timeout=20, long_polling_timeout=10)
+            bot.infinity_polling(timeout=30, long_polling_timeout=15, skip_pending=True)
         except Exception as e:
-            logger.error(f"Bot Polling Crashed with Error: {e}")
+            logger.error(f"Polling loop recovered from error: {e}")
             time.sleep(3)
