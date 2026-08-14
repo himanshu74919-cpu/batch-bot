@@ -10,7 +10,7 @@ import telebot
 from telebot import types
 
 # ==============================================================================
-# 🌐 FLASK KEEP-ALIVE WEB SERVER FOR RENDER
+# 🌐 FLASK KEEP-ALIVE WEB SERVER FOR RENDER (24/7 ONLINE)
 # ==============================================================================
 app = Flask('')
 
@@ -28,7 +28,7 @@ def keep_alive():
     t.start()
 
 # ==============================================================================
-# ⚙️ LOGGING & CONFIGURATION (HTML MODE TO PREVENT CRASHES)
+# ⚙️ LOGGING & CONFIGURATION
 # ==============================================================================
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -45,13 +45,13 @@ CHANNEL_LINK = 'https://t.me/batchseller321'
 WEB_APP_URL = 'https://himanshu74919-cpu.github.io/batchseller-hub/'
 INSTAGRAM_LINK = 'https://www.instagram.com/himanshu__kumar__.07?igsh=ejNvYWNyZ253cGs4'
 
-# PARSE_MODE IS NOW HTML (NO CRASH ON UNDERSCORES)
+# PARSE_MODE HTML PREVENTS CRASHES ON UNDERSCORES
 bot = telebot.TeleBot(API_TOKEN, parse_mode="HTML")
 
 USER_STATES = {}
 
 # ==============================================================================
-# 🗄️ DATABASE SETUP
+# 🗄️ DATABASE SETUP (SQLite3)
 # ==============================================================================
 DB_NAME = "batchseller_hub.db"
 
@@ -149,7 +149,7 @@ def check_channel_subscription(user_id):
             return True
         return False
     except Exception as e:
-        logger.error(f"Force Join Error: {e}")
+        logger.error(f"Force Join Check Error: {e}")
         return False
 
 def send_force_join_message(chat_id):
@@ -394,6 +394,56 @@ def command_admin(message):
     )
     bot.send_message(message.chat.id, admin_text)
 
+@bot.message_handler(commands=['stats'])
+def command_stats(message):
+    user_id = message.from_user.id
+    if user_id != ADMIN_ID and str(user_id) != str(ADMIN_ID):
+        bot.send_message(message.chat.id, "❌ Access Denied! Only Himanshu can use this command.")
+        return
+    
+    users = db_get_all_users()
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute("SELECT COUNT(*) FROM orders")
+    total_orders = cursor.fetchone()[0]
+    conn.close()
+
+    stats_msg = (
+        "📊 <b>REAL-TIME BOT ANALYTICS:</b>\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+        f"👤 <b>Total Registered Users:</b> {len(users)}\n"
+        f"📦 <b>Total Orders Generated:</b> {total_orders}"
+    )
+    bot.send_message(message.chat.id, stats_msg)
+
+@bot.message_handler(commands=['broadcast'])
+def command_broadcast(message):
+    user_id = message.from_user.id
+    if user_id != ADMIN_ID and str(user_id) != str(ADMIN_ID):
+        bot.send_message(message.chat.id, "❌ Access Denied! Only Himanshu can use this command.")
+        return
+    
+    msg_parts = message.text.split(" ", 1)
+    if len(msg_parts) < 2:
+        bot.send_message(message.chat.id, "⚠️ <b>Usage:</b> <code>/broadcast Aapka Message Yahan Likhien</code>")
+        return
+
+    broadcast_msg = msg_parts[1]
+    users = db_get_all_users()
+    
+    success, failed = 0, 0
+    bot.send_message(message.chat.id, f"🔄 Broadcasting message to {len(users)} users...")
+    
+    for uid in users:
+        try:
+            bot.send_message(uid, f"📢 <b>ANNOUNCEMENT FROM ADMIN:</b>\n\n{broadcast_msg}")
+            success += 1
+            time.sleep(0.05)
+        except Exception:
+            failed += 1
+
+    bot.send_message(message.chat.id, f"✅ <b>Broadcast Completed!</b>\n\n<b>Success:</b> {success}\n<b>Failed:</b> {failed}")
+
 # ==============================================================================
 # 💬 TEXT MESSAGE ROUTING
 # ==============================================================================
@@ -435,7 +485,6 @@ def handle_text_messages(message):
 
     text_lower = text.lower()
 
-    # 100% BULLETPROOF SUPPORT & FOUNDER TEXT (SAFE FROM ALL PARSING ERRORS)
     if "support" in text_lower or "founder" in text_lower:
         support_text = (
             "👤 <b>FOUNDER & SUPPORT INFORMATION</b>\n"
@@ -586,3 +635,4 @@ if __name__ == "__main__":
         except Exception as e:
             logger.error(f"Polling Exception Caught: {e}")
             time.sleep(3)
+
