@@ -1,7 +1,5 @@
 import os
-import re
 import time
-import json
 import random
 import logging
 import sqlite3
@@ -41,8 +39,7 @@ logger = logging.getLogger(__name__)
 # 🔑 BOT CREDENTIALS & CONFIG
 API_TOKEN = '8871003871:AAGdSTB3uvJkEkgvanN6vaYhv1ButVHJUP0'
 ADMIN_ID = 7990500822  # Himanshu's Telegram ID
-ADMIN_USERNAME = 'the_himanshu1'
-ALT_ADMIN_USERNAME = 'himanshu_kumar__.07'
+ADMIN_USERNAME = 'the_himanshu1'  # Cleaned Telegram Username
 CHANNEL_USERNAME = '@batchseller321'
 CHANNEL_LINK = 'https://t.me/batchseller321'
 WEB_APP_URL = 'https://himanshu74919-cpu.github.io/batchseller-hub/'
@@ -147,7 +144,7 @@ def db_add_feedback(user_id, first_name, comment):
 # 🔒 FORCE CHANNEL JOIN CHECK
 # ==============================================================================
 def check_channel_subscription(user_id):
-    if user_id == ADMIN_ID:
+    if user_id == ADMIN_ID or str(user_id) == str(ADMIN_ID):
         return True
     try:
         member = bot.get_chat_member(CHANNEL_USERNAME, user_id)
@@ -155,8 +152,8 @@ def check_channel_subscription(user_id):
             return True
         return False
     except Exception as e:
-        logger.error(f"Force Join Check Error: {e}")
-        return True
+        logger.error(f"Force Join Check Error (Make sure bot is admin in channel!): {e}")
+        return False
 
 def send_force_join_message(chat_id):
     markup = types.InlineKeyboardMarkup(row_width=1)
@@ -175,7 +172,7 @@ def send_force_join_message(chat_id):
     bot.send_message(chat_id, text, reply_markup=markup)
 
 # ==============================================================================
-# 📚 INSTITUTES & COURSES DATA
+# 📚 INSTITUTES DATA
 # ==============================================================================
 INSTITUTES = {
     "pw": {
@@ -359,7 +356,6 @@ def command_start(message):
         send_force_join_message(message.chat.id)
         return
 
-    # VERTICAL LIST (1 to 12 SIDHI LINE MEIN)
     welcome_text = (
         f"👑 **WELCOME TO HIMANSHU'S BATCHSELLER HUB!**\n"
         f"━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
@@ -389,7 +385,6 @@ def command_start(message):
 @bot.message_handler(commands=['admin'])
 def command_admin(message):
     user_id = message.from_user.id
-    
     if user_id != ADMIN_ID and str(user_id) != str(ADMIN_ID):
         bot.send_message(message.chat.id, "❌ Access Denied!")
         return
@@ -403,65 +398,19 @@ def command_admin(message):
     )
     bot.send_message(message.chat.id, admin_text)
 
-@bot.message_handler(commands=['stats'])
-def command_stats(message):
-    if message.from_user.id != ADMIN_ID and str(message.from_user.id) != str(ADMIN_ID):
-        return
-    
-    users = db_get_all_users()
-    conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-    cursor.execute("SELECT COUNT(*) FROM orders")
-    total_orders = cursor.fetchone()[0]
-    conn.close()
-
-    bot.send_message(
-        message.chat.id,
-        f"📊 **REAL-TIME BOT ANALYTICS:**\n\n"
-        f"👤 **Total Users:** {len(users)}\n"
-        f"📦 **Total Orders:** {total_orders}"
-    )
-
-@bot.message_handler(commands=['broadcast'])
-def command_broadcast(message):
-    if message.from_user.id != ADMIN_ID and str(message.from_user.id) != str(ADMIN_ID):
-        return
-    
-    msg_parts = message.text.split(" ", 1)
-    if len(msg_parts) < 2:
-        bot.send_message(message.chat.id, "⚠️ Usage: `/broadcast Aapka Message`")
-        return
-
-    broadcast_msg = msg_parts[1]
-    users = db_get_all_users()
-    
-    success, failed = 0, 0
-    bot.send_message(message.chat.id, f"🔄 Broadcasting to {len(users)} users...")
-    
-    for uid in users:
-        try:
-            bot.send_message(uid, f"📢 **ANNOUNCEMENT FROM ADMIN:**\n\n{broadcast_msg}")
-            success += 1
-            time.sleep(0.05)
-        except Exception:
-            failed += 1
-
-    bot.send_message(message.chat.id, f"✅ **Broadcast Completed!**\nSuccess: {success}\nFailed: {failed}")
-
 # ==============================================================================
-# 💬 TEXT MESSAGE ROUTING & FLEXIBLE BUTTON HANDLERS
+# 💬 TEXT MESSAGE ROUTING
 # ==============================================================================
 @bot.message_handler(func=lambda msg: True)
 def handle_text_messages(message):
     user_id = message.from_user.id
     text = message.text.strip()
 
-    # Check Channel Subscription
+    # Force Channel Join Check
     if not check_channel_subscription(user_id):
         send_force_join_message(message.chat.id)
         return
 
-    # User Input States
     if USER_STATES.get(user_id) == 'WAITING_SEARCH':
         USER_STATES[user_id] = None
         query = text.lower()
@@ -491,15 +440,16 @@ def handle_text_messages(message):
 
     text_lower = text.lower()
 
-    # EXACT SUPPORT & FOUNDER TEXT RESPONDER
+    # EXACT & CLEAN SUPPORT/FOUNDER TEXT
     if "support" in text_lower or "founder" in text_lower:
         support_text = (
-            "👤 **FOUNDER & SUPPORT INFORMATION**\n\n"
+            "👤 **FOUNDER & SUPPORT INFORMATION**\n"
+            "━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
             "👑 **Founder & Owner:** Himanshu Kumar\n"
             "📧 **Official Email:** himanshu74919@gmail.com\n"
-            "💬 **Direct Telegram DM:** @the_himanshu1 / @himanshu_kumar__.07\n"
+            "💬 **Direct Telegram DM:** @the_himanshu1\n"
             "📢 **Official Telegram Channel:** @batchseller321\n"
-            f"📸 **Instagram:** [Click Here to Visit Profile]({INSTAGRAM_LINK})\n\n"
+            f"📸 **Instagram Profile:** [Click Here to Visit (@himanshu__kumar__.07)]({INSTAGRAM_LINK})\n\n"
             "✨ **24/7 Support Available for Payment & Link Access Queries!**"
         )
         bot.send_message(message.chat.id, support_text, disable_web_page_preview=True)
@@ -548,7 +498,7 @@ def handle_text_messages(message):
         bot.send_message(message.chat.id, "🤖 Direct options dekhne ke liye `/start` bhejien ya niche wale buttons tap karein.", reply_markup=get_main_keyboard())
 
 # ==============================================================================
-# 🔘 INLINE BUTTON CALLBACK HANDLERS
+# 🔘 INLINE CALLBACK HANDLERS
 # ==============================================================================
 @bot.callback_query_handler(func=lambda call: True)
 def handle_inline_callbacks(call):
@@ -571,7 +521,7 @@ def handle_inline_callbacks(call):
             )
             bot.send_message(call.message.chat.id, welcome_text, reply_markup=get_main_keyboard())
         else:
-            bot.answer_callback_query(call.id, "❌ Aapne abhi tak channel join nahi kiya hai!", show_alert=True)
+            bot.answer_callback_query(call.id, "❌ Aapne abhi tak channel join nahi kiya hai! Pehle join karein.", show_alert=True)
         return
 
     if data == "back_to_institutes":
@@ -628,11 +578,11 @@ def handle_inline_callbacks(call):
             )
 
 # ==============================================================================
-# ⚡ MAIN EXECUTION WITH FLASK KEEP-ALIVE
+# ⚡ MAIN EXECUTION
 # ==============================================================================
 if __name__ == "__main__":
     print("🚀 Starting Web Server for Render Keep-Alive...")
-    keep_alive()  # Runs Flask Server in Background on Port 8080
+    keep_alive()
     
     print("🚀 Master Bot Online! Auto-polling started...")
     while True:
