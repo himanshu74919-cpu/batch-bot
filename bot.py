@@ -22,7 +22,7 @@ INSTAGRAM_LINK = "https://www.instagram.com/himanshu__kumar__.07?igsh=ejNvYWNyZ2
 
 # Store & Payment Details
 BATCH_PRICE = "₹149"
-UPI_ID = "yourupiid@upi"  # Apna UPI ID yahan replace karein
+UPI_ID = "kumaranil98787@axl"  # Apna UPI ID yahan replace karein
 SECRET_APP_LINK = "https://your-secret-app-download-link.com/app.apk"  # Apna App Link yahan daalein
 # =======================================================
 
