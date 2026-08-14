@@ -4,33 +4,36 @@ import logging
 from datetime import datetime
 import telebot
 from telebot import types
+import urllib.parse
 
-# ==================== CONFIGURATION ====================
-# Aapka Active Bot Token (Pre-filled)
+# ==================== FIXED CONFIGURATION ====================
 BOT_TOKEN = "8871003871:AAFjqGtqcmVjPDF6qNfkAiaGh30KN2mBIOw"
+ADMIN_ID = 7990500822  # Fixed Admin ID
 
-# ⚠️ AAPKA NUMERIC TELEGRAM ID (Yahan Apna Numeric ID Daalein)
-# ID nikalne ke liye Telegram par @userinfobot ko /start bhejein.
-ADMIN_ID = 7990500822  # Replace 1234567890 with your numeric ID (e.g. 5891234567)
-
-# Channel & Social Details (Pre-filled)
+# Channel & Founder Info
 CHANNEL_USERNAME = "@batchseller321"
 CHANNEL_LINK = "https://t.me/batchseller321"
 FOUNDER_TELEGRAM = "@the_himanshu1"
 FOUNDER_EMAIL = "himanshu74919@gmail.com"
 INSTAGRAM_LINK = "https://www.instagram.com/himanshu__kumar__.07?igsh=ejNvYWNyZ253cGs4"
 
-# Store & Payment Details
-BATCH_PRICE = "₹149"
-UPI_ID = "kumaranil98787@axl"  # Apna UPI ID yahan replace karein
-SECRET_APP_LINK = "https://your-secret-app-download-link.com/app.apk"  # Apna App Link yahan daalein
-# =======================================================
+# Payment Details (Fixed)
+BATCH_PRICE = "149"
+UPI_ID = "kumaranil98787@axl"
+PAYEE_NAME = "Anil Kumar"
 
-# Logging Configuration
+# Direct UPI Deep Link & Auto-Generated QR Code URL
+UPI_DEEP_LINK = f"upi://pay?pa={UPI_ID}&pn={urllib.parse.quote(PAYEE_NAME)}&am={BATCH_PRICE}&cu=INR&tn=Batch%20Purchase"
+QR_CODE_URL = f"https://api.qrserver.com/v1/create-qr-code/?size=350x350&data={urllib.parse.quote(UPI_DEEP_LINK)}"
+
+# App Link to deliver after approval
+SECRET_APP_LINK = "https://your-secret-app-download-link.com/app.apk"
+# =============================================================
+
 logging.basicConfig(level=logging.INFO)
 bot = telebot.TeleBot(BOT_TOKEN, parse_mode="HTML")
 
-# Permanent SQLite Database Setup
+# Database Setup
 DB_FILE = "bot_database.db"
 
 def init_db():
@@ -59,7 +62,7 @@ def init_db():
 
 init_db()
 
-# DB Helper Functions
+# DB Helpers
 def add_user_to_db(user_id, username, first_name):
     try:
         conn = sqlite3.connect(DB_FILE)
@@ -79,7 +82,7 @@ def set_premium_user(user_id):
     cursor = conn.cursor()
     cursor.execute("UPDATE users SET is_premium = 1 WHERE user_id = ?", (user_id,))
     cursor.execute("INSERT INTO orders (user_id, amount, status, date) VALUES (?, ?, 'APPROVED', ?)",
-                   (user_id, BATCH_PRICE, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+                   (user_id, f"₹{BATCH_PRICE}", datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
     conn.commit()
     conn.close()
 
@@ -101,10 +104,8 @@ def get_all_users():
     conn.close()
     return users
 
-# Memory tracking for user active states
 user_states = {}
 
-# Menu buttons list for automatic state clearing
 MENU_BUTTONS = [
     "🌐 Web Store", 
     "📚 All Institutes Batches", 
@@ -115,7 +116,6 @@ MENU_BUTTONS = [
     "📞 Support and Founder"
 ]
 
-# Safe Channel Membership Check
 def check_membership(user_id):
     try:
         member = bot.get_chat_member(CHANNEL_USERNAME, user_id)
@@ -123,10 +123,9 @@ def check_membership(user_id):
             return True
         return False
     except Exception as e:
-        print(f"⚠️ Channel Check Note: Make sure bot is Admin in {CHANNEL_USERNAME}. Error: {e}")
-        return True  # Fallback to true so user navigation is never locked
+        print(f"⚠️ Channel Admin Check Note: Ensure bot is Admin in {CHANNEL_USERNAME}. Error: {e}")
+        return True
 
-# Keyboard Layouts
 def get_join_keyboard():
     markup = types.InlineKeyboardMarkup()
     btn_channel = types.InlineKeyboardButton("📢 Join Official Channel", url=CHANNEL_LINK)
@@ -147,7 +146,6 @@ def get_main_keyboard():
     markup.add(btn1, btn2, btn3, btn4, btn5, btn6, btn7)
     return markup
 
-# Pre-defined Information Texts
 WELCOME_TEXT = """🔥 <b>ALL PREMIUM EDUCATIONAL BATCHES AT ULTRA LOW PRICES</b> 🔥
 
 ✨ <b>Available Institute Batches:</b>
@@ -183,12 +181,11 @@ FOUNDER_INFO = f"""👤 <b>FOUNDER & SUPPORT INFORMATION</b>
 
 ✨ <b>24/7 Support Available for Payment & Link Access Queries!</b>"""
 
-# Command Handlers
 @bot.message_handler(commands=['start'])
 def start_command(message):
     user_id = message.from_user.id
     add_user_to_db(user_id, message.from_user.username, message.from_user.first_name)
-    user_states[user_id] = None  # Reset any active state
+    user_states[user_id] = None
     
     if not check_membership(user_id):
         bot.send_message(
@@ -201,8 +198,8 @@ def start_command(message):
 
 @bot.message_handler(commands=['admin', 'stats'])
 def admin_panel(message):
-    if message.from_user.id != int(ADMIN_ID):
-        bot.send_message(message.chat.id, "❌ Aap Admin nahi hain ya ADMIN_ID code me sahi set nahi hai.")
+    if message.from_user.id != ADMIN_ID:
+        bot.send_message(message.chat.id, "❌ Aap Admin nahi hain.")
         return
     users = get_all_users()
     msg = f"📊 <b>ADMIN DASHBOARD</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n👥 <b>Total Recorded Users:</b> {len(users)}\n🤖 <b>Bot Status:</b> Active & Running"
@@ -211,7 +208,6 @@ def admin_panel(message):
     markup.add(types.InlineKeyboardButton("📢 Broadcast Message", callback_data="admin_broadcast"))
     bot.send_message(message.chat.id, msg, reply_markup=markup)
 
-# Callback Handlers
 @bot.callback_query_handler(func=lambda call: True)
 def callback_handler(call):
     user_id = call.from_user.id
@@ -229,25 +225,43 @@ def callback_handler(call):
 
     elif call.data == "pay_now":
         user_states[user_id] = "awaiting_payment"
-        msg = f"""💳 <b>Payment Details (All 12 Institutes Access)</b>
+        
+        markup = types.InlineKeyboardMarkup(row_width=1)
+        btn_upi = types.InlineKeyboardButton("📲 Pay via UPI App (PhonePe/Paytm/GPay)", url=UPI_DEEP_LINK)
+        btn_upload = types.InlineKeyboardButton("📤 I Have Made Payment (Send Screenshot)", callback_data="upload_prompt")
+        markup.add(btn_upi, btn_upload)
+
+        payment_text = f"""💳 <b>PAYMENT DETAILS (ALL BATCHES ACCESS)</b>
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
-💰 <b>Price:</b> {BATCH_PRICE} (One Time Access)
+💰 <b>Price:</b> ₹{BATCH_PRICE} (One Time Access)
+👤 <b>Name:</b> {PAYEE_NAME}
 📌 <b>UPI ID:</b> <code>{UPI_ID}</code>
 
-📸 <b>Payment Process:</b>
-1. Upar diye gaye UPI ID par <b>{BATCH_PRICE}</b> pay karein.
-2. Payment karne ke baad uska <b>Screenshot / Transaction Slip</b> yahan chat me bhejein.
+📸 <b>Payment Process Options:</b>
+1️⃣ <b>Scan QR Code:</b> Niche diye gaye QR Code ko kisi bhi UPI App se scan karein.
+2️⃣ <b>Direct Pay:</b> "Pay via UPI App" button daba kar direct pay karein.
+3️⃣ <b>Manual Pay:</b> UPI ID copy karke pay karein.
 
-⚠️ <i>Payment verify hote hi aapko App ki automatic delivery kar di jayegi!</i>"""
-        bot.send_message(call.message.chat.id, msg)
+⚠️ <i>Payment karne ke baad uska <b>Screenshot</b> yahan chat me bhejein!</i>"""
+
+        # Send QR Code photo with options
+        bot.send_photo(
+            call.message.chat.id,
+            photo=QR_CODE_URL,
+            caption=payment_text,
+            reply_markup=markup
+        )
+
+    elif call.data == "upload_prompt":
+        bot.send_message(call.message.chat.id, "📸 Kripya apni payment transaction ka <b>Screenshot (Photo)</b> yahan chat me bhejein:")
 
     elif call.data == "admin_broadcast":
-        if user_id == int(ADMIN_ID):
+        if user_id == ADMIN_ID:
             user_states[user_id] = "awaiting_broadcast"
             bot.send_message(user_id, "📢 <b>Send the message or photo you want to broadcast to all users:</b>")
 
     elif call.data.startswith(("approve_", "reject_")):
-        if call.from_user.id != int(ADMIN_ID):
+        if call.from_user.id != ADMIN_ID:
             bot.answer_callback_query(call.id, "❌ Only Admin can perform this action!", show_alert=True)
             return
 
@@ -258,7 +272,7 @@ def callback_handler(call):
             set_premium_user(target_user_id)
             delivery_msg = f"""🎉 <b>PAYMENT VERIFIED SUCCESSFULLY!</b>
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
-✅ Aapka payment {BATCH_PRICE} receive ho gaya hai.
+✅ Aapka payment ₹{BATCH_PRICE} receive ho gaya hai.
 
 📱 <b>Your All-In-One Premium Educational App:</b>
 👇 Niche diye gaye link se app download karein:
@@ -290,7 +304,6 @@ def callback_handler(call):
             except Exception as e:
                 bot.send_message(ADMIN_ID, f"❌ Failed to notify user: {e}")
 
-# Universal Message Handler
 @bot.message_handler(func=lambda message: True, content_types=['text', 'photo'])
 def handle_all_messages(message):
     user_id = message.from_user.id
@@ -298,12 +311,11 @@ def handle_all_messages(message):
 
     text = message.text or ""
 
-    # Automatic State Clearing if any Menu Button is pressed
     if text in MENU_BUTTONS:
         user_states[user_id] = None
 
-    # Admin Broadcast Processor
-    if user_id == int(ADMIN_ID) and user_states.get(user_id) == "awaiting_broadcast":
+    # Admin Broadcast Handler
+    if user_id == ADMIN_ID and user_states.get(user_id) == "awaiting_broadcast":
         users = get_all_users()
         success = 0
         failed = 0
@@ -336,15 +348,15 @@ def handle_all_messages(message):
             bot.send_photo(
                 ADMIN_ID,
                 photo_file_id,
-                caption=f"📥 <b>New Payment Verification Request</b>\n\n👤 <b>User:</b> {message.from_user.first_name} (@{message.from_user.username})\n🆔 <b>User ID:</b> <code>{user_id}</code>\n💵 <b>Amount:</b> {BATCH_PRICE}",
+                caption=f"📥 <b>New Payment Verification Request</b>\n\n👤 <b>User:</b> {message.from_user.first_name} (@{message.from_user.username})\n🆔 <b>User ID:</b> <code>{user_id}</code>\n💵 <b>Amount:</b> ₹{BATCH_PRICE}",
                 reply_markup=admin_markup
             )
 
-            bot.send_message(message.chat.id, "⏳ <b>Aapka Screenshot mil gaya hai!</b>\n\nPayment verify ho raha hai, thodi der me aapko App ka access mil jayega.")
+            bot.send_message(message.chat.id, "⏳ <b>Aapka Screenshot mil gaya hai!</b>\n\nPayment verify ho raha hai, Admin ke approve karte hi aapko App ka access mil jayega.")
             user_states[user_id] = None
             return
 
-    # Navigation Menu Buttons Handling
+    # Navigation Menu Buttons
     if text == "🌐 Web Store":
         markup = types.InlineKeyboardMarkup()
         markup.add(types.InlineKeyboardButton("🛒 Buy All Batches App (₹149)", callback_data="pay_now"))
@@ -406,7 +418,6 @@ def handle_all_messages(message):
     elif text == "📞 Support and Founder":
         bot.send_message(message.chat.id, FOUNDER_INFO, disable_web_page_preview=True)
 
-# Start Engine
 if __name__ == "__main__":
-    print("🤖 Batch Seller Bot starting successfully...")
+    print("🤖 Batch Seller Bot starting with Auto QR Code & Dynamic UPI Payments...")
     bot.infinity_polling(skip_pending=True)
