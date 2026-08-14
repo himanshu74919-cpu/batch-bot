@@ -16,7 +16,7 @@ app = Flask('')
 
 @app.route('/')
 def home():
-    return "BatchSeller Master Bot is Live and Running 24/7!"
+    return "BatchSeller Bot is Live and Running 24/7!"
 
 def run_flask():
     port = int(os.environ.get("PORT", 8080))
@@ -36,8 +36,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# 🔑 NEW BOT CREDENTIALS
-API_TOKEN = '8871003871:AAF7a1BWFznRKocwDFq7nYuXGMdGEW4WkwM'
+# 🔑 BOT CREDENTIALS & CONFIG
+API_TOKEN = '8871003871:AAGdSTB3uvJkEkgvanN6vaYhv1ButVHJUP0'
 ADMIN_ID = 7990500822
 ADMIN_USERNAME = 'the_himanshu1'
 CHANNEL_USERNAME = '@batchseller321'
@@ -45,12 +45,17 @@ CHANNEL_LINK = 'https://t.me/batchseller321'
 WEB_APP_URL = 'https://himanshu74919-cpu.github.io/batchseller-hub/'
 INSTAGRAM_LINK = 'https://www.instagram.com/himanshu__kumar__.07?igsh=ejNvYWNyZ253cGs4'
 
+# 💳 PAYMENT & APP DELIVERY CONFIGURATION
+UPI_ID = "himanshu74919@paytm"  # Apna UPI ID yahan daalein
+SECRET_APP_LINK = "https://himanshu74919-cpu.github.io/batchseller-hub/" # Ya APK download link
+
+# PARSE_MODE HTML PREVENTS ALL CRASHES
 bot = telebot.TeleBot(API_TOKEN, parse_mode="HTML")
 
 USER_STATES = {}
 
 # ==============================================================================
-# 🗄️ DATABASE SETUP (SQLite3 with Referral Tracking)
+# 🗄️ DATABASE SETUP (SQLite3)
 # ==============================================================================
 DB_NAME = "batchseller_hub.db"
 
@@ -62,9 +67,7 @@ def init_db():
             user_id INTEGER PRIMARY KEY,
             username TEXT,
             first_name TEXT,
-            joined_date TEXT,
-            referred_by INTEGER,
-            ref_count INTEGER DEFAULT 0
+            joined_date TEXT
         )
     ''')
     cursor.execute('''
@@ -92,37 +95,16 @@ def init_db():
 
 init_db()
 
-def db_add_user(user_id, username, first_name, referrer_id=None):
+def db_add_user(user_id, username, first_name):
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
-    cursor.execute("SELECT user_id FROM users WHERE user_id = ?", (user_id,))
-    existing = cursor.fetchone()
-    
-    referrer_to_notify = None
-    if not existing:
-        joined_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        if referrer_id and str(referrer_id) != str(user_id):
-            cursor.execute("SELECT user_id FROM users WHERE user_id = ?", (referrer_id,))
-            if cursor.fetchone():
-                cursor.execute(
-                    "INSERT INTO users (user_id, username, first_name, joined_date, referred_by, ref_count) VALUES (?, ?, ?, ?, ?, 0)",
-                    (user_id, username or "None", first_name or "User", joined_date, referrer_id)
-                )
-                cursor.execute("UPDATE users SET ref_count = ref_count + 1 WHERE user_id = ?", (referrer_id,))
-                referrer_to_notify = referrer_id
-            else:
-                cursor.execute(
-                    "INSERT INTO users (user_id, username, first_name, joined_date, ref_count) VALUES (?, ?, ?, ?, 0)",
-                    (user_id, username or "None", first_name or "User", joined_date)
-                )
-        else:
-            cursor.execute(
-                "INSERT INTO users (user_id, username, first_name, joined_date, ref_count) VALUES (?, ?, ?, ?, 0)",
-                (user_id, username or "None", first_name or "User", joined_date)
-            )
-        conn.commit()
+    joined_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    cursor.execute(
+        "INSERT OR IGNORE INTO users (user_id, username, first_name, joined_date) VALUES (?, ?, ?, ?)",
+        (user_id, username or "None", first_name or "User", joined_date)
+    )
+    conn.commit()
     conn.close()
-    return referrer_to_notify
 
 def db_get_all_users():
     conn = sqlite3.connect(DB_NAME)
@@ -132,22 +114,21 @@ def db_get_all_users():
     conn.close()
     return users
 
-def db_get_user_ref_count(user_id):
-    conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-    cursor.execute("SELECT ref_count FROM users WHERE user_id = ?", (user_id,))
-    row = cursor.fetchone()
-    conn.close()
-    return row[0] if row and row[0] else 0
-
 def db_create_order(order_id, user_id, batch_key, sub_batch, price):
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
     created_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     cursor.execute(
-        "INSERT INTO orders (order_id, user_id, batch_key, sub_batch, price, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        "INSERT OR REPLACE INTO orders (order_id, user_id, batch_key, sub_batch, price, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
         (order_id, user_id, batch_key, sub_batch, price, "PENDING", created_at)
     )
+    conn.commit()
+    conn.close()
+
+def db_update_order_status(order_id, status):
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute("UPDATE orders SET status = ? WHERE order_id = ?", (status, order_id))
     conn.commit()
     conn.close()
 
@@ -332,17 +313,15 @@ def get_main_keyboard():
     
     btn_all_batches = types.KeyboardButton("📚 All Institutes (12)")
     btn_search = types.KeyboardButton("🔍 Search Batch")
-    btn_refer = types.KeyboardButton("🎁 Refer & Earn")
     btn_offer = types.KeyboardButton("🔥 Offer & Pricing")
     btn_profile = types.KeyboardButton("👤 My Account / Orders")
-    btn_feedback = types.KeyboardButton("⭐ Leave Feedback")
     btn_support = types.KeyboardButton("☎️ Support & Founder")
+    btn_feedback = types.KeyboardButton("⭐ Leave Feedback")
     
     markup.add(web_btn)
     markup.add(btn_all_batches, btn_search)
-    markup.add(btn_refer, btn_offer)
-    markup.add(btn_profile, btn_feedback)
-    markup.add(btn_support)
+    markup.add(btn_offer, btn_profile)
+    markup.add(btn_support, btn_feedback)
     return markup
 
 def get_institutes_inline_keyboard():
@@ -378,26 +357,7 @@ def command_start(message):
     first_name = message.from_user.first_name
     username = message.from_user.username
     
-    # Extract referral parameter if available
-    text_parts = message.text.split()
-    referrer_id = None
-    if len(text_parts) > 1 and text_parts[1].startswith("ref_"):
-        try:
-            referrer_id = int(text_parts[1].replace("ref_", ""))
-        except ValueError:
-            referrer_id = None
-
-    successful_referrer = db_add_user(user_id, username, first_name, referrer_id)
-
-    # Notify referrer if valid
-    if successful_referrer:
-        try:
-            bot.send_message(
-                successful_referrer,
-                f"🎉 <b>Naya User Add Hua!</b>\n\n<code>{first_name}</code> aapke invite link se bot me join hua hai! Aapka +1 referral count add ho gaya hai."
-            )
-        except Exception as e:
-            logger.error(f"Referrer Notify Error: {e}")
+    db_add_user(user_id, username, first_name)
 
     if not check_channel_subscription(user_id):
         send_force_join_message(message.chat.id)
@@ -457,13 +417,16 @@ def command_stats(message):
     cursor = conn.cursor()
     cursor.execute("SELECT COUNT(*) FROM orders")
     total_orders = cursor.fetchone()[0]
+    cursor.execute("SELECT COUNT(*) FROM orders WHERE status = 'SUCCESS'")
+    successful_orders = cursor.fetchone()[0]
     conn.close()
 
     stats_msg = (
         "📊 <b>REAL-TIME BOT ANALYTICS:</b>\n"
         "━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
         f"👤 <b>Total Registered Users:</b> {len(users)}\n"
-        f"📦 <b>Total Orders Generated:</b> {total_orders}"
+        f"📦 <b>Total Orders Generated:</b> {total_orders}\n"
+        f"✅ <b>Successful Access Delivered:</b> {successful_orders}"
     )
     bot.send_message(message.chat.id, stats_msg)
 
@@ -496,14 +459,79 @@ def command_broadcast(message):
     bot.send_message(message.chat.id, f"✅ <b>Broadcast Completed!</b>\n\n<b>Success:</b> {success}\n<b>Failed:</b> {failed}")
 
 # ==============================================================================
-# 💬 TEXT MESSAGE ROUTING (WITH FAIL-SAFE INTERCEPTOR)
+# 📸 PAYMENT SCREENSHOT HANDLER (AUTOMATED PROOF SUBMISSION)
+# ==============================================================================
+@bot.message_handler(content_types=['photo'])
+def handle_payment_screenshot(message):
+    user_id = message.from_user.id
+    first_name = message.from_user.first_name
+    username = message.from_user.username or "None"
+
+    if not check_channel_subscription(user_id):
+        send_force_join_message(message.chat.id)
+        return
+
+    # Check pending order for this user
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute("SELECT order_id, sub_batch, price FROM orders WHERE user_id = ? AND status = 'PENDING' ORDER BY created_at DESC LIMIT 1", (user_id,))
+    pending_order = cursor.fetchone()
+    conn.close()
+
+    order_id = pending_order[0] if pending_order else f"BSH{random.randint(10000, 99999)}"
+    batch_name = pending_order[1] if pending_order else "Batch Access Pack"
+    price = pending_order[2] if pending_order else 149
+
+    if not pending_order:
+        db_create_order(order_id, user_id, "direct", batch_name, price)
+
+    # Update state to verifying
+    db_update_order_status(order_id, "VERIFYING")
+
+    # Reply to User
+    bot.send_message(
+        message.chat.id,
+        f"⏳ <b>Payment Screenshot Received!</b>\n\n"
+        f"• <b>Order Reference:</b> <code>{order_id}</code>\n"
+        f"• <b>Status:</b> Verification Pending\n\n"
+        f"Himanshu aapke payment proof ko verify kar rahe hain. Verification hote hi aapko App & Batch access instantly mil jayega!"
+    )
+
+    # Forward Screenshot to Admin with Approve / Reject Buttons
+    photo_file_id = message.photo[-1].file_id
+
+    admin_markup = types.InlineKeyboardMarkup(row_width=2)
+    btn_approve = types.InlineKeyboardButton("✅ Approve & Send App", callback_data=f"appr_{order_id}_{user_id}")
+    btn_reject = types.InlineKeyboardButton("❌ Reject Payment", callback_data=f"reje_{order_id}_{user_id}")
+    admin_markup.add(btn_approve, btn_reject)
+
+    admin_caption = (
+        f"🚨 <b>NEW PAYMENT PROOF SUBMITTED!</b>\n"
+        f"━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+        f"👤 <b>User:</b> {first_name} (@{username})\n"
+        f"🆔 <b>User ID:</b> <code>{user_id}</code>\n"
+        f"📚 <b>Batch:</b> {batch_name}\n"
+        f"💰 <b>Amount:</b> ₹{price}\n"
+        f"🆔 <b>Order ID:</b> <code>{order_id}</code>\n\n"
+        f"👇 Action lene ke liye niche button dabayein:"
+    )
+
+    bot.send_photo(
+        ADMIN_ID,
+        photo=photo_file_id,
+        caption=admin_caption,
+        reply_markup=admin_markup
+    )
+
+# ==============================================================================
+# 💬 TEXT MESSAGE ROUTING
 # ==============================================================================
 @bot.message_handler(func=lambda msg: True)
 def handle_text_messages(message):
     user_id = message.from_user.id
     text = message.text.strip()
 
-    # 🛡️ FAIL-SAFE: COMMAND INTERCEPTOR
+    # 🛡️ FAIL-SAFE INTERCEPTOR
     if text.startswith('/'):
         cmd = text.split()[0].lower()
         if cmd == '/stats':
@@ -534,7 +562,7 @@ def handle_text_messages(message):
             for inst_code, c_id, c_data in results:
                 markup.add(types.InlineKeyboardButton(text=f"📖 {c_data['name']} (₹{c_data['price']})", callback_data=f"course_{inst_code}_{c_id}"))
             
-            bot.send_message(message.chat.id, f"🔎 <b>Found {len(results)} Matching Batches:</b>", reply_markup=markup)
+            bot.send_message(message.chat.id, f"🔍 <b>Found {len(results)} Matching Batches:</b>", reply_markup=markup)
         else:
             bot.send_message(message.chat.id, "❌ Koi matching batch nahi mila. Please '📚 All Institutes (12)' se browse karein.")
         return
@@ -548,28 +576,7 @@ def handle_text_messages(message):
 
     text_lower = text.lower()
 
-    if "refer" in text_lower or "earn" in text_lower:
-        try:
-            bot_info = bot.get_me()
-            bot_username = bot_info.username
-            ref_link = f"https://t.me/{bot_username}?start=ref_{user_id}"
-            ref_count = db_get_user_ref_count(user_id)
-
-            promo_text = (
-                f"🎁 <b>REFER & EARN PROGRAM</b> 🚀\n"
-                f"━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
-                f"👋 Namaste {message.from_user.first_name}!\n"
-                f"Apne dosto ko bot share karke free batches earn karein!\n\n"
-                f"🔗 <b>Aapka Personal Invite Link:</b>\n<code>{ref_link}</code>\n\n"
-                f"📊 <b>Aapke Total Referrals:</b> <code>{ref_count}</code> Users\n\n"
-                f"💡 <b>Rules:</b> Har 5 successful referrals par aapko koi bhi 1 Batch <b>FREE</b> milega! Link copy karke Telegram & WhatsApp groups me share karein! 🔥"
-            )
-            bot.send_message(message.chat.id, promo_text)
-        except Exception as e:
-            logger.error(f"Referral Button Error: {e}")
-            bot.send_message(message.chat.id, "❌ Referral link generate hone me error aaya. Direct /start bhejien.")
-
-    elif "support" in text_lower or "founder" in text_lower:
+    if "support" in text_lower or "founder" in text_lower:
         support_text = (
             "👤 <b>FOUNDER & SUPPORT INFORMATION</b>\n"
             "━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
@@ -608,15 +615,13 @@ def handle_text_messages(message):
 
     elif "account" in text_lower or "order" in text_lower or "profile" in text_lower:
         orders = db_get_user_orders(user_id)
-        ref_count = db_get_user_ref_count(user_id)
         order_text = "\n".join([f"• <code>{o[0]}</code> | {o[1]} | ₹{o[2]} ({o[3]})" for o in orders]) if orders else "Koi active order nahi hai."
         
         bot.send_message(
             message.chat.id, 
             f"👤 <b>YOUR PROFILE:</b>\n\n"
             f"• <b>Name:</b> {message.from_user.first_name}\n"
-            f"• <b>Telegram ID:</b> <code>{user_id}</code>\n"
-            f"• <b>Total Referrals:</b> <code>{ref_count}</code> Users\n\n"
+            f"• <b>Telegram ID:</b> <code>{user_id}</code>\n\n"
             f"📦 <b>Your Orders History:</b>\n{order_text}"
         )
 
@@ -628,7 +633,7 @@ def handle_text_messages(message):
         bot.send_message(message.chat.id, "🤖 Direct options dekhne ke liye /start bhejien ya niche wale buttons tap karein.", reply_markup=get_main_keyboard())
 
 # ==============================================================================
-# 🔘 INLINE CALLBACK HANDLERS
+# 🔘 INLINE CALLBACK HANDLERS & PAYMENT APPROVAL
 # ==============================================================================
 @bot.callback_query_handler(func=lambda call: True)
 def handle_inline_callbacks(call):
@@ -685,36 +690,112 @@ def handle_inline_callbacks(call):
             course = inst["courses"][c_id]
             order_id = f"BSH{random.randint(10000, 99999)}"
 
-            buy_msg = f"Hi Himanshu, I want to buy {course['name']} for Rs.149. Order ID: {order_id}"
-            buy_url = f"https://t.me/{ADMIN_USERNAME}?text={buy_msg.replace(' ', '%20')}"
+            db_create_order(order_id, user_id, inst_code, course['name'], course['price'])
 
             markup = types.InlineKeyboardMarkup(row_width=1)
-            markup.add(types.InlineKeyboardButton("🛒 Instant Buy Now @ ₹149", url=buy_url))
+            markup.add(types.InlineKeyboardButton("📲 Pay ₹149 via UPI Now", callback_data=f"paynow_{order_id}"))
+            
+            buy_msg = f"Hi Himanshu, I want to buy {course['name']} for Rs.149. Order ID: {order_id}"
+            buy_url = f"https://t.me/{ADMIN_USERNAME}?text={buy_msg.replace(' ', '%20')}"
+            markup.add(types.InlineKeyboardButton("💬 Direct Buy via Admin DM", url=buy_url))
             markup.add(types.InlineKeyboardButton("🔙 Back to Batches", callback_data=f"inst_{inst_code}"))
-
-            db_create_order(order_id, user_id, inst_code, course['name'], course['price'])
 
             bot.edit_message_text(
                 chat_id=call.message.chat.id,
                 message_id=call.message.message_id,
                 text=(
                     f"📖 <b>SELECTED COURSE:</b> {course['name']}\n"
-                    f"🏢 <b>Institute:</b> {inst['name']}\n"
+                    f"🏫 <b>Institute:</b> {inst['name']}\n"
                     f"💰 <b>Offer Price:</b> ₹{course['price']}\n"
                     f"🆔 <b>Order Reference:</b> <code>{order_id}</code>\n\n"
-                    f"👇 Direct Admin se batch access lene ke liye <b>'Instant Buy Now'</b> click karein:"
+                    f"👇 Automatic Instant access ke liye <b>'Pay ₹149 via UPI Now'</b> click karein:"
                 ),
                 reply_markup=markup
             )
+        return
+
+    if data.startswith("paynow_"):
+        order_id = data.replace("paynow_", "")
+        pay_text = (
+            f"📲 <b>UPI PAYMENT INSTRUCTIONS:</b>\n"
+            f"━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+            f"• <b>UPI ID:</b> <code>{UPI_ID}</code>\n"
+            f"• <b>Amount:</b> ₹149\n"
+            f"• <b>Order Reference:</b> <code>{order_id}</code>\n\n"
+            f"📌 <b>Steps to Complete:</b>\n"
+            f"1️⃣ Apne PhonePe, GPay ya Paytm app se upar di gayi UPI ID par <b>₹149</b> pay karein.\n"
+            f"2️⃣ Payment hone ke baad <b>Payment ka Screenshot</b> is Bot me bhejein.\n\n"
+            f"⚠️ <i>Screenshot bhejte hi Himanshu usko approve karenge aur App/Batch Access automatic deliver ho jayega.</i>"
+        )
+        bot.edit_message_text(
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id,
+            text=pay_text
+        )
+        return
+
+    # 👑 ADMIN APPROVAL SYSTEM
+    if data.startswith("appr_"):
+        parts = data.split("_")
+        order_id = parts[1]
+        target_user_id = int(parts[2])
+
+        db_update_order_status(order_id, "SUCCESS")
+
+        # Edit Admin Message
+        bot.edit_message_caption(
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id,
+            caption=f"✅ <b>APPROVED BY ADMIN!</b>\n\n• Order ID: <code>{order_id}</code>\n• User ID: <code>{target_user_id}</code>\n• App & Access Successfully Delivered!"
+        )
+
+        # Send App & Access to User
+        user_msg = (
+            f"🎉 <b>PAYMENT VERIFIED & APPROVED!</b> 🎉\n"
+            f"━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+            f"✅ Aapka payment ₹149 verify ho gaya hai!\n"
+            f"🆔 <b>Order ID:</b> <code>{order_id}</code>\n\n"
+            f"🚀 <b>Aapka App & Batch Access Link niche hai:</b>\n"
+            f"🔗 <a href='{SECRET_APP_LINK}'>Click Here to Download App & Access Batch</a>\n\n"
+            f"Enjoy your learning! Kisi bhi help ke liye Admin @the_himanshu1 se contact karein."
+        )
+        try:
+            bot.send_message(target_user_id, user_msg, disable_web_page_preview=False)
+        except Exception as e:
+            logger.error(f"User delivery error: {e}")
+
+    if data.startswith("reje_"):
+        parts = data.split("_")
+        order_id = parts[1]
+        target_user_id = int(parts[2])
+
+        db_update_order_status(order_id, "REJECTED")
+
+        # Edit Admin Message
+        bot.edit_message_caption(
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id,
+            caption=f"❌ <b>REJECTED BY ADMIN!</b>\n\n• Order ID: <code>{order_id}</code>\n• User ID: <code>{target_user_id}</code>"
+        )
+
+        # Notify User
+        user_msg = (
+            f"❌ <b>PAYMENT VERIFICATION FAILED!</b>\n\n"
+            f"Aapka screenshot valid nahi mila. Kripya sahi payment screenshot bhejein ya Founder @the_himanshu1 se baat karein."
+        )
+        try:
+            bot.send_message(target_user_id, user_msg)
+        except Exception as e:
+            logger.error(f"User rejection notice error: {e}")
 
 # ==============================================================================
-# ⚡ MAIN EXECUTION (NON-STOP AUTORESTART LOOP)
+# ⚡ MAIN EXECUTION (NON-STOP AUTORESTART)
 # ==============================================================================
 if __name__ == "__main__":
     print("🚀 Starting Web Server for Render Keep-Alive...")
     keep_alive()
     
-    print("🚀 Master Bot Online with New Token & Promotion System! Auto-polling started...")
+    print("🚀 Master Bot Online! Auto-polling started...")
     while True:
         try:
             bot.infinity_polling(timeout=20, long_polling_timeout=10)
