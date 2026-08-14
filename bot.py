@@ -6,35 +6,27 @@ import telebot
 from telebot import types
 
 # ==================== CONFIGURATION ====================
-# Aapka Naya Bot Token (Integrate Kar Diya Gaya Hai)
 BOT_TOKEN = "8871003871:AAFjqGtqcmVjPDF6qNfkAiaGh30KN2mBIOw"
 
-# Yahan apna Telegram Numeric ID daalein (Jiske paas Admin/Approve powers hongi)
-ADMIN_ID = 1234567890  # Replace with your numeric ID
+ADMIN_ID = 1234567890  # Yahan apna Telegram Numeric User ID daalein
 
-# Channel Details
 CHANNEL_USERNAME = "@batchseller321"
 CHANNEL_LINK = "https://t.me/batchseller321"
 
-# Payment & Product Details
 SECRET_APP_LINK = "https://your-secret-app-download-link.com/app.apk"
 BATCH_PRICE = "₹149"
-UPI_ID = "yourupiid@upi"  # Apna UPI ID yahan replace karein
+UPI_ID = "yourupiid@upi"  # Apna UPI ID yahan daalein
 # =======================================================
 
-# Logging Setup
 logging.basicConfig(level=logging.INFO)
-
-# Telegram Bot Initialisation
 bot = telebot.TeleBot(BOT_TOKEN, parse_mode="HTML")
 
-# Database Initialization (SQLite for Permanent Memory)
+# Database Initialization
 DB_FILE = "bot_data.db"
 
 def init_db():
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
-    # Users table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS users (
             user_id INTEGER PRIMARY KEY,
@@ -44,7 +36,6 @@ def init_db():
             is_premium INTEGER DEFAULT 0
         )
     ''')
-    # Orders table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS orders (
             order_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -98,10 +89,19 @@ def get_all_users():
     conn.close()
     return users
 
-# In-Memory Tracking for Active Conversations
 user_states = {}
 
-# Check Channel Membership Function
+# Menu Buttons List for State Reset Detection
+MENU_BUTTONS = [
+    "🌐 Web Store", 
+    "📚 All Institutes Batches", 
+    "🔍 Search Bot", 
+    "🏷️ Offer and Pricing", 
+    "👤 My Account/orders", 
+    "💬 Leave Feedback", 
+    "📞 Support and Founder"
+]
+
 def check_membership(user_id):
     try:
         member = bot.get_chat_member(CHANNEL_USERNAME, user_id)
@@ -112,7 +112,6 @@ def check_membership(user_id):
         logging.error(f"Membership check failed: {e}")
         return False
 
-# Keyboards Definition
 def get_join_keyboard():
     markup = types.InlineKeyboardMarkup()
     btn_channel = types.InlineKeyboardButton("📢 Join Official Channel", url=CHANNEL_LINK)
@@ -133,7 +132,6 @@ def get_main_keyboard():
     markup.add(btn1, btn2, btn3, btn4, btn5, btn6, btn7)
     return markup
 
-# Static Texts
 WELCOME_TEXT = """🔥 <b>ALL PREMIUM EDUCATIONAL BATCHES AT ULTRA LOW PRICES</b> 🔥
 
 ✨ <b>Available Institute Batches:</b>
@@ -169,11 +167,11 @@ FOUNDER_INFO = """👤 <b>FOUNDER & SUPPORT INFORMATION</b>
 
 ✨ <b>24/7 Support Available for Payment & Link Access Queries!</b>"""
 
-# Command Handlers
 @bot.message_handler(commands=['start'])
 def start_command(message):
     user_id = message.from_user.id
     add_user_to_db(user_id, message.from_user.username, message.from_user.first_name)
+    user_states[user_id] = None
     
     if not check_membership(user_id):
         bot.send_message(
@@ -184,7 +182,6 @@ def start_command(message):
     else:
         bot.send_message(message.chat.id, WELCOME_TEXT, reply_markup=get_main_keyboard())
 
-# Admin Commands
 @bot.message_handler(commands=['admin', 'stats'])
 def admin_panel(message):
     if message.from_user.id != ADMIN_ID:
@@ -196,7 +193,6 @@ def admin_panel(message):
     markup.add(types.InlineKeyboardButton("📢 Broadcast Message", callback_data="admin_broadcast"))
     bot.send_message(message.chat.id, msg, reply_markup=markup)
 
-# Callback Queries
 @bot.callback_query_handler(func=lambda call: True)
 def callback_handler(call):
     user_id = call.from_user.id
@@ -276,11 +272,16 @@ def callback_handler(call):
             except Exception as e:
                 bot.send_message(ADMIN_ID, f"❌ Failed to notify user: {e}")
 
-# Text & Photo Processing
 @bot.message_handler(func=lambda message: True, content_types=['text', 'photo'])
 def handle_all_messages(message):
     user_id = message.from_user.id
     add_user_to_db(user_id, message.from_user.username, message.from_user.first_name)
+
+    text = message.text or ""
+
+    # Clear state automatically if user clicks any menu button
+    if text in MENU_BUTTONS:
+        user_states[user_id] = None
 
     # Admin Broadcast Handler
     if user_id == ADMIN_ID and user_states.get(user_id) == "awaiting_broadcast":
@@ -333,12 +334,10 @@ def handle_all_messages(message):
             user_states[user_id] = None
             return
         else:
-            bot.send_message(message.chat.id, "⚠️ Kripya payment ka <b>Screenshot (Photo)</b> bhejein!")
+            bot.send_message(message.chat.id, "⚠️ Kripya payment ka <b>Screenshot (Photo)</b> bhejein ya niche menu se koi option select karein!")
             return
 
     # Navigation Menu Items
-    text = message.text
-
     if text == "🌐 Web Store":
         markup = types.InlineKeyboardMarkup()
         markup.add(types.InlineKeyboardButton("🛒 Buy All Batches App (₹149)", callback_data="pay_now"))
@@ -400,7 +399,6 @@ def handle_all_messages(message):
     elif text == "📞 Support and Founder":
         bot.send_message(message.chat.id, FOUNDER_INFO, disable_web_page_preview=True)
 
-# Run Engine
 if __name__ == "__main__":
-    print("🤖 Bot started successfully with SQLite DB & New Token...")
+    print("🤖 Bot started successfully...")
     bot.infinity_polling(skip_pending=True)
