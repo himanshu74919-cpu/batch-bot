@@ -31,9 +31,9 @@ QR_CODE_URL = f"https://api.qrserver.com/v1/create-qr-code/?size=350x350&data={u
 SECRET_APP_LINK = "https://your-secret-app-download-link.com/app.apk"
 # =============================================================
 
-# Logging Configuration
+# Logging Setup
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-bot = telebot.TeleBot(BOT_TOKEN, parse_mode="HTML")
+bot = telebot.TeleBot(BOT_TOKEN, parse_mode="HTML", threaded=True, num_threads=5)
 
 # Database Setup
 DB_FILE = "bot_database.db"
@@ -67,7 +67,7 @@ def init_db():
 
 init_db()
 
-# DB Helpers
+# DB Helper Functions
 def add_user_to_db(user_id, username, first_name):
     try:
         conn = sqlite3.connect(DB_FILE, check_same_thread=False)
@@ -139,7 +139,7 @@ def check_membership(user_id):
             return True
         return False
     except Exception as e:
-        logging.warning(f"Channel Check Note: Ensure bot is Admin in {CHANNEL_USERNAME}. Error: {e}")
+        logging.warning(f"Channel Check Note: {e}")
         return True
 
 def get_join_keyboard():
@@ -222,7 +222,7 @@ def admin_panel(message):
             bot.send_message(message.chat.id, "❌ Aap Admin nahi hain.")
             return
         users = get_all_users()
-        msg = f"📊 <b>ADMIN DASHBOARD</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n👥 <b>Total Recorded Users:</b> {len(users)}\n🤖 <b>Bot Status:</b> Active & Bulletproof"
+        msg = f"📊 <b>ADMIN DASHBOARD</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n👥 <b>Total Recorded Users:</b> {len(users)}\n🤖 <b>Bot Status:</b> Active & Running"
         
         markup = types.InlineKeyboardMarkup()
         markup.add(types.InlineKeyboardButton("📢 Broadcast Message", callback_data="admin_broadcast"))
@@ -267,12 +267,16 @@ def callback_handler(call):
 
 ⚠️ <i>Payment karne ke baad uska <b>Screenshot</b> yahan chat me bhejein!</i>"""
 
-            bot.send_photo(
-                call.message.chat.id,
-                photo=QR_CODE_URL,
-                caption=payment_text,
-                reply_markup=markup
-            )
+            try:
+                bot.send_photo(
+                    call.message.chat.id,
+                    photo=QR_CODE_URL,
+                    caption=payment_text,
+                    reply_markup=markup
+                )
+            except Exception:
+                # Fallback to Text if image service is down
+                bot.send_message(call.message.chat.id, payment_text, reply_markup=markup)
 
         elif call.data == "upload_prompt":
             bot.send_message(call.message.chat.id, "📸 Kripya apni payment transaction ka <b>Screenshot (Photo)</b> yahan chat me bhejein:")
@@ -446,12 +450,21 @@ def handle_all_messages(message):
     except Exception as e:
         logging.error(f"Error handling message: {e}")
 
-# ==================== BULLETPROOF INFINITE POLLING LOOP ====================
+# ==================== NON-STOP RECOVERY POLLING ENGINE ====================
 if __name__ == "__main__":
     print("🤖 Starting Bulletproof Batch Seller Bot...")
+    
+    # Clean previous pending updates & webhooks
+    try:
+        bot.remove_webhook()
+        time.sleep(1)
+    except Exception as e:
+        print(f"Webhook Clean Note: {e}")
+
+    # Infinite Reconnect Loop
     while True:
         try:
-            bot.infinity_polling(timeout=60, long_polling_timeout=60, skip_pending=True)
+            bot.polling(non_stop=True, interval=0, timeout=20, skip_pending=True)
         except Exception as e:
-            logging.error(f"🚨 Bot crashed due to error: {e}. Restarting in 5 seconds...")
-            time.sleep(5)
+            logging.error(f"🚨 Polling interruption detected: {e}. Auto-reconnecting in 3 seconds...")
+            time.sleep(3)
