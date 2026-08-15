@@ -3,11 +3,32 @@ import time
 import sqlite3
 import logging
 from datetime import datetime
+from threading import Thread
+from flask import Flask
 import telebot
 from telebot import types
 import urllib.parse
 
-# ==================== FIXED CONFIGURATION ====================
+# ==================== 1. RENDER PORT BINDING FIX ====================
+web_app = Flask('')
+
+@web_app.route('/')
+def home():
+    return "Bot and Mini App are Running Live!"
+
+def run_web():
+    port = int(os.environ.get("PORT", 10000))
+    web_app.run(host='0.0.0.0', port=port)
+
+def keep_alive():
+    t = Thread(target=run_web)
+    t.daemon = True
+    t.start()
+
+# Flask Background Server Start
+keep_alive()
+
+# ==================== 2. FIXED CONFIGURATION ====================
 BOT_TOKEN = "8871003871:AAFjqGtqcmVjPDF6qNfkAiaGh30KN2mBIOw"
 ADMIN_ID = 7990500822  # Fixed Admin ID
 
@@ -29,7 +50,7 @@ QR_CODE_URL = f"https://api.qrserver.com/v1/create-qr-code/?size=350x350&data={u
 
 # App Link to deliver after approval
 SECRET_APP_LINK = "https://your-secret-app-download-link.com/app.apk"
-# =============================================================
+# =================================================================
 
 # Logging Setup
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -67,7 +88,7 @@ def init_db():
 
 init_db()
 
-# DB Helper Functions
+# DB Helpers
 def add_user_to_db(user_id, username, first_name):
     try:
         conn = sqlite3.connect(DB_FILE, check_same_thread=False)
@@ -222,7 +243,7 @@ def admin_panel(message):
             bot.send_message(message.chat.id, "❌ Aap Admin nahi hain.")
             return
         users = get_all_users()
-        msg = f"📊 <b>ADMIN DASHBOARD</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n👥 <b>Total Recorded Users:</b> {len(users)}\n🤖 <b>Bot Status:</b> Active & Running"
+        msg = f"📊 <b>ADMIN DASHBOARD</b>\n━━━━━━━━━━━━━━━━━━━━━━━━━━\n👥 <b>Total Recorded Users:</b> {len(users)}\n🤖 <b>Bot Status:</b> Active & Bulletproof"
         
         markup = types.InlineKeyboardMarkup()
         markup.add(types.InlineKeyboardButton("📢 Broadcast Message", callback_data="admin_broadcast"))
@@ -275,7 +296,6 @@ def callback_handler(call):
                     reply_markup=markup
                 )
             except Exception:
-                # Fallback to Text if image service is down
                 bot.send_message(call.message.chat.id, payment_text, reply_markup=markup)
 
         elif call.data == "upload_prompt":
@@ -450,21 +470,18 @@ def handle_all_messages(message):
     except Exception as e:
         logging.error(f"Error handling message: {e}")
 
-# ==================== NON-STOP RECOVERY POLLING ENGINE ====================
+# ==================== 3. BULLETPROOF POLLING LOOP ====================
 if __name__ == "__main__":
-    print("🤖 Starting Bulletproof Batch Seller Bot...")
-    
-    # Clean previous pending updates & webhooks
+    print("🤖 Starting Render-Ready Bulletproof Batch Seller Bot...")
     try:
         bot.remove_webhook()
         time.sleep(1)
     except Exception as e:
-        print(f"Webhook Clean Note: {e}")
+        logging.error(f"Webhook Removal Note: {e}")
 
-    # Infinite Reconnect Loop
     while True:
         try:
-            bot.polling(non_stop=True, interval=0, timeout=20, skip_pending=True)
+            bot.polling(non_stop=True, interval=0, timeout=30, skip_pending=True)
         except Exception as e:
-            logging.error(f"🚨 Polling interruption detected: {e}. Auto-reconnecting in 3 seconds...")
+            logging.error(f"🚨 Polling error occurred: {e}. Reconnecting in 3 seconds...")
             time.sleep(3)
