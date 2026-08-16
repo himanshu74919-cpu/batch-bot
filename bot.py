@@ -20,7 +20,7 @@ def run_flask():
     app.run(host="0.0.0.0", port=port)
 
 # ------------------------------------------------------------------
-# 2. CONFIGURATION & CREDENTIALS
+# 2. CONFIGURATION & AUTO-CLEAN TOKEN
 # ------------------------------------------------------------------
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -28,8 +28,9 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Replace with your active Bot Father Token
-BOT_TOKEN = "8871003871:AAEKOCs3vV8HJ2bVKTQqhD1Jdu-IMn_WleM".replace(" ", "").strip()
+# Token auto-clean logic (Removes all accidental spaces)
+RAW_TOKEN = "8871003871:AAEKOCs3vV8HJ2bVKTQqhD1Jdu-IMn_WleM"
+BOT_TOKEN = RAW_TOKEN.replace(" ", "").strip()
 
 ADMIN_ID = "7990500822"
 UPI_ID = "kumaranil98787@axl"
