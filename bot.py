@@ -29,7 +29,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Token auto-clean logic (Removes all accidental spaces)
-RAW_TOKEN = "8871003871:AAEKOCs3vV8HJ2bVKTQqhD1Jdu-IMn_WleM"
+RAW_TOKEN = "8871003871:AAGdj_kVfBoSS8puFVRBQSkvgEkGgs_w4po"
 BOT_TOKEN = RAW_TOKEN.replace(" ", "").strip()
 
 ADMIN_ID = "7990500822"
