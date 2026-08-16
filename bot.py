@@ -29,7 +29,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-RAW_TOKEN = "8871003871:AAHoIpAWYKvbDVcUqvQmnGrdfheQOi5Q3Fs"
+RAW_TOKEN = "8871003871:AAG9fAYA-JcsyjCxpHY95ggztS2Qto3W9dE"
 BOT_TOKEN = RAW_TOKEN.replace(" ", "").strip()
 
 ADMIN_ID = "7990500822"
@@ -38,7 +38,7 @@ UPI_ID = "kumaranil98787@axl"
 ADMIN_USERNAME = "@the_himanshu1"
 CHANNEL_USERNAME = "@batchseller321"
 INSTAGRAM_LINK = "https://www.instagram.com/batches__hub?igsh=emRhdWdja3MwMGt1&igsi=emRhdWdja3MwMGt1"
-PRICE = "149"
+PRICE = "499"
 USER_FILE = "users.txt"
 
 bot = telebot.TeleBot(BOT_TOKEN)
