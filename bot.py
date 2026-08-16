@@ -1,6 +1,7 @@
 import os
 import logging
 import threading
+import urllib.parse
 from functools import wraps
 from flask import Flask
 import telebot
@@ -20,7 +21,7 @@ def run_flask():
     app.run(host="0.0.0.0", port=port)
 
 # ------------------------------------------------------------------
-# 2. CONFIGURATION & AUTO-CLEAN TOKEN
+# 2. CONFIGURATION & BOT SETTINGS
 # ------------------------------------------------------------------
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -28,7 +29,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Token auto-clean logic (Removes all accidental spaces)
 RAW_TOKEN = "8871003871:AAGdj_kVfBoSS8puFVRBQSkvgEkGgs_w4po"
 BOT_TOKEN = RAW_TOKEN.replace(" ", "").strip()
 
@@ -143,9 +143,6 @@ def start_command(message):
     bot.send_message(message.chat.id, welcome_text, reply_markup=main_reply_keyboard())
     send_batches_view(message.chat.id)
 
-# ------------------------------------------------------------------
-# ADMIN COMMAND HANDLERS (/admin, /stats, /broadcast)
-# ------------------------------------------------------------------
 @bot.message_handler(commands=['admin'])
 @safe_handler
 def admin_command(message):
@@ -283,17 +280,20 @@ def forward_feedback_to_admin(message):
         bot.send_message(message.chat.id, "✅ Feedback receive ho gaya hai.")
 
 # ------------------------------------------------------------------
-# 5. PAYMENT & UTR VERIFICATION
+# 5. FIXED PAYMENT & UPI QR GENERATION
 # ------------------------------------------------------------------
 @bot.callback_query_handler(func=lambda call: call.data == "buy_now")
 @safe_handler
 def process_payment(call):
-    qr_url = f"https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=upi://pay?pa={UPI_ID}%26pn=BatchSeller%26am={PRICE}%26cu=INR"
+    # Properly URL-encode the standard UPI URI string
+    raw_upi_string = f"upi://pay?pa={UPI_ID}&pn=BatchSeller&am={PRICE}&cu=INR"
+    encoded_upi = urllib.parse.quote(raw_upi_string)
+    qr_url = f"https://api.qrserver.com/v1/create-qr-code/?size=300x300&data={encoded_upi}"
     
     caption = (
         "🎯 All Batches Access Single App\n"
         f"💰 Amount: ₹{PRICE}\n\n"
-        f"📲 UPI ID: {UPI_ID}\n\n"
+        f"📲 UPI ID: `{UPI_ID}`\n\n"
         "🔹 QR Code scan karke pay karein.\n"
         "🔹 Payment ke baad 'Verify Payment' button dabayein."
     )
@@ -302,7 +302,7 @@ def process_payment(call):
     markup.add(types.InlineKeyboardButton("🔍 Verify Payment (Submit UTR)", callback_data="verify_utr"))
     markup.add(types.InlineKeyboardButton("📩 Contact Admin", url=f"https://t.me/{ADMIN_USERNAME.replace('@', '')}"))
     
-    bot.send_photo(call.message.chat.id, photo=qr_url, caption=caption, reply_markup=markup)
+    bot.send_photo(call.message.chat.id, photo=qr_url, caption=caption, parse_mode="Markdown", reply_markup=markup)
     bot.answer_callback_query(call.id)
 
 @bot.callback_query_handler(func=lambda call: call.data == "verify_utr")
