@@ -7,33 +7,29 @@ import telebot
 from telebot import types
 
 # ------------------------------------------------------------------
-# 1. RENDER 24/7 WEB SERVER (FLASK HEALTH-CHECK)
+# 1. RENDER KEEP-ALIVE WEB SERVER
 # ------------------------------------------------------------------
 app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return "✅ Batch Seller Telegram Bot is Live & Operational 24/7!"
+    return "Bot is active 24/7", 200
 
 def run_flask():
     port = int(os.environ.get("PORT", 8080))
     app.run(host="0.0.0.0", port=port)
 
 # ------------------------------------------------------------------
-# 2. LOGGING & CREDENTIALS CONFIGURATION
+# 2. CONFIGURATION & CREDENTIALS
 # ------------------------------------------------------------------
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO,
-    handlers=[
-        logging.FileHandler("bot_errors.log"),
-        logging.StreamHandler()
-    ]
+    level=logging.INFO
 )
 logger = logging.getLogger(__name__)
 
-# User Credentials
-BOT_TOKEN = "8871003871:AAGIqHBsEqeZr8HR6izPIzugZFozmwD1TFk"
+# Token cleaned (removed accidental space)
+BOT_TOKEN = "8871003871:AAEKOCs3vV8HJ2bVKTQqhD1Jdu-IMn_WleM".strip()
 ADMIN_ID = "7990500822"
 UPI_ID = "kumaranil98787@axl"
 
@@ -42,10 +38,8 @@ CHANNEL_USERNAME = "@batchseller321"
 INSTAGRAM_LINK = "https://www.instagram.com/batches__hub?igsh=emRhdWdja3MwMGt1&igsi=emRhdWdja3MwMGt1"
 PRICE = "149"
 
-# HTML Parse mode prevents formatting crashes
-bot = telebot.TeleBot(BOT_TOKEN, parse_mode="HTML")
+bot = telebot.TeleBot(BOT_TOKEN)
 
-# Vertical Batches Category
 BATCHES = [
     "Next Topper", "Study IQ", "Rojgar With Ankit", "CDS Journey",
     "Khan Global Studies (KGS)", "UC Live Rani Mam", "Gyanbindu", "GK GS Masti",
@@ -66,10 +60,10 @@ def safe_handler(func):
             logger.error(f"Error in {func.__name__}: {str(e)}", exc_info=True)
             for arg in args:
                 if isinstance(arg, types.Message):
-                    bot.send_message(arg.chat.id, "⚠️ Kuch takneeki kharabi aayi hai. Kripya dobara /start press karein.")
+                    bot.send_message(arg.chat.id, "⚠️ Kuch takneeki kharabi aayi hai. Kripya /start press karein.")
                     break
                 elif isinstance(arg, types.CallbackQuery):
-                    bot.send_message(arg.message.chat.id, "⚠️ Kuch takneeki kharabi aayi hai. Kripya dobara /start press karein.")
+                    bot.send_message(arg.message.chat.id, "⚠️ Kuch takneeki kharabi aayi hai. Kripya /start press karein.")
                     break
     return wrapper
 
@@ -98,46 +92,35 @@ def main_reply_keyboard():
 def get_batches_text():
     batches_vertical = "\n".join([f"{idx}. {batch}" for idx, batch in enumerate(BATCHES, 1)])
     return (
-        "🔥 <b>ALL EDUCATIONAL BATCHES — SPECIAL PRICES</b> 🔥\n\n"
-        "✨ <b>AVAILABLE INSTITUTE / BATCHES:</b>\n\n"
+        "🔥 ALL EDUCATIONAL BATCHES — SPECIAL PRICES 🔥\n\n"
+        "✨ AVAILABLE INSTITUTE / BATCHES:\n\n"
         f"{batches_vertical}\n\n"
-        "⭐ <b>FEATURES:</b>\n"
+        "⭐ FEATURES:\n"
         "✅ Multiple educational resources\n"
         "✅ Batch availability updates\n"
         "✅ Affordable pricing\n"
         "✅ Contact for current availability & details\n\n"
         "👇 Apna desired institute/batch choose karein aur availability & price ke liye contact karein.\n\n"
-        f"📩 <b>Contact Admin:</b> {ADMIN_USERNAME}"
-    )
-
-def get_support_text():
-    return (
-        "👤 <b>FOUNDER & SUPPORT INFORMATION</b>\n"
-        "━━━━━━━━━━━━━━━━━━━━━━\n\n"
-        "👑 <b>Founder & Owner:</b> Himanshu Kumar\n"
-        f"💬 <b>Direct Telegram DM:</b> {ADMIN_USERNAME}\n"
-        f"📣 <b>Official Telegram Channel:</b> {CHANNEL_USERNAME}\n"
-        f"📸 <b>Instagram Profile:</b> <a href=\"{INSTAGRAM_LINK}\">Click Here to Visit Profile</a>\n\n"
-        "✨ <b>24/7 Support Available for Payment & Link Access Queries!</b>"
+        f"📩 Contact Admin: {ADMIN_USERNAME}"
     )
 
 def send_batches_view(chat_id):
     inline_markup = types.InlineKeyboardMarkup()
     inline_markup.add(types.InlineKeyboardButton(f"💳 Buy Now (₹{PRICE})", callback_data="buy_now"))
     inline_markup.add(types.InlineKeyboardButton("📩 Contact Admin", url=f"https://t.me/{ADMIN_USERNAME.replace('@', '')}"))
-    bot.send_message(chat_id, get_batches_text(), reply_markup=inline_markup, parse_mode="HTML")
+    bot.send_message(chat_id, get_batches_text(), reply_markup=inline_markup)
 
 # ------------------------------------------------------------------
-# 4. BOT HANDLERS
+# 4. HANDLERS FOR ALL MENU BUTTONS
 # ------------------------------------------------------------------
 @bot.message_handler(commands=['start'])
 @safe_handler
 def start_command(message):
     welcome_text = (
-        "⚡ <b>Welcome to Batch Seller Bot!</b>\n\n"
+        "⚡ Welcome to Batch Seller Bot!\n\n"
         "Sabhi courses aur batches single app me milenge! Neeche diye menu se options chuney:"
     )
-    bot.send_message(message.chat.id, welcome_text, reply_markup=main_reply_keyboard(), parse_mode="HTML")
+    bot.send_message(message.chat.id, welcome_text, reply_markup=main_reply_keyboard())
     send_batches_view(message.chat.id)
 
 @bot.message_handler(commands=['batches'])
@@ -149,7 +132,20 @@ def handle_batches(message):
 @bot.message_handler(func=lambda msg: msg.text == "📞 Support and Founder")
 @safe_handler
 def handle_support(message):
-    bot.send_message(message.chat.id, get_support_text(), parse_mode="HTML", disable_web_page_preview=False)
+    text = (
+        "👤 FOUNDER & SUPPORT INFORMATION\n"
+        "━━━━━━━━━━━━━━━━━━━━━━\n\n"
+        "👑 Founder & Owner: Himanshu Kumar\n"
+        f"💬 Direct Telegram DM: {ADMIN_USERNAME}\n"
+        f"📣 Official Channel: {CHANNEL_USERNAME}\n\n"
+        "✨ 24/7 Support Available for Payment & Link Access Queries!"
+    )
+    markup = types.InlineKeyboardMarkup()
+    markup.add(types.InlineKeyboardButton("💬 DM Founder", url=f"https://t.me/{ADMIN_USERNAME.replace('@', '')}"))
+    markup.add(types.InlineKeyboardButton("📸 Visit Instagram Profile", url=INSTAGRAM_LINK))
+    markup.add(types.InlineKeyboardButton("📣 Join Official Channel", url=f"https://t.me/{CHANNEL_USERNAME.replace('@', '')}"))
+    
+    bot.send_message(message.chat.id, text, reply_markup=markup)
 
 @bot.message_handler(func=lambda msg: msg.text == "🏷️ Offer and Pricing")
 @safe_handler
@@ -158,22 +154,53 @@ def handle_pricing(message):
     markup.add(types.InlineKeyboardButton(f"💳 Buy Now (₹{PRICE})", callback_data="buy_now"))
     bot.send_message(
         message.chat.id,
-        f"🎉 <b>SPECIAL DISCOUNT OFFER:</b>\n\nAll 30 Educational Institutes Access in Single App!\n💰 <b>Price: ₹{PRICE} Only</b>",
-        reply_markup=markup,
-        parse_mode="HTML"
+        f"🎉 SPECIAL DISCOUNT OFFER:\n\nAll 30 Educational Institutes Access in Single App!\n💰 Price: ₹{PRICE} Only",
+        reply_markup=markup
     )
 
-@bot.message_handler(func=lambda msg: msg.text in ["🌐 Web Store", "🔍 Search Bot", "👤 My Account/orders", "💬 Leave Feedback"])
+@bot.message_handler(func=lambda msg: msg.text == "🌐 Web Store")
 @safe_handler
-def handle_other_menu(message):
-    bot.send_message(
-        message.chat.id, 
-        f"✅ Aapne <b>{message.text}</b> choose kiya hai.\nKisi bhi sahayata ke liye Admin se contact karein: {ADMIN_USERNAME}",
-        parse_mode="HTML"
+def handle_web_store(message):
+    markup = types.InlineKeyboardMarkup()
+    markup.add(types.InlineKeyboardButton("🌐 Open Web Store", url=f"https://t.me/{CHANNEL_USERNAME.replace('@', '')}"))
+    bot.send_message(message.chat.id, "🌐 **Web Store Links & Updates:**\nNeeche button par click karke store check karein.", reply_markup=markup)
+
+@bot.message_handler(func=lambda msg: msg.text == "🔍 Search Bot")
+@safe_handler
+def handle_search(message):
+    bot.send_message(message.chat.id, f"🔍 Kisi bhi institute ya batch ko search karne ke liye Admin se contact karein:\n\n📩 {ADMIN_USERNAME}")
+
+@bot.message_handler(func=lambda msg: msg.text == "👤 My Account/orders")
+@safe_handler
+def handle_account(message):
+    text = (
+        f"👤 USER PROFILE & ORDERS\n"
+        f"━━━━━━━━━━━━━━━━━━━━━━\n"
+        f"🆔 User ID: {message.from_user.id}\n"
+        f"👤 Name: {message.from_user.first_message_name if hasattr(message.from_user, 'first_message_name') else message.from_user.first_name}\n"
+        f"📦 Active Access: Standard User\n\n"
+        f"Naye order ya query ke liye Admin {ADMIN_USERNAME} se baat karein."
     )
+    bot.send_message(message.chat.id, text)
+
+@bot.message_handler(func=lambda msg: msg.text == "💬 Leave Feedback")
+@safe_handler
+def handle_feedback(message):
+    msg = bot.send_message(message.chat.id, "✍️ Aap apna feedback/review likhkar bhejein, ye seedha Founder ko mil jayega:")
+    bot.register_next_step_handler(msg, forward_feedback_to_admin)
+
+def forward_feedback_to_admin(message):
+    try:
+        bot.send_message(
+            ADMIN_ID,
+            f"💬 NEW FEEDBACK RECEIVED:\n\nFrom: @{message.from_user.username} (ID: {message.from_user.id})\nMessage: {message.text}"
+        )
+        bot.send_message(message.chat.id, "✅ Aapka feedback successfully bhej diya gaya hai! Shukriya.")
+    except Exception:
+        bot.send_message(message.chat.id, "✅ Feedback receive ho gaya hai.")
 
 # ------------------------------------------------------------------
-# 5. PAYMENT & DELIVERY
+# 5. PAYMENT & UTR SUBMISSION
 # ------------------------------------------------------------------
 @bot.callback_query_handler(func=lambda call: call.data == "buy_now")
 @safe_handler
@@ -181,28 +208,24 @@ def process_payment(call):
     qr_url = f"https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=upi://pay?pa={UPI_ID}%26pn=BatchSeller%26am={PRICE}%26cu=INR"
     
     caption = (
-        "🎯 <b>All Batches Access Single App</b>\n"
-        f"💰 <b>Amount:</b> ₹{PRICE}\n\n"
-        f"📲 <b>UPI ID:</b> <code>{UPI_ID}</code>\n\n"
+        "🎯 All Batches Access Single App\n"
+        f"💰 Amount: ₹{PRICE}\n\n"
+        f"📲 UPI ID: {UPI_ID}\n\n"
         "🔹 QR Code scan karke pay karein.\n"
-        "🔹 Payment karne ke baad <b>Verify Payment</b> button dabayein aur 12-digit UTR enter karein."
+        "🔹 Payment karne ke baad 'Verify Payment' button dabayein aur 12-digit UTR enter karein."
     )
     
     markup = types.InlineKeyboardMarkup()
     markup.add(types.InlineKeyboardButton("🔍 Verify Payment (Submit UTR)", callback_data="verify_utr"))
     markup.add(types.InlineKeyboardButton("📩 Contact Admin", url=f"https://t.me/{ADMIN_USERNAME.replace('@', '')}"))
     
-    bot.send_photo(call.message.chat.id, photo=qr_url, caption=caption, reply_markup=markup, parse_mode="HTML")
+    bot.send_photo(call.message.chat.id, photo=qr_url, caption=caption, reply_markup=markup)
     bot.answer_callback_query(call.id)
 
 @bot.callback_query_handler(func=lambda call: call.data == "verify_utr")
 @safe_handler
 def ask_utr(call):
-    msg = bot.send_message(
-        call.message.chat.id,
-        "📩 Kripya apna <b>12-digit Payment UTR / Transaction ID</b> enter karein:",
-        parse_mode="HTML"
-    )
+    msg = bot.send_message(call.message.chat.id, "📩 Kripya apna 12-digit Payment UTR / Transaction ID enter karein:")
     bot.register_next_step_handler(msg, process_utr_submission)
     bot.answer_callback_query(call.id)
 
@@ -211,55 +234,45 @@ def process_utr_submission(message):
     utr = message.text.strip() if message.text else ""
     
     if len(utr) == 12 and utr.isdigit():
-        bot.send_message(message.chat.id, f"✅ <b>Payment Verified!</b>\nUTR: <code>{utr}</code>\n\nAapki APK deliver ki ja rahi hai...", parse_mode="HTML")
+        bot.send_message(message.chat.id, f"✅ Payment Verified!\nUTR: {utr}\n\nAapki APK deliver ki ja rahi hai...")
         
         try:
             with open("app.apk", "rb") as apk_file:
                 bot.send_document(
                     message.chat.id,
                     document=apk_file,
-                    caption="📲 <b>Aapka Batch App Ready Hai!</b>\nFile install karke sabhi courses access karein.",
-                    parse_mode="HTML"
+                    caption="📲 Aapka Batch App Ready Hai!\nFile install karke sabhi courses access karein."
                 )
         except FileNotFoundError:
             bot.send_message(
                 message.chat.id,
-                f"⚠️ Server par App file mil nahi paayi. Direct access ke liye Admin {ADMIN_USERNAME} se contact karein.",
-                parse_mode="HTML"
+                f"⚠️ Server par App file mil nahi paayi. Direct access ke liye Admin {ADMIN_USERNAME} se contact karein."
             )
             
         try:
             bot.send_message(
                 ADMIN_ID,
-                f"🔔 <b>NEW PAYMENT RECEIVED!</b>\n"
-                f"👤 User: @{message.from_user.username} (ID: <code>{message.from_user.id}</code>)\n"
-                f"🔢 UTR: <code>{utr}</code>\n"
-                f"💰 Amount: ₹{PRICE}",
-                parse_mode="HTML"
+                f"🔔 NEW PAYMENT RECEIVED!\n"
+                f"👤 User: @{message.from_user.username} (ID: {message.from_user.id})\n"
+                f"🔢 UTR: {utr}\n"
+                f"💰 Amount: ₹{PRICE}"
             )
         except Exception:
             pass
     else:
         bot.send_message(
             message.chat.id,
-            "❌ <b>Invalid UTR!</b> UTR 12 digits ka numeric number hota hai. Dobara try karne ke liye /start press karein.",
-            parse_mode="HTML"
+            "❌ Invalid UTR! UTR 12 digits ka numeric number hota hai. Dobara try karne ke liye /start press karein."
         )
 
 # ------------------------------------------------------------------
-# 6. RUNNERS
+# 6. SERVER STARTUP
 # ------------------------------------------------------------------
 if __name__ == "__main__":
-    # Flask thread Render web server keep-alive ke liye
     threading.Thread(target=run_flask, daemon=True).start()
-    
-    logger.info("Master Telegram Bot Engine Running...")
+    logger.info("Bot is running...")
     while True:
         try:
-            bot.infinity_polling(
-                timeout=30,
-                long_polling_timeout=15,
-                skip_pending=True
-            )
+            bot.infinity_polling(timeout=30, long_polling_timeout=15, skip_pending=True)
         except Exception as e:
-            logger.error(f"Bot crashed, auto-restarting... Error: {e}")
+            logger.error(f"Polling error: {e}")
