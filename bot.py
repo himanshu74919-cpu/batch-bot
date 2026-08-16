@@ -29,7 +29,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-RAW_TOKEN = "8871003871:AAGdj_kVfBoSS8puFVRBQSkvgEkGgs_w4po"
+RAW_TOKEN = "8871003871:AAHw2pLn1XhGmpbLc4Qnxhds0yeoFOcWIaM"
 BOT_TOKEN = RAW_TOKEN.replace(" ", "").strip()
 
 ADMIN_ID = "7990500822"
