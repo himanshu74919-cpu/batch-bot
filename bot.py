@@ -20,7 +20,7 @@ def run_flask():
     app.run(host="0.0.0.0", port=port)
 
 # ------------------------------------------------------------------
-# 2. CONFIGURATION & CLEAN TOKEN
+# 2. CONFIGURATION & CREDENTIALS
 # ------------------------------------------------------------------
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -28,8 +28,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Fixed space inside token string
-BOT_TOKEN = "8871003871:AAFaZJx9gSv0xJdZjT2kyaY2IGlzpogPivw"
+# Replace with your active Bot Father Token
+BOT_TOKEN = "8871003871:AAEKOCs3vV8HJ2bVKTQqhD1 Jdu-IMn_WleM".strip()
 ADMIN_ID = "7990500822"
 UPI_ID = "kumaranil98787@axl"
 
@@ -37,6 +37,7 @@ ADMIN_USERNAME = "@the_himanshu1"
 CHANNEL_USERNAME = "@batchseller321"
 INSTAGRAM_LINK = "https://www.instagram.com/batches__hub?igsh=emRhdWdja3MwMGt1&igsi=emRhdWdja3MwMGt1"
 PRICE = "149"
+USER_FILE = "users.txt"
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
@@ -51,6 +52,22 @@ BATCHES = [
     "Unacademy Offline", "KGS Test"
 ]
 
+# ------------------------------------------------------------------
+# HELPER FUNCTIONS FOR USER DATABASE
+# ------------------------------------------------------------------
+def save_user(user_id):
+    user_id = str(user_id)
+    users = get_users()
+    if user_id not in users:
+        with open(USER_FILE, "a") as f:
+            f.write(f"{user_id}\n")
+
+def get_users():
+    if os.path.exists(USER_FILE):
+        with open(USER_FILE, "r") as f:
+            return [line.strip() for line in f if line.strip()]
+    return []
+
 def safe_handler(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
@@ -60,10 +77,10 @@ def safe_handler(func):
             logger.error(f"Error in {func.__name__}: {str(e)}", exc_info=True)
             for arg in args:
                 if isinstance(arg, types.Message):
-                    bot.send_message(arg.chat.id, "⚠️ Server update ho raha hai. Kripya 1 min baad /start bhejein.")
+                    bot.send_message(arg.chat.id, "⚠️ Kuch takneeki kharabi aayi hai. Kripya /start press karein.")
                     break
                 elif isinstance(arg, types.CallbackQuery):
-                    bot.send_message(arg.message.chat.id, "⚠️ Server update ho raha hai. Kripya 1 min baad /start bhejein.")
+                    bot.send_message(arg.message.chat.id, "⚠️ Kuch takneeki kharabi aayi hai. Kripya /start press karein.")
                     break
     return wrapper
 
@@ -116,6 +133,7 @@ def send_batches_view(chat_id):
 @bot.message_handler(commands=['start'])
 @safe_handler
 def start_command(message):
+    save_user(message.chat.id)
     welcome_text = (
         "⚡ Welcome to Batch Seller Bot!\n\n"
         "Sabhi courses aur batches single app me milenge! Neeche diye menu se options chuney:"
@@ -123,15 +141,75 @@ def start_command(message):
     bot.send_message(message.chat.id, welcome_text, reply_markup=main_reply_keyboard())
     send_batches_view(message.chat.id)
 
+# ------------------------------------------------------------------
+# ADMIN COMMAND HANDLERS (/admin, /stats, /broadcast)
+# ------------------------------------------------------------------
+@bot.message_handler(commands=['admin'])
+@safe_handler
+def admin_command(message):
+    if str(message.from_user.id) != ADMIN_ID:
+        bot.send_message(message.chat.id, "❌ Aapke paas admin access nahi hai.")
+        return
+    
+    text = (
+        "👑 ADMIN CONTROL PANEL\n"
+        "━━━━━━━━━━━━━━━━━━━━━━\n\n"
+        "Available Admin Commands:\n"
+        "🔹 /stats - View total bot users\n"
+        "🔹 /broadcast - Send announcement to all users"
+    )
+    bot.send_message(message.chat.id, text)
+
+@bot.message_handler(commands=['stats'])
+@safe_handler
+def stats_command(message):
+    if str(message.from_user.id) != ADMIN_ID:
+        bot.send_message(message.chat.id, "❌ Aapke paas admin access nahi hai.")
+        return
+    
+    users = get_users()
+    bot.send_message(message.chat.id, f"📊 BOT STATISTICS\n\n👥 Total Users Count: {len(users)}")
+
+@bot.message_handler(commands=['broadcast'])
+@safe_handler
+def broadcast_command(message):
+    if str(message.from_user.id) != ADMIN_ID:
+        bot.send_message(message.chat.id, "❌ Aapke paas admin access nahi hai.")
+        return
+    
+    msg = bot.send_message(message.chat.id, "📢 Broadcast Message Mode:\n\nJo message sabhi users ko bhejna hai, wo text likhkar reply karein:")
+    bot.register_next_step_handler(msg, send_broadcast_message)
+
+def send_broadcast_message(message):
+    users = get_users()
+    success = 0
+    failed = 0
+    
+    bot.send_message(message.chat.id, f"🔄 Broadcast shuru ho raha hai... (Total Users: {len(users)})")
+    
+    for u_id in users:
+        try:
+            bot.send_message(u_id, message.text)
+            success += 1
+        except Exception:
+            failed += 1
+            
+    bot.send_message(message.chat.id, f"✅ BROADCAST COMPLETED!\n\n🟢 Successful: {success}\n🔴 Failed: {failed}")
+
+# ------------------------------------------------------------------
+# REGULAR MENU HANDLERS
+# ------------------------------------------------------------------
 @bot.message_handler(commands=['batches'])
 @bot.message_handler(func=lambda msg: msg.text == "📚 All Institutes Batches")
 @safe_handler
 def handle_batches(message):
+    save_user(message.chat.id)
     send_batches_view(message.chat.id)
 
 @bot.message_handler(func=lambda msg: msg.text == "📞 Support and Founder")
 @safe_handler
 def handle_support(message):
+    save_user(message.chat.id)
     text = (
         "👤 FOUNDER & SUPPORT INFORMATION\n"
         "━━━━━━━━━━━━━━━━━━━━━━\n\n"
@@ -149,6 +227,7 @@ def handle_support(message):
 @bot.message_handler(func=lambda msg: msg.text == "🏷️ Offer and Pricing")
 @safe_handler
 def handle_pricing(message):
+    save_user(message.chat.id)
     markup = types.InlineKeyboardMarkup()
     markup.add(types.InlineKeyboardButton(f"💳 Buy Now (₹{PRICE})", callback_data="buy_now"))
     bot.send_message(
@@ -160,6 +239,7 @@ def handle_pricing(message):
 @bot.message_handler(func=lambda msg: msg.text == "🌐 Web Store")
 @safe_handler
 def handle_web_store(message):
+    save_user(message.chat.id)
     markup = types.InlineKeyboardMarkup()
     markup.add(types.InlineKeyboardButton("🌐 Open Web Store", url=f"https://t.me/{CHANNEL_USERNAME.replace('@', '')}"))
     bot.send_message(message.chat.id, "🌐 Web Store Links & Updates:", reply_markup=markup)
@@ -167,11 +247,13 @@ def handle_web_store(message):
 @bot.message_handler(func=lambda msg: msg.text == "🔍 Search Bot")
 @safe_handler
 def handle_search(message):
+    save_user(message.chat.id)
     bot.send_message(message.chat.id, f"🔍 Batch search karne ke liye Admin se contact karein:\n\n📩 {ADMIN_USERNAME}")
 
 @bot.message_handler(func=lambda msg: msg.text == "👤 My Account/orders")
 @safe_handler
 def handle_account(message):
+    save_user(message.chat.id)
     text = (
         f"👤 USER PROFILE & ORDERS\n"
         f"━━━━━━━━━━━━━━━━━━━━━━\n"
@@ -184,6 +266,7 @@ def handle_account(message):
 @bot.message_handler(func=lambda msg: msg.text == "💬 Leave Feedback")
 @safe_handler
 def handle_feedback(message):
+    save_user(message.chat.id)
     msg = bot.send_message(message.chat.id, "✍️ Aapna feedback likhkar bhejein:")
     bot.register_next_step_handler(msg, forward_feedback_to_admin)
 
