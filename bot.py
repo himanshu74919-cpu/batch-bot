@@ -280,21 +280,22 @@ def forward_feedback_to_admin(message):
         bot.send_message(message.chat.id, "✅ Feedback receive ho gaya hai.")
 
 # ------------------------------------------------------------------
-# 5. FIXED PAYMENT & UPI QR GENERATION
+# 5. FIXED QUICKCHART UPI QR GENERATION
 # ------------------------------------------------------------------
 @bot.callback_query_handler(func=lambda call: call.data == "buy_now")
 @safe_handler
 def process_payment(call):
-    # Properly URL-encode the standard UPI URI string
-    raw_upi_string = f"upi://pay?pa={UPI_ID}&pn=BatchSeller&am={PRICE}&cu=INR"
-    encoded_upi = urllib.parse.quote(raw_upi_string)
-    qr_url = f"https://api.qrserver.com/v1/create-qr-code/?size=300x300&data={encoded_upi}"
+    # Standard NPCI UPI URI Format
+    raw_upi = f"upi://pay?pa={UPI_ID}&pn=BatchSeller&am={PRICE}&cu=INR"
+    encoded_upi = urllib.parse.quote(raw_upi, safe='')
+    qr_url = f"https://quickchart.io/qr?text={encoded_upi}&size=300"
     
     caption = (
-        "🎯 All Batches Access Single App\n"
-        f"💰 Amount: ₹{PRICE}\n\n"
-        f"📲 UPI ID: `{UPI_ID}`\n\n"
+        "🎯 *All Batches Access Single App*\n"
+        f"💰 *Amount:* ₹{PRICE}\n\n"
+        f"📲 *UPI ID:* `{UPI_ID}` _(Tap on UPI ID to Copy)_\n\n"
         "🔹 QR Code scan karke pay karein.\n"
+        "🔹 Agar scan na ho, toh uper diye UPI ID ko copy karke PhonePe/Paytm me pay karein.\n"
         "🔹 Payment ke baad 'Verify Payment' button dabayein."
     )
     
