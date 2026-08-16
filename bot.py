@@ -1,11 +1,26 @@
 import os
 import logging
+import threading
 from functools import wraps
+from flask import Flask
 import telebot
 from telebot import types
 
 # ------------------------------------------------------------------
-# 1. LOGGING & CREDENTIALS CONFIGURATION
+# 1. RENDER 24/7 WEB SERVER (FLASK HEALTH-CHECK)
+# ------------------------------------------------------------------
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return "✅ Batch Seller Telegram Bot is Live & Operational 24/7!"
+
+def run_flask():
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host="0.0.0.0", port=port)
+
+# ------------------------------------------------------------------
+# 2. LOGGING & CREDENTIALS CONFIGURATION
 # ------------------------------------------------------------------
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -17,7 +32,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Exact User Credentials
+# User Credentials
 BOT_TOKEN = "8871003871:AAGIqHBsEqeZr8HR6izPIzugZFozmwD1TFk"
 ADMIN_ID = "7990500822"
 UPI_ID = "kumaranil98787@axl"
@@ -27,10 +42,10 @@ CHANNEL_USERNAME = "@batchseller321"
 INSTAGRAM_LINK = "https://www.instagram.com/batches__hub?igsh=emRhdWdja3MwMGt1&igsi=emRhdWdja3MwMGt1"
 PRICE = "149"
 
-# Initialize bot with HTML parse_mode to prevent formatting crashes
+# HTML Parse mode prevents formatting crashes
 bot = telebot.TeleBot(BOT_TOKEN, parse_mode="HTML")
 
-# Complete 30 Educational Institutes
+# Vertical Batches Category
 BATCHES = [
     "Next Topper", "Study IQ", "Rojgar With Ankit", "CDS Journey",
     "Khan Global Studies (KGS)", "UC Live Rani Mam", "Gyanbindu", "GK GS Masti",
@@ -42,7 +57,6 @@ BATCHES = [
     "Unacademy Offline", "KGS Test"
 ]
 
-# Anti-Crash Decorator
 def safe_handler(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
@@ -60,7 +74,7 @@ def safe_handler(func):
     return wrapper
 
 # ------------------------------------------------------------------
-# 2. KEYBOARDS & TEXT TEMPLATES
+# 3. KEYBOARDS & LAYOUTS
 # ------------------------------------------------------------------
 def main_reply_keyboard():
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
@@ -114,7 +128,7 @@ def send_batches_view(chat_id):
     bot.send_message(chat_id, get_batches_text(), reply_markup=inline_markup, parse_mode="HTML")
 
 # ------------------------------------------------------------------
-# 3. COMMAND & MESSAGE HANDLERS
+# 4. BOT HANDLERS
 # ------------------------------------------------------------------
 @bot.message_handler(commands=['start'])
 @safe_handler
@@ -159,7 +173,7 @@ def handle_other_menu(message):
     )
 
 # ------------------------------------------------------------------
-# 4. PAYMENT & AUTOMATED DELIVERY
+# 5. PAYMENT & DELIVERY
 # ------------------------------------------------------------------
 @bot.callback_query_handler(func=lambda call: call.data == "buy_now")
 @safe_handler
@@ -233,9 +247,12 @@ def process_utr_submission(message):
         )
 
 # ------------------------------------------------------------------
-# 5. INFINITY POLLING RUNNER
+# 6. RUNNERS
 # ------------------------------------------------------------------
 if __name__ == "__main__":
+    # Flask thread Render web server keep-alive ke liye
+    threading.Thread(target=run_flask, daemon=True).start()
+    
     logger.info("Master Telegram Bot Engine Running...")
     while True:
         try:
