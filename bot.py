@@ -29,7 +29,8 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Replace with your active Bot Father Token
-BOT_TOKEN = "8871003871:AAEKOCs3vV8HJ2bVKTQqhD1 Jdu-IMn_WleM".strip()
+BOT_TOKEN = "8871003871:AAEKOCs3vV8HJ2bVKTQqhD1Jdu-IMn_WleM".replace(" ", "").strip()
+
 ADMIN_ID = "7990500822"
 UPI_ID = "kumaranil98787@axl"
 
