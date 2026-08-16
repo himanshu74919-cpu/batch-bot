@@ -29,7 +29,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Fixed space inside token string
-BOT_TOKEN = "8871003871:AAEKOCs3vV8HJ2bVKTQqhD1Jdu-IMn_WleM"
+BOT_TOKEN = "8871003871:AAFaZJx9gSv0xJdZjT2kyaY2IGlzpogPivw"
 ADMIN_ID = "7990500822"
 UPI_ID = "kumaranil98787@axl"
 
