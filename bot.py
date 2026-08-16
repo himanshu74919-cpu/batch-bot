@@ -29,7 +29,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-RAW_TOKEN = "8871003871:AAHw2pLn1XhGmpbLc4Qnxhds0yeoFOcWIaM"
+RAW_TOKEN = "8871003871:AAHoIpAWYKvbDVcUqvQmnGrdfheQOi5Q3Fs"
 BOT_TOKEN = RAW_TOKEN.replace(" ", "").strip()
 
 ADMIN_ID = "7990500822"
@@ -55,7 +55,7 @@ BATCHES = [
 ]
 
 # ------------------------------------------------------------------
-# HELPER FUNCTIONS FOR USER DATABASE
+# HELPER FUNCTIONS & FORCE JOIN CHECK
 # ------------------------------------------------------------------
 def save_user(user_id):
     user_id = str(user_id)
@@ -69,6 +69,32 @@ def get_users():
         with open(USER_FILE, "r") as f:
             return [line.strip() for line in f if line.strip()]
     return []
+
+def is_user_subscribed(user_id):
+    if str(user_id) == ADMIN_ID:
+        return True
+    try:
+        member = bot.get_chat_member(CHANNEL_USERNAME, user_id)
+        if member.status in ['creator', 'administrator', 'member']:
+            return True
+        return False
+    except Exception as e:
+        logger.error(f"Force join check error: {e}")
+        return False
+
+def send_force_join_message(chat_id):
+    markup = types.InlineKeyboardMarkup()
+    channel_url = f"https://t.me/{CHANNEL_USERNAME.replace('@', '')}"
+    markup.add(types.InlineKeyboardButton("📢 Join Channel", url=channel_url))
+    markup.add(types.InlineKeyboardButton("✅ Joined / Verify", callback_data="check_subscription"))
+    
+    text = (
+        "⚠️ MUST JOIN CHANNEL TO USE BOT!\n\n"
+        "Bot ko access karne ke liye aapko hamara official channel join karna zaroori hai.\n\n"
+        f"📢 Channel: {CHANNEL_USERNAME}\n\n"
+        "👇 Pehle 'Join Channel' par click karke join karein, fir 'Joined / Verify' dabayein:"
+    )
+    bot.send_message(chat_id, text, reply_markup=markup)
 
 def safe_handler(func):
     @wraps(func)
@@ -85,6 +111,41 @@ def safe_handler(func):
                     bot.send_message(arg.message.chat.id, "⚠️ Kuch takneeki kharabi aayi hai. Kripya /start press karein.")
                     break
     return wrapper
+
+def check_join(func):
+    @wraps(func)
+    def wrapper(event, *args, **kwargs):
+        if isinstance(event, types.Message):
+            user_id = event.from_user.id
+            chat_id = event.chat.id
+        elif isinstance(event, types.CallbackQuery):
+            user_id = event.from_user.id
+            chat_id = event.message.chat.id
+        else:
+            return func(event, *args, **kwargs)
+
+        if not is_user_subscribed(user_id):
+            send_force_join_message(chat_id)
+            return
+
+        return func(event, *args, **kwargs)
+    return wrapper
+
+# ------------------------------------------------------------------
+# VERIFY SUBSCRIPTION CALLBACK
+# ------------------------------------------------------------------
+@bot.callback_query_handler(func=lambda call: call.data == "check_subscription")
+@safe_handler
+def verify_subscription(call):
+    if is_user_subscribed(call.from_user.id):
+        bot.answer_callback_query(call.id, "✅ Dhanyawad! Access unlocked.")
+        try:
+            bot.delete_message(call.message.chat.id, call.message.message_id)
+        except Exception:
+            pass
+        start_command(call.message)
+    else:
+        bot.answer_callback_query(call.id, "❌ Aapne abhi tak channel join nahi kiya hai!", show_alert=True)
 
 # ------------------------------------------------------------------
 # 3. BUTTONS & KEYBOARDS
@@ -134,6 +195,7 @@ def send_batches_view(chat_id):
 # ------------------------------------------------------------------
 @bot.message_handler(commands=['start'])
 @safe_handler
+@check_join
 def start_command(message):
     save_user(message.chat.id)
     welcome_text = (
@@ -201,12 +263,14 @@ def send_broadcast_message(message):
 @bot.message_handler(commands=['batches'])
 @bot.message_handler(func=lambda msg: msg.text == "📚 All Institutes Batches")
 @safe_handler
+@check_join
 def handle_batches(message):
     save_user(message.chat.id)
     send_batches_view(message.chat.id)
 
 @bot.message_handler(func=lambda msg: msg.text == "📞 Support and Founder")
 @safe_handler
+@check_join
 def handle_support(message):
     save_user(message.chat.id)
     text = (
@@ -225,6 +289,7 @@ def handle_support(message):
 
 @bot.message_handler(func=lambda msg: msg.text == "🏷️ Offer and Pricing")
 @safe_handler
+@check_join
 def handle_pricing(message):
     save_user(message.chat.id)
     markup = types.InlineKeyboardMarkup()
@@ -237,6 +302,7 @@ def handle_pricing(message):
 
 @bot.message_handler(func=lambda msg: msg.text == "🌐 Web Store")
 @safe_handler
+@check_join
 def handle_web_store(message):
     save_user(message.chat.id)
     markup = types.InlineKeyboardMarkup()
@@ -245,12 +311,14 @@ def handle_web_store(message):
 
 @bot.message_handler(func=lambda msg: msg.text == "🔍 Search Bot")
 @safe_handler
+@check_join
 def handle_search(message):
     save_user(message.chat.id)
     bot.send_message(message.chat.id, f"🔍 Batch search karne ke liye Admin se contact karein:\n\n📩 {ADMIN_USERNAME}")
 
 @bot.message_handler(func=lambda msg: msg.text == "👤 My Account/orders")
 @safe_handler
+@check_join
 def handle_account(message):
     save_user(message.chat.id)
     text = (
@@ -264,6 +332,7 @@ def handle_account(message):
 
 @bot.message_handler(func=lambda msg: msg.text == "💬 Leave Feedback")
 @safe_handler
+@check_join
 def handle_feedback(message):
     save_user(message.chat.id)
     msg = bot.send_message(message.chat.id, "✍️ Aapna feedback likhkar bhejein:")
@@ -280,12 +349,12 @@ def forward_feedback_to_admin(message):
         bot.send_message(message.chat.id, "✅ Feedback receive ho gaya hai.")
 
 # ------------------------------------------------------------------
-# 5. FIXED QUICKCHART UPI QR GENERATION
+# 5. PAYMENT & UPI QR GENERATION
 # ------------------------------------------------------------------
 @bot.callback_query_handler(func=lambda call: call.data == "buy_now")
 @safe_handler
+@check_join
 def process_payment(call):
-    # Standard NPCI UPI URI Format
     raw_upi = f"upi://pay?pa={UPI_ID}&pn=BatchSeller&am={PRICE}&cu=INR"
     encoded_upi = urllib.parse.quote(raw_upi, safe='')
     qr_url = f"https://quickchart.io/qr?text={encoded_upi}&size=300"
@@ -308,6 +377,7 @@ def process_payment(call):
 
 @bot.callback_query_handler(func=lambda call: call.data == "verify_utr")
 @safe_handler
+@check_join
 def ask_utr(call):
     msg = bot.send_message(call.message.chat.id, "📩 Apna 12-digit UTR number enter karein:")
     bot.register_next_step_handler(msg, process_utr_submission)
