@@ -38,7 +38,7 @@ UPI_ID = "kumaranil98787@axl"
 ADMIN_USERNAME = "@the_himanshu1"
 CHANNEL_USERNAME = "@batchseller321"
 INSTAGRAM_LINK = "https://www.instagram.com/batches__hub?igsh=emRhdWdja3MwMGt1&igsi=emRhdWdja3MwMGt1"
-PRICE = "299"
+PRICE = "149"
 USER_FILE = "users.txt"
 
 bot = telebot.TeleBot(BOT_TOKEN)
