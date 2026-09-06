@@ -29,20 +29,21 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-RAW_TOKEN = "8871003871:AAG37oZu6yKBgBcsY7fUcjH3lfOy4O33Iuw"
+RAW_TOKEN = "8871003871:AAEub895BWnh7cmADXFJKXlRJmyf5mpwg4I"
 BOT_TOKEN = RAW_TOKEN.replace(" ", "").strip()
 
-ADMIN_ID = "6919943679"
+ADMIN_ID = "7990500822"
 UPI_ID = "kumaranil98787@axl"
 
-ADMIN_USERNAME = "@neon_phantom1"
+ADMIN_USERNAME = "@the_himanshu1"
 CHANNEL_USERNAME = "@batchseller321"
-INSTAGRAM_LINK = "https://www.instagram.com/himanshu__kumar__.07?igsh=ejNvYWNyZ253cGs4"
-PRICE = "149"
+INSTAGRAM_LINK = "https://www.instagram.com/batches__hub?igsh=emRhdWdja3MwMGt1&igsi=emRhdWdja3MwMGt1"
+PRICE = "299"
 USER_FILE = "users.txt"
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
+# Yahan naye institutes add/edit kar sakte hain:
 BATCHES = [
     "Next Topper", "Study IQ", "Rojgar With Ankit", "CDS Journey",
     "Khan Global Studies (KGS)", "UC Live Rani Mam", "Gyanbindu", "GK GS Masti",
@@ -51,7 +52,7 @@ BATCHES = [
     "RG Vikramjeet", "Testbook", "Utkarsh Classes", "Yes Officer",
     "KD LIVE", "Selection Way", "Careerwill", "IFAS Academy",
     "MD Classes", "GS Vision", "Vibrant Academy", "Apna College",
-    "Unacademy Offline", "KGS Test"
+    "Unacademy Offline", "KGS Test", "Adda247", "Sankalp Bharat", "PW Skills"
 ]
 
 # ------------------------------------------------------------------
@@ -296,7 +297,7 @@ def handle_pricing(message):
     markup.add(types.InlineKeyboardButton(f"💳 Buy Now (₹{PRICE})", callback_data="buy_now"))
     bot.send_message(
         message.chat.id,
-        f"🎉 SPECIAL DISCOUNT OFFER:\n\nAll 30 Educational Institutes Access in Single App!\n💰 Price: ₹{PRICE} Only",
+        f"🎉 SPECIAL DISCOUNT OFFER:\n\nAll {len(BATCHES)} Educational Institutes Access in Single App!\n💰 Price: ₹{PRICE} Only",
         reply_markup=markup
     )
 
