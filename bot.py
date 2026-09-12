@@ -158,7 +158,7 @@ def main_reply_keyboard():
         types.KeyboardButton("📚 All Institutes Batches")
     )
     markup.add(
-        types.KeyboardButton("🔍 Search Bot"),
+        types.KeyboardButton("🔍 Search Batch"),
         types.KeyboardButton("🏷️ Offer and Pricing")
     )
     markup.add(
@@ -277,7 +277,7 @@ def handle_support(message):
     text = (
         "👤 FOUNDER & SUPPORT INFORMATION\n"
         "━━━━━━━━━━━━━━━━━━━━━━\n\n"
-        "👑 Founder & Owner: Himanshu Kumar\n"
+        "👑 Founder & Owner: 卄卂匚Ҝ乇尺\n"
         f"💬 Direct Telegram DM: {ADMIN_USERNAME}\n"
         f"📣 Official Channel: {CHANNEL_USERNAME}\n\n"
         "✨ 24/7 Support Available!"
