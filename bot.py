@@ -1,7 +1,10 @@
+```python
 import os
+import re
 import logging
 import threading
 import urllib.parse
+from datetime import datetime
 from functools import wraps
 from flask import Flask
 import telebot
@@ -14,7 +17,7 @@ app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return "Bot status: Active", 200
+    return "Bot status: Active & Secure", 200
 
 def run_flask():
     port = int(os.environ.get("PORT", 8080))
@@ -32,18 +35,19 @@ logger = logging.getLogger(__name__)
 RAW_TOKEN = "8871003871:AAEub895BWnh7cmADXFJKXlRJmyf5mpwg4I"
 BOT_TOKEN = RAW_TOKEN.replace(" ", "").strip()
 
-ADMIN_ID = "6919943679"
+ADMIN_ID = "7990500822"
 UPI_ID = "kumaranil98787@axl"
 
-ADMIN_USERNAME = "@neon_phantom1"
+ADMIN_USERNAME = "@the_himanshu1"
 CHANNEL_USERNAME = "@batchseller321"
-INSTAGRAM_LINK = "https://www.instagram.com/x____hacker1?stkn=NnRsYTNma2dhNmg="
-PRICE = "149"
+INSTAGRAM_LINK = "https://www.instagram.com/batches__hub?igsh=emRhdWdja3MwMGt1&igsi=emRhdWdja3MwMGt1"
+PRICE = "149"  # Strictly Fixed Payment Amount
+
 USER_FILE = "users.txt"
+USED_UTRS_FILE = "used_utrs.txt"
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
-# Yahan naye institutes add/edit kar sakte hain:
 BATCHES = [
     "Next Topper", "Study IQ", "Rojgar With Ankit", "CDS Journey",
     "Khan Global Studies (KGS)", "UC Live Rani Mam", "Gyanbindu", "GK GS Masti",
@@ -56,7 +60,7 @@ BATCHES = [
 ]
 
 # ------------------------------------------------------------------
-# HELPER FUNCTIONS & FORCE JOIN CHECK
+# HELPER & DATABASE FUNCTIONS
 # ------------------------------------------------------------------
 def save_user(user_id):
     user_id = str(user_id)
@@ -70,6 +74,17 @@ def get_users():
         with open(USER_FILE, "r") as f:
             return [line.strip() for line in f if line.strip()]
     return []
+
+def is_utr_used(utr):
+    if os.path.exists(USED_UTRS_FILE):
+        with open(USED_UTRS_FILE, "r") as f:
+            used = [line.strip() for line in f if line.strip()]
+            return utr in used
+    return False
+
+def mark_utr_as_used(utr):
+    with open(USED_UTRS_FILE, "a") as f:
+        f.write(f"{utr}\n")
 
 def is_user_subscribed(user_id):
     if str(user_id) == ADMIN_ID:
@@ -158,7 +173,7 @@ def main_reply_keyboard():
         types.KeyboardButton("📚 All Institutes Batches")
     )
     markup.add(
-        types.KeyboardButton("🔍 Search Batch"),
+        types.KeyboardButton("🔍 Search Bot"),
         types.KeyboardButton("🏷️ Offer and Pricing")
     )
     markup.add(
@@ -181,13 +196,13 @@ def get_batches_text():
         "✅ Batch availability updates\n"
         "✅ Affordable pricing\n"
         "✅ Contact for current availability & details\n\n"
-        "👇 Apna desired institute/batch choose karein aur availability ke liye contact karein.\n\n"
+        "👇 Apna desired institute/batch choose karein aur access paane ke liye 'Buy Now' par click karein.\n\n"
         f"📩 Contact Admin: {ADMIN_USERNAME}"
     )
 
 def send_batches_view(chat_id):
     inline_markup = types.InlineKeyboardMarkup()
-    inline_markup.add(types.InlineKeyboardButton(f"💳 Buy Now (₹{PRICE})", callback_data="buy_now"))
+    inline_markup.add(types.InlineKeyboardButton(f"💳 Buy Now (Fixed ₹{PRICE})", callback_data="buy_now"))
     inline_markup.add(types.InlineKeyboardButton("📩 Contact Admin", url=f"https://t.me/{ADMIN_USERNAME.replace('@', '')}"))
     bot.send_message(chat_id, get_batches_text(), reply_markup=inline_markup)
 
@@ -277,7 +292,7 @@ def handle_support(message):
     text = (
         "👤 FOUNDER & SUPPORT INFORMATION\n"
         "━━━━━━━━━━━━━━━━━━━━━━\n\n"
-        "👑 Founder & Owner: 卄卂匚Ҝ乇尺\n"
+        "👑 Founder & Owner: Himanshu Kumar\n"
         f"💬 Direct Telegram DM: {ADMIN_USERNAME}\n"
         f"📣 Official Channel: {CHANNEL_USERNAME}\n\n"
         "✨ 24/7 Support Available!"
@@ -294,10 +309,10 @@ def handle_support(message):
 def handle_pricing(message):
     save_user(message.chat.id)
     markup = types.InlineKeyboardMarkup()
-    markup.add(types.InlineKeyboardButton(f"💳 Buy Now (₹{PRICE})", callback_data="buy_now"))
+    markup.add(types.InlineKeyboardButton(f"💳 Buy Now (Fixed ₹{PRICE})", callback_data="buy_now"))
     bot.send_message(
         message.chat.id,
-        f"🎉 SPECIAL DISCOUNT OFFER:\n\nAll {len(BATCHES)} Educational Institutes Access in Single App!\n💰 Price: ₹{PRICE} Only",
+        f"🎉 SPECIAL DISCOUNT OFFER:\n\nAll {len(BATCHES)} Educational Institutes Access in Single App!\n💰 Fixed Price: ₹{PRICE} Only",
         reply_markup=markup
     )
 
@@ -350,7 +365,7 @@ def forward_feedback_to_admin(message):
         bot.send_message(message.chat.id, "✅ Feedback receive ho gaya hai.")
 
 # ------------------------------------------------------------------
-# 5. PAYMENT & UPI QR GENERATION
+# 5. PAYMENT & STRICT UTR VERIFICATION
 # ------------------------------------------------------------------
 @bot.callback_query_handler(func=lambda call: call.data == "buy_now")
 @safe_handler
@@ -362,15 +377,17 @@ def process_payment(call):
     
     caption = (
         "🎯 *All Batches Access Single App*\n"
-        f"💰 *Amount:* ₹{PRICE}\n\n"
-        f"📲 *UPI ID:* `{UPI_ID}` _(Tap on UPI ID to Copy)_\n\n"
-        "🔹 QR Code scan karke pay karein.\n"
-        "🔹 Agar scan na ho, toh uper diye UPI ID ko copy karke PhonePe/Paytm me pay karein.\n"
-        "🔹 Payment ke baad 'Verify Payment' button dabayein."
+        f"💰 *Strict Amount:* ₹{PRICE} _(Fixed Price)_\n\n"
+        f"📲 *UPI ID:* `{UPI_ID}` _(Tap to copy)_\n\n"
+        "🛑 *STRICT PAYMENT RULES:*\n"
+        f"1. Aapko exactly ₹{PRICE} hi pay karna hai.\n"
+        "2. Payment ke baad 12-Digit UTR/Transaction ID strictly verify hoga.\n"
+        "3. Fake UTR enter karne par bot block kar dega.\n\n"
+        "👇 Payment karne ke baad 'Submit UTR / Txn ID' button par click karein:"
     )
     
     markup = types.InlineKeyboardMarkup()
-    markup.add(types.InlineKeyboardButton("🔍 Verify Payment (Submit UTR)", callback_data="verify_utr"))
+    markup.add(types.InlineKeyboardButton("🔍 Submit UTR / Txn ID", callback_data="verify_utr"))
     markup.add(types.InlineKeyboardButton("📩 Contact Admin", url=f"https://t.me/{ADMIN_USERNAME.replace('@', '')}"))
     
     bot.send_photo(call.message.chat.id, photo=qr_url, caption=caption, parse_mode="Markdown", reply_markup=markup)
@@ -380,51 +397,162 @@ def process_payment(call):
 @safe_handler
 @check_join
 def ask_utr(call):
-    msg = bot.send_message(call.message.chat.id, "📩 Apna 12-digit UTR number enter karein:")
+    msg = bot.send_message(
+        call.message.chat.id,
+        "📩 Payment complete karne ke baad apna **12-Digit Real UTR / Reference Number** enter karein:\n\n"
+        "⚠️ *Dhyan dein:* Fake number daalne par access block kar diya jayega."
+    )
     bot.register_next_step_handler(msg, process_utr_submission)
     bot.answer_callback_query(call.id)
 
 @safe_handler
 def process_utr_submission(message):
     utr = message.text.strip() if message.text else ""
+    user = message.from_user
     
-    if len(utr) == 12 and utr.isdigit():
-        bot.send_message(message.chat.id, f"✅ Payment Verified!\nUTR: {utr}\n\nAPK deliver ki ja rahi hai...")
-        
-        try:
-            with open("app.apk", "rb") as apk_file:
-                bot.send_document(
-                    message.chat.id,
-                    document=apk_file,
-                    caption="📲 Aapka App Ready Hai!"
-                )
-        except FileNotFoundError:
-            bot.send_message(
-                message.chat.id,
-                f"⚠️ Server par App file nahi mili. Admin {ADMIN_USERNAME} se contact karein."
-            )
-            
-        try:
-            bot.send_message(
-                ADMIN_ID,
-                f"🔔 NEW PAYMENT:\nUser: @{message.from_user.username}\nUTR: {utr}\nAmount: ₹{PRICE}"
-            )
-        except Exception:
-            pass
-    else:
+    # 1. Regex check for exactly 12 digits
+    if not re.match(r"^\d{12}$", utr):
         bot.send_message(
             message.chat.id,
-            "❌ Invalid UTR! 12 digit numeric UTR bhejein. Dobara try karne ke liye /start press karein."
+            "❌ *INVALID UTR FORMAT!*\n\n"
+            "UTR number strictly 12 digits ka hona chahiye (e.g. 423456789012).\n"
+            "Kripya sahi UTR ke sath dobara try karein: /start",
+            parse_mode="Markdown"
         )
+        return
+
+    # 2. Blacklist common fake UTR patterns
+    fake_patterns = ["000000000000", "123456789012", "111111111111", "999999999999"]
+    if utr in fake_patterns:
+        bot.send_message(message.chat.id, "❌ *FAKE UTR DETECTED!* Sahi payment record submit karein.")
+        return
+
+    # 3. Check for Duplicate UTR
+    if is_utr_used(utr):
+        bot.send_message(
+            message.chat.id,
+            "❌ *UTR ALREADY USED!*\n\n"
+            "Yeh UTR/Transaction ID pehle se istemaal ho chuki hai. Fake/Duplicate transactions allowed nahi hain.",
+            parse_mode="Markdown"
+        )
+        return
+
+    # Inform user that UTR is sent to Admin for strict verification
+    bot.send_message(
+        message.chat.id,
+        "⏳ *Payment Verification In Progress...*\n\n"
+        f"🔹 Amount: ₹{PRICE}\n"
+        f"🔹 Submitted UTR: `{utr}`\n\n"
+        "Aapka payment check kiya ja raha hai. System verify karte hi aapko APK file turant bhej dega (1-2 mins).",
+        parse_mode="Markdown"
+    )
+
+    # DIRECT NOTIFICATION TO ADMIN WITH APPROVE / REJECT BUTTONS
+    admin_markup = types.InlineKeyboardMarkup()
+    admin_markup.add(
+        types.InlineKeyboardButton("✅ Approve & Send APK", callback_data=f"appr_{user.id}_{utr}"),
+        types.InlineKeyboardButton("❌ Reject Fake UTR", callback_data=f"reje_{user.id}_{utr}")
+    )
+
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    admin_text = (
+        "🚨 *NEW PAYMENT VERIFICATION REQUEST* 🚨\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        f"👤 *User:* {user.first_name} (@{user.username or 'No_Username'})\n"
+        f"🆔 *User ID:* `{user.id}`\n"
+        f"💰 *Fixed Amount:* ₹{PRICE}\n"
+        f"🔢 *UTR/Txn ID:* `{utr}`\n"
+        f"🕒 *Time:* {now}\n\n"
+        "👉 PhonePe/Paytm me ₹149 check karke niche 'Approve' ya 'Reject' dabayein:"
+    )
+
+    try:
+        bot.send_message(ADMIN_ID, admin_text, parse_mode="Markdown", reply_markup=admin_markup)
+    except Exception as e:
+        logger.error(f"Failed to notify admin: {e}")
 
 # ------------------------------------------------------------------
-# 6. RUNNER LOGIC
+# 6. ADMIN APPROVAL & REJECTION CALLBACKS
+# ------------------------------------------------------------------
+@bot.callback_query_handler(func=lambda call: call.data.startswith("appr_"))
+@safe_handler
+def admin_approve_payment(call):
+    if str(call.from_user.id) != ADMIN_ID:
+        bot.answer_callback_query(call.id, "❌ Only Admin can action this!", show_alert=True)
+        return
+
+    _, target_user_id, utr = call.data.split("_")
+
+    if is_utr_used(utr):
+        bot.answer_callback_query(call.id, "⚠️ Yeh UTR pehle hi approve/use ho chuka hai!", show_alert=True)
+        return
+
+    mark_utr_as_used(utr)
+
+    # Deliver APK to user
+    try:
+        with open("app.apk", "rb") as apk_file:
+            bot.send_document(
+                target_user_id,
+                document=apk_file,
+                caption=f"🎉 *PAYMENT VERIFIED SUCCESSFULLY!*\n\n💰 Amount Received: ₹{PRICE}\n🔢 UTR: `{utr}`\n\nAapka Official App tayar hai. Abhi install karein!",
+                parse_mode="Markdown"
+            )
+        bot.send_message(target_user_id, "✅ Verification Complete! Enjoy your course access.")
+    except FileNotFoundError:
+        bot.send_message(
+            target_user_id,
+            f"🎉 Payment Verified (₹{PRICE})! Server par APK update ho rahi hai, Admin {ADMIN_USERNAME} se contact karein."
+        )
+
+    # Update Admin Message
+    bot.edit_message_text(
+        f"{call.message.text}\n\n✅ *STATUS: APPROVED BY ADMIN* (APK Delivered)",
+        chat_id=call.message.chat.id,
+        message_id=call.message.message_id,
+        parse_mode="Markdown"
+    )
+    bot.answer_callback_query(call.id, "✅ Payment Approved & APK Delivered!")
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith("reje_"))
+@safe_handler
+def admin_reject_payment(call):
+    if str(call.from_user.id) != ADMIN_ID:
+        bot.answer_callback_query(call.id, "❌ Only Admin can action this!", show_alert=True)
+        return
+
+    _, target_user_id, utr = call.data.split("_")
+
+    # Notify User
+    try:
+        bot.send_message(
+            target_user_id,
+            f"❌ *PAYMENT REJECTED / FAILED!*\n\n"
+            f"Submitted UTR: `{utr}`\n\n"
+            f"Aapka payment receive nahi hua ya UTR galat tha. Sahi payment karke UTR bhejein ya Founder {ADMIN_USERNAME} se baat karein.",
+            parse_mode="Markdown"
+        )
+    except Exception:
+        pass
+
+    # Update Admin Message
+    bot.edit_message_text(
+        f"{call.message.text}\n\n❌ *STATUS: REJECTED (FAKE/INVALID UTR)*",
+        chat_id=call.message.chat.id,
+        message_id=call.message.message_id,
+        parse_mode="Markdown"
+    )
+    bot.answer_callback_query(call.id, "❌ Payment Rejected!")
+
+# ------------------------------------------------------------------
+# 7. RUNNER LOGIC
 # ------------------------------------------------------------------
 if __name__ == "__main__":
     threading.Thread(target=run_flask, daemon=True).start()
-    logger.info("Starting Telegram Bot Engine...")
+    logger.info("Starting Ultra-Secure Telegram Bot Engine...")
     while True:
         try:
             bot.infinity_polling(timeout=30, long_polling_timeout=15, skip_pending=True)
         except Exception as e:
             logger.error(f"Polling error: {e}")
+```
