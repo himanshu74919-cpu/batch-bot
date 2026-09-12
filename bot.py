@@ -1,4 +1,3 @@
-```python
 import os
 import re
 import logging
@@ -35,12 +34,12 @@ logger = logging.getLogger(__name__)
 RAW_TOKEN = "8871003871:AAEub895BWnh7cmADXFJKXlRJmyf5mpwg4I"
 BOT_TOKEN = RAW_TOKEN.replace(" ", "").strip()
 
-ADMIN_ID = "7990500822"
+ADMIN_ID = "6919943679"
 UPI_ID = "kumaranil98787@axl"
 
-ADMIN_USERNAME = "@the_himanshu1"
+ADMIN_USERNAME = "@neon_phantom1"
 CHANNEL_USERNAME = "@batchseller321"
-INSTAGRAM_LINK = "https://www.instagram.com/batches__hub?igsh=emRhdWdja3MwMGt1&igsi=emRhdWdja3MwMGt1"
+INSTAGRAM_LINK = "https://www.instagram.com/x____hacker1?stkn=NnRsYTNma2dhNmg="
 PRICE = "149"  # Strictly Fixed Payment Amount
 
 USER_FILE = "users.txt"
@@ -292,7 +291,7 @@ def handle_support(message):
     text = (
         "👤 FOUNDER & SUPPORT INFORMATION\n"
         "━━━━━━━━━━━━━━━━━━━━━━\n\n"
-        "👑 Founder & Owner: Himanshu Kumar\n"
+        "👑 Founder & Owner: 卄卂匚Ҝ乇尺\n"
         f"💬 Direct Telegram DM: {ADMIN_USERNAME}\n"
         f"📣 Official Channel: {CHANNEL_USERNAME}\n\n"
         "✨ 24/7 Support Available!"
@@ -555,4 +554,3 @@ if __name__ == "__main__":
             bot.infinity_polling(timeout=30, long_polling_timeout=15, skip_pending=True)
         except Exception as e:
             logger.error(f"Polling error: {e}")
-```
