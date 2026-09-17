@@ -82,6 +82,7 @@ BAN_FILE = "blocked.txt"
 PREMIUM_FILE = "premium.txt"  # Direct-payment premium users (admin /activate se add karta hai)
 
 BANNER_IMAGE = "images/banner.jpg"  # optional fallback photo for search results
+WELCOME_IMAGE = "images/welcome.png"  # welcome banner shown to user on /start
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
@@ -504,17 +505,47 @@ def verify_subscription(call):
 @bot.message_handler(commands=['start'])
 @safe_handler
 @check_join
+@bot.message_handler(commands=['start'])
+@safe_handler
+@check_join
 def start_command(message):
     save_user(message.chat.id)
-    welcome = (
-        "⚡ *Welcome to Study Guru — Batch Seller Bot!*\n\n"
-        "📚 100+ institute batches in ONE SINGLE APP 🔥\n"
-        f"💰 Fixed Price: ₹{PRICE} Only\n\n"
-        "Choose an option from the menu below 👇"
-    )
-    bot.send_message(message.chat.id, welcome, parse_mode="Markdown", reply_markup=main_reply_keyboard())
-    send_batches_view(message.chat.id)
 
+    # Welcome photo (banner) with description + Buy Now / Contact Admin buttons
+    welcome_caption = (
+        "\u26a1 *Welcome to STUDY GURU \u2014 Batch Seller Bot!* \u26a1\n\n"
+        "\U0001f525 India's biggest combined batches app \U0001f525\n\n"
+        "\U0001f4da *100+ Institute Batches in ONE SINGLE APP*\n"
+        "\U0001f3a5 Live + Recorded Classes\n"
+        "\U0001f4dd Notes, PDFs & Test Series\n"
+        "\U0001f51d New Batches Added Regularly\n\n"
+        f"\U0001f4b0 *Fixed Price: \u20b9{PRICE} Only*\n\n"
+        "\U0001f447 Choose an option below:"
+    )
+    welcome_markup = types.InlineKeyboardMarkup()
+    welcome_markup.add(types.InlineKeyboardButton(f"\U0001f4b3 Buy Now (\u20b9{PRICE})", callback_data="buy_now"))
+    welcome_markup.add(types.InlineKeyboardButton("\U0001f4e9 Contact Admin", url=f"https://t.me/{ADMIN_USERNAME.replace('@', '')}"))
+
+    photo_sent = False
+    if os.path.exists(WELCOME_IMAGE):
+        try:
+            with open(WELCOME_IMAGE, "rb") as f:
+                send_photo_safe(message.chat.id, f, caption=welcome_caption, reply_markup=welcome_markup)
+            photo_sent = True
+        except Exception as e:
+            logger.error(f"Welcome photo failed: {e}")
+
+    if not photo_sent:
+        send_md(message.chat.id, welcome_caption, reply_markup=welcome_markup)
+
+    # Main reply keyboard (menu)
+    bot.send_message(
+        message.chat.id,
+        "\U0001f6d2 Use the buttons below to explore the bot:",
+        reply_markup=main_reply_keyboard()
+    )
+    # Institute batches list bhi
+    send_batches_view(message.chat.id)
 @bot.message_handler(commands=['admin'])
 @safe_handler
 def admin_command(message):
