@@ -3,6 +3,3 @@ Flask
 gunicorn
 qrcode
 pillow
-
-
-

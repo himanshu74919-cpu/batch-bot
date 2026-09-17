@@ -11,8 +11,15 @@ from datetime import datetime
 from functools import wraps
 from flask import Flask
 import telebot
-import qrcode
 from telebot import types
+
+# qrcode optional hai — agar install nahi to bhi bot chalega (QR ki jagah UPI ID text dikhega)
+try:
+    import qrcode
+    HAS_QRCODE = True
+except Exception:
+    qrcode = None
+    HAS_QRCODE = False
 
 # ==========================================================================
 # 1. RENDER KEEP-ALIVE WEB SERVER
@@ -142,6 +149,34 @@ def send_md(chat_id, text, reply_markup=None, **kwargs):
         return bot.send_message(chat_id, text, parse_mode="Markdown", reply_markup=reply_markup, **kwargs)
     except Exception:
         return bot.send_message(chat_id, text, reply_markup=reply_markup, **kwargs)
+
+def send_photo_safe(chat_id, photo, caption=None, reply_markup=None):
+    """
+    Photo bhejo — Markdown try karo, fail ho to plain caption.
+    Aur agar photo hi fail ho jaye to caption as message bhejo.
+    (Kisi bhi haal me 'technical error' nahi aayega)
+    """
+    try:
+        return bot.send_photo(chat_id, photo, caption=caption, parse_mode="Markdown", reply_markup=reply_markup)
+    except Exception:
+        try:
+            return bot.send_photo(chat_id, photo, caption=caption, reply_markup=reply_markup)
+        except Exception:
+            if caption:
+                return bot.send_message(chat_id, caption, reply_markup=reply_markup)
+            return None
+
+def md_code(s):
+    """
+    Markdown me username/naam ko backtick (`...`) me wrap karo taaki
+    underscore (_) ya asterisk (*) error na kare. Telegram Markdown me
+    backtick wala text literally render hota hai.
+    """
+    return f"`{s}`"
+
+def safe_admin():
+    """Admin username Markdown-safe (backtick me)."""
+    return md_code(ADMIN_USERNAME)
 
 def is_admin(user_id):
     return str(user_id) == ADMIN_ID
@@ -362,7 +397,7 @@ def check_join(func):
                 chat_id,
                 "🚫 *ACCESS BLOCKED!*\n\n"
                 "You are blocked from this bot (fake payment/UTR attempt).\n"
-                f"To appeal, contact Admin {ADMIN_USERNAME}.",
+                f"To appeal, contact Admin {safe_admin()}.",
                 parse_mode="Markdown"
             )
             return
@@ -399,14 +434,14 @@ def get_batches_text():
         "✅ New batches added regularly\n\n"
         f"💰 *Fixed Price: ₹{PRICE} Only*\n\n"
         "👇 Select your institute and click 'Buy Now' to get access.\n\n"
-        f"📩 Contact Admin: {ADMIN_USERNAME}"
+        f"📩 Contact Admin: {safe_admin()}"
     )
 
 def send_batches_view(chat_id):
     markup = types.InlineKeyboardMarkup()
     markup.add(types.InlineKeyboardButton(f"💳 Buy Now (Fixed ₹{PRICE})", callback_data="buy_now"))
     markup.add(types.InlineKeyboardButton("📩 Contact Admin", url=f"https://t.me/{ADMIN_USERNAME.replace('@', '')}"))
-    bot.send_message(chat_id, get_batches_text(), parse_mode="Markdown", reply_markup=markup)
+    send_md(chat_id, get_batches_text(), reply_markup=markup)
 
 # ==========================================================================
 # 8. VERIFY SUBSCRIPTION CALLBACK
@@ -648,7 +683,7 @@ def handle_support(message):
         "👤 *FOUNDER & SUPPORT*\n"
         "━━━━━━━━━━━━━━━━━━━━━━\n\n"
         "👑 Founder & Owner: HACKER\n"
-        f"💬 Direct Telegram DM: {ADMIN_USERNAME}\n"
+        f"💬 Direct Telegram DM: {safe_admin()}\n"
         f"📣 Official Channel: {CHANNEL_USERNAME}\n\n"
         "✨ 24/7 Support Available!"
     )
@@ -656,7 +691,7 @@ def handle_support(message):
     markup.add(types.InlineKeyboardButton("💬 DM Founder", url=f"https://t.me/{ADMIN_USERNAME.replace('@', '')}"))
     markup.add(types.InlineKeyboardButton("📸 Visit Instagram", url=INSTAGRAM_LINK))
     markup.add(types.InlineKeyboardButton("📣 Official Channel", url=f"https://t.me/{CHANNEL_USERNAME.replace('@', '')}"))
-    bot.send_message(message.chat.id, text, parse_mode="Markdown", reply_markup=markup)
+    send_md(message.chat.id, text, reply_markup=markup)
 
 @bot.message_handler(func=lambda msg: msg.text == "🏷️ Offer & Pricing")
 @safe_handler
@@ -729,11 +764,10 @@ def search_result(message):
     if not inst:
         markup = types.InlineKeyboardMarkup()
         markup.add(types.InlineKeyboardButton("📚 All Institutes", callback_data="show_batches"))
-        bot.send_message(
+        send_md(
             message.chat.id,
-            f"❌ No institute found for *\"{query}\"*.\n\n"
+            f"❌ No institute found for \"{query}\".\n\n"
             "Try names like: Physics Wallah, Unacademy, Study IQ, Adda247, KGS, RWA...",
-            parse_mode="Markdown",
             reply_markup=markup
         )
         return
@@ -753,15 +787,15 @@ def search_result(message):
     markup.add(types.InlineKeyboardButton("📚 All Institutes", callback_data="show_batches"))
 
     photo = get_institute_photo(inst)
-    try:
-        if photo:
+    if photo:
+        try:
             with open(photo, "rb") as f:
-                bot.send_photo(message.chat.id, f, caption=caption, parse_mode="Markdown", reply_markup=markup)
-        else:
-            bot.send_message(message.chat.id, caption, parse_mode="Markdown", reply_markup=markup)
-    except Exception as e:
-        logger.error(f"Search photo send failed: {e}")
-        bot.send_message(message.chat.id, caption, parse_mode="Markdown", reply_markup=markup)
+                send_photo_safe(message.chat.id, f, caption=caption, reply_markup=markup)
+        except Exception as e:
+            logger.error(f"Search photo send failed: {e}")
+            send_md(message.chat.id, caption, reply_markup=markup)
+    else:
+        send_md(message.chat.id, caption, reply_markup=markup)
 
 # ---------------- ACCOUNT & FEEDBACK ----------------
 @bot.message_handler(func=lambda msg: msg.text == "👤 My Account / Orders")
@@ -783,7 +817,7 @@ def handle_account(message):
         f"🛒 Total Orders: {len(my_orders)}\n"
         f"{status_line}"
     )
-    bot.send_message(message.chat.id, text, parse_mode="Markdown")
+    send_md(message.chat.id, text)
 
 @bot.message_handler(func=lambda msg: msg.text == "💬 Leave Feedback")
 @safe_handler
@@ -852,7 +886,7 @@ def deliver_access(user_id, utr):
                     f"🔢 UTR: `{utr}`\n\n"
                     "📲 *STUDY GURU — All Institute Batches in ONE App*\n\n"
                     f"🔑 *Access Key:* `{ACCESS_KEY}`\n"
-                    "_(Use this key to activate the app)_\n\n"
+                    "Use this key to activate the app.\n\n"
                     "⚠️ *IMPORTANT SECURITY NOTICE:*\n"
                     "This app is device-locked. If it is shared or sent to any other user's device, "
                     "it will be detected and your device will be *PERMANENTLY BLOCKED*. "
@@ -862,11 +896,11 @@ def deliver_access(user_id, utr):
             )
             return True
         else:
-            send_md(user_id, f"🎉 Payment Verified (₹{PRICE})! Contact Admin {ADMIN_USERNAME} if you face any issue.")
+            send_md(user_id, f"🎉 Payment Verified (₹{PRICE})! Contact Admin {safe_admin()} if you face any issue.")
             return False
     except Exception as e:
         logger.error(f"Delivery failed for {user_id}: {e}")
-        send_md(user_id, f"🎉 Payment Verified (₹{PRICE})! Contact Admin {ADMIN_USERNAME} if you face any issue.")
+        send_md(user_id, f"🎉 Payment Verified (₹{PRICE})! Contact Admin {safe_admin()} if you face any issue.")
         return False
 
 @bot.callback_query_handler(func=lambda call: call.data == "buy_now")
@@ -876,10 +910,11 @@ def process_payment(call):
     # Local QR generation (no external service -> kabhi fail nahi hoga)
     qr_img = None
     try:
-        qr = qrcode.QRCode(box_size=8, border=2)
-        qr.add_data(f"upi://pay?pa={UPI_ID}&pn=StudyGuru&am={PRICE}&cu=INR")
-        qr.make(fit=True)
-        qr_img = qr.make_image(fill_color="black", back_color="white")
+        if qrcode is not None:
+            qr = qrcode.QRCode(box_size=8, border=2)
+            qr.add_data(f"upi://pay?pa={UPI_ID}&pn=StudyGuru&am={PRICE}&cu=INR")
+            qr.make(fit=True)
+            qr_img = qr.make_image(fill_color="black", back_color="white")
     except Exception as e:
         logger.error(f"QR local generation failed: {e}")
 
@@ -905,13 +940,9 @@ def process_payment(call):
         bio.name = "qr.png"
         qr_img.save(bio, format="PNG")
         bio.seek(0)
-        try:
-            bot.send_photo(call.message.chat.id, photo=bio, caption=caption, parse_mode="Markdown", reply_markup=markup)
-        except Exception as e:
-            logger.error(f"QR send failed: {e}")
-            bot.send_message(call.message.chat.id, caption, parse_mode="Markdown", reply_markup=markup)
+        send_photo_safe(call.message.chat.id, bio, caption=caption, reply_markup=markup)
     else:
-        bot.send_message(call.message.chat.id, caption, parse_mode="Markdown", reply_markup=markup)
+        send_md(call.message.chat.id, caption, reply_markup=markup)
 
     bot.answer_callback_query(call.id)
 
@@ -954,12 +985,11 @@ def process_utr_submission(message):
     fake_patterns = ["000000000000", "123456789012", "111111111111", "999999999999"]
     if utr in fake_patterns or re.match(r"^(\d)\1{11}$", utr):
         block_user(user.id)
-        bot.send_message(
+        send_md(
             message.chat.id,
             "🚫 *FAKE UTR DETECTED — ACCESS BLOCKED!*\n\n"
             "You submitted a fake transaction ID, so you are now blocked from this bot.\n"
-            f"If this was a mistake, contact Admin {ADMIN_USERNAME}.",
-            parse_mode="Markdown"
+            f"If this was a mistake, contact Admin {safe_admin()}."
         )
         send_md(ADMIN_ID, f"🚨 User blocked (fake UTR): {user.first_name} (ID: {user.id}) — UTR: {utr}")
         return
@@ -970,7 +1000,7 @@ def process_utr_submission(message):
             message.chat.id,
             "❌ *UTR ALREADY USED!*\n\n"
             "This UTR already exists in the system. Duplicate/fake transactions are not allowed.\n"
-            f"Contact Admin {ADMIN_USERNAME} if you need help."
+            f"Contact Admin {safe_admin()} if you need help."
         )
         return
 
@@ -1087,14 +1117,14 @@ def notify_admin(order, auto=False, proof_photo=None):
         if not auto:
             if proof_photo:
                 try:
-                    bot.send_photo(ADMIN_ID, proof_photo, caption=text, parse_mode="Markdown", reply_markup=markup)
+                    send_photo_safe(ADMIN_ID, proof_photo, caption=text, reply_markup=markup)
                     return
                 except Exception:
                     pass
             elif order.get("proof_path") and os.path.exists(order["proof_path"]):
                 try:
                     with open(order["proof_path"], "rb") as f:
-                        bot.send_photo(ADMIN_ID, f, caption=text, parse_mode="Markdown", reply_markup=markup)
+                        send_photo_safe(ADMIN_ID, f, caption=text, reply_markup=markup)
                     return
                 except Exception:
                     pass
@@ -1169,7 +1199,7 @@ def admin_reject(call):
             "❌ *PAYMENT REJECTED / NOT RECEIVED!*\n\n"
             f"🔢 UTR: `{order.get('utr')}`\n\n"
             "Your payment was NOT received in the admin's UPI app, or the UTR/screenshot did not match.\n"
-            f"Please pay correctly and try again, or contact Founder {ADMIN_USERNAME}."
+            f"Please pay correctly and try again, or contact Founder {safe_admin()}."
         )
     except Exception as e:
         logger.error(f"Reject notify user failed: {e}")
