@@ -79,6 +79,7 @@ USER_FILE = "users.txt"
 USED_UTRS_FILE = "used_utrs.txt"
 ORDERS_FILE = "orders.json"
 BAN_FILE = "blocked.txt"
+PREMIUM_FILE = "premium.txt"  # Direct-payment premium users (admin /activate se add karta hai)
 
 BANNER_IMAGE = "images/banner.jpg"  # optional fallback photo for search results
 
@@ -201,6 +202,44 @@ def unblock_user(user_id):
 
 def is_blocked(user_id):
     return str(user_id) in get_blocked()
+
+# --- Premium system (direct payment wale users ka access) ---
+def get_premium():
+    """Premium users ki list lauta hai as list of dicts (id, time)."""
+    users = []
+    if os.path.exists(PREMIUM_FILE):
+        with open(PREMIUM_FILE, "r") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                # format: user_id|timestamp  (timestamp optional)
+                parts = line.split("|")
+                users.append({"id": parts[0].strip(), "time": parts[1].strip() if len(parts) > 1 else "?"})
+    return users
+
+def is_premium(user_id):
+    return str(user_id) in {u["id"] for u in get_premium()}
+
+def set_premium(user_id):
+    """User ko premium list me add karo (agar already nahi hai)."""
+    uid = str(user_id).strip()
+    if is_premium(uid):
+        return False
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    with open(PREMIUM_FILE, "a") as f:
+        f.write(f"{uid}|{now}\n")
+    return True
+
+def remove_premium(user_id):
+    """User ko premium list se hatao."""
+    uid = str(user_id).strip()
+    users = get_premium()
+    new_list = [u for u in users if u["id"] != uid]
+    with open(PREMIUM_FILE, "w") as f:
+        for u in new_list:
+            f.write(f"{u['id']}|{u.get('time', '?')}\n")
+    return len(new_list) < len(users)
 
 # ==========================================================================
 # 4. DATABASE / FILE FUNCTIONS
@@ -492,7 +531,11 @@ def admin_command(message):
         "🔹 /broadcast - Message all users (text/photo/file)\n"
         "🔹 /ban <user_id> - Block a user\n"
         "🔹 /unban <user_id> - Unblock a user\n"
-        "🔹 /blocked - List blocked users"
+        "🔹 /blocked - List blocked users\n\n"
+        "💎 *PREMIUM (DIRECT PAYMENT):*\n"
+        "🔹 /activate <user_id> - Premium ON + app send\n"
+        "🔹 /deactivate <user_id> - Premium OFF\n"
+        "🔹 /premium - Premium users list"
     )
     bot.send_message(message.chat.id, text, parse_mode="Markdown")
 
@@ -657,6 +700,121 @@ def blocked_command(message):
 def cancel_command(message):
     bot.send_message(message.chat.id, "❌ Current process cancelled. Press /start to begin again.")
 
+# ------------------------------------------------------------------
+# PREMIUM (DIRECT PAYMENT) ADMIN COMMANDS
+#   Owner ne directly payment receive kiya (bot ke bahar - WhatsApp/UPI)
+#   to in commands se user ko premium activate karke app bhej sakta hai.
+# ------------------------------------------------------------------
+def deliver_premium(user_id):
+    """Premium user ko app + access key bhejo (direct-payment style, bina UTR ke)."""
+    try:
+        apk_data, apk_path = download_apk_file()
+        if apk_data:
+            bot.send_document(
+                user_id,
+                document=apk_data,
+                visible_file_name=os.path.basename(apk_path or APK_FILE),
+                caption=(
+                    "🎉 *PREMIUM ACTIVATED!*\n"
+                    "━━━━━━━━━━━━━━━━━━━━━━\n\n"
+                    "Your payment has been confirmed by the admin. ✅\n\n"
+                    "📲 *STUDY GURU — All Institute Batches in ONE App*\n\n"
+                    f"🔑 *Access Key:* `{ACCESS_KEY}`\n"
+                    "Use this key to activate the app.\n\n"
+                    "⚠️ *IMPORTANT SECURITY NOTICE:*\n"
+                    "This app is device-locked. If it is shared or sent to any other user's device, "
+                    "it will be detected and your device will be *PERMANENTLY BLOCKED*. "
+                    "Use it only on your own device."
+                ),
+                parse_mode="Markdown"
+            )
+            return True
+        else:
+            send_md(user_id, "🎉 Premium Activated! App file server par update ho rahi hai, thodi der me milegi.")
+            return False
+    except Exception as e:
+        logger.error(f"Premium delivery failed for {user_id}: {e}")
+        send_md(user_id, "🎉 Premium Activated! Contact Admin for the app file.")
+        return False
+
+@bot.message_handler(commands=['activate'])
+@safe_handler
+def activate_command(message):
+    if not is_admin(message.from_user.id):
+        bot.send_message(message.chat.id, "❌ You do not have admin access.")
+        return
+    parts = (message.text or "").split()
+    if len(parts) < 2:
+        bot.send_message(
+            message.chat.id,
+            "❌ Wrong format.\n\nUsage: /activate <user_id>\nExample: /activate 123456789\n\n"
+            "Ye command user ko PREMIUM activate karti hai aur use app + access key bhejti hai."
+        )
+        return
+    target = parts[1].strip()
+    if not target.isdigit():
+        bot.send_message(message.chat.id, "❌ User ID sirf number hota hai.\nUsage: /activate <user_id>")
+        return
+
+    if is_blocked(target):
+        bot.send_message(message.chat.id, f"⚠️ User `{target}` blocked hai. Pehle /unban karo, fir activate karo.")
+        return
+
+    was_new = set_premium(target)
+
+    # App + access key user ko bhejo
+    delivered = deliver_premium(target)
+
+    if was_new:
+        bot.send_message(
+            message.chat.id,
+            f"✅ *PREMIUM ACTIVATED!*\n\n"
+            f"👤 User `{target}` ab PREMIUM hai.\n"
+            f"🛒 App deliver: {'✅ Sent' if delivered else '⚠️ Manual check'}\n\n"
+            f"📋 List dekhne ke liye: /premium",
+            parse_mode="Markdown"
+        )
+    else:
+        bot.send_message(
+            message.chat.id,
+            f"ℹ️ User `{target}` pehle se PREMIUM tha.\n"
+            f"🛒 App dobara deliver: {'✅ Sent' if delivered else '⚠️ Manual check'}",
+            parse_mode="Markdown"
+        )
+
+@bot.message_handler(commands=['deactivate'])
+@safe_handler
+def deactivate_command(message):
+    if not is_admin(message.from_user.id):
+        bot.send_message(message.chat.id, "❌ You do not have admin access.")
+        return
+    parts = (message.text or "").split()
+    if len(parts) < 2:
+        bot.send_message(message.chat.id, "❌ Wrong format.\n\nUsage: /deactivate <user_id>\nExample: /deactivate 123456789")
+        return
+    target = parts[1].strip()
+    removed = remove_premium(target)
+    if removed:
+        send_md(message.chat.id, f"✅ User `{target}` ka PREMIUM access hata diya gaya.")
+    else:
+        send_md(message.chat.id, f"ℹ️ User `{target}` premium list me tha hi nahi.")
+
+@bot.message_handler(commands=['premium'])
+@safe_handler
+def premium_command(message):
+    if not is_admin(message.from_user.id):
+        bot.send_message(message.chat.id, "❌ You do not have admin access.")
+        return
+    users = get_premium()
+    if not users:
+        bot.send_message(message.chat.id, "📭 Abhi koi premium user nahi hai.")
+        return
+    lines = [f"💎 *PREMIUM USERS ({len(users)})*", "━━━━━━━━━━━━━━━━━━━━━━"]
+    for u in users:
+        lines.append(f"🆔 {u['id']}  |  🕒 {u.get('time', '?')}")
+    lines.append("\nActivate: /activate <id> | Deactivate: /deactivate <id>")
+    bot.send_message(message.chat.id, "\n".join(lines))
+
 # ==========================================================================
 # 10. REGULAR MENU HANDLERS
 # ==========================================================================
@@ -805,8 +963,9 @@ def handle_account(message):
     save_user(message.chat.id)
     my_orders = [o for o in get_orders() if str(o.get("user_id")) == str(message.from_user.id)]
     purchased = [o for o in my_orders if o.get("status") == "approved"]
-    if purchased:
-        status_line = f"✅ Access: Active\n🔑 Access Key: `{ACCESS_KEY}`"
+    premium = is_premium(message.from_user.id)
+    if premium or purchased:
+        status_line = f"✅ Access: Active (Premium 💎)\n🔑 Access Key: `{ACCESS_KEY}`"
     else:
         status_line = "📦 Access: Not Purchased"
     text = (
@@ -815,6 +974,7 @@ def handle_account(message):
         f"🆔 User ID: {message.from_user.id}\n"
         f"👤 Name: {message.from_user.first_name}\n"
         f"🛒 Total Orders: {len(my_orders)}\n"
+        f"💎 Premium: {'✅ Yes' if premium else '❌ No'}\n"
         f"{status_line}"
     )
     send_md(message.chat.id, text)
