@@ -50,10 +50,10 @@ logger = logging.getLogger(__name__)
 RAW_TOKEN = "8871003871:AAEub895BWnh7cmADXFJKXlRJmyf5mpwg4I"
 BOT_TOKEN = RAW_TOKEN.replace(" ", "").strip()
 
-ADMIN_ID = "6919943679"
+ADMIN_ID = "8607774564"
 UPI_ID = "kumaranil98787@axl"
 
-ADMIN_USERNAME = "@neon_phantom1"
+ADMIN_USERNAME = "@Supermannn_x"
 CHANNEL_USERNAME = "@batchseller321"
 INSTAGRAM_LINK = "https://www.instagram.com/x____hacker1?stkn=NnRsYTNma2dhNmg="
 
