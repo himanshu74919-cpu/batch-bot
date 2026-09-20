@@ -1417,6 +1417,15 @@ def admin_reject(call):
 if __name__ == "__main__":
     os.makedirs("images", exist_ok=True)
     os.makedirs("proofs", exist_ok=True)
+
+    # IMPORTANT: stale/duplicate webhook hata do, warna Telegram 409 Conflict
+    # deta hai aur bot kisi message ka respond nahi karta.
+    try:
+        bot.remove_webhook()
+        logger.info("Webhook removed - bot polling mode me chal raha hai.")
+    except Exception as e:
+        logger.error(f"remove_webhook failed: {e}")
+
     threading.Thread(target=run_flask, daemon=True).start()
     logger.info("Starting Study Guru Bot Engine...")
     while True:
@@ -1424,4 +1433,12 @@ if __name__ == "__main__":
             bot.infinity_polling(timeout=30, long_polling_timeout=15, skip_pending=True)
         except Exception as e:
             logger.error(f"Polling error: {e}")
+            # 409 Conflict = koi dusra webhook active. Usko hatao aur retry karo.
+            msg = str(e).lower()
+            if "409" in msg or "conflict" in msg or "webhook" in msg:
+                try:
+                    bot.remove_webhook()
+                    logger.info("Webhook conflict detected -> removed, retrying...")
+                except Exception:
+                    pass
             time.sleep(3)
