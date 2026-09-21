@@ -409,16 +409,28 @@ def send_force_join_message(chat_id):
 def safe_handler(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
+        for arg in args:
+            if isinstance(arg, (types.Message, types.CallbackQuery)):
+                _telemetry_log(func.__name__, arg)
+                break
         try:
             return func(*args, **kwargs)
         except Exception as e:
             logger.error(f"Error in {func.__name__}: {str(e)}", exc_info=True)
+            # Aggar handler fail ho, to button ko answer + user ko message do
             for arg in args:
                 if isinstance(arg, types.Message):
-                    bot.send_message(arg.chat.id, "⚠️ A technical error occurred. Please press /start.")
+                    try:
+                        bot.send_message(arg.chat.id, "⚠️ A technical error occurred. Please press /start.")
+                    except Exception:
+                        pass
                     break
                 elif isinstance(arg, types.CallbackQuery):
-                    bot.send_message(arg.message.chat.id, "⚠️ A technical error occurred. Please press /start.")
+                    try:
+                        bot.answer_callback_query(arg.id, "⚠️ Error. Try again.")
+                        bot.send_message(arg.message.chat.id, "⚠️ A technical error occurred. Please press /start.")
+                    except Exception:
+                        pass
                     break
     return wrapper
 
@@ -440,13 +452,33 @@ def check_join(func):
                 f"To appeal, contact Admin {safe_admin()}.",
                 parse_mode="Markdown"
             )
+            if isinstance(event, types.CallbackQuery):
+                try:
+                    bot.answer_callback_query(event.id, "🚫 Blocked")
+                except Exception:
+                    pass
             return
 
         if not is_user_subscribed(user_id):
             send_force_join_message(chat_id)
+            if isinstance(event, types.CallbackQuery):
+                try:
+                    bot.answer_callback_query(event.id, "⚠️ Join the channel first")
+                except Exception:
+                    pass
             return
         return func(event, *args, **kwargs)
     return wrapper
+
+# Diagnostic logging: jab bhi bot callbacks/messages process karta hai to log karo
+def _telemetry_log(fn_name, event):
+    try:
+        if isinstance(event, types.Message):
+            logger.info(f"[MSG] handler={fn_name} user={event.from_user.id} text={str(event.text)[:50]}")
+        elif isinstance(event, types.CallbackQuery):
+            logger.info(f"[CALLBACK] handler={fn_name} user={event.from_user.id} data={event.data}")
+    except Exception:
+        pass
 
 # ==========================================================================
 # 7. BUTTONS & KEYBOARDS
@@ -502,9 +534,6 @@ def verify_subscription(call):
 # ==========================================================================
 # 9. BOT COMMAND HANDLERS
 # ==========================================================================
-@bot.message_handler(commands=['start'])
-@safe_handler
-@check_join
 @bot.message_handler(commands=['start'])
 @safe_handler
 @check_join
@@ -909,8 +938,12 @@ def handle_batches(message):
 @bot.callback_query_handler(func=lambda call: call.data == "show_batches")
 @safe_handler
 def show_batches_callback(call):
+    try:
+        bot.answer_callback_query(call.id, "⏳ Loading...")
+    except Exception:
+        pass
+    logger.info(f"show_batches clicked by user {call.from_user.id}")
     send_batches_view(call.message.chat.id)
-    bot.answer_callback_query(call.id)
 
 @bot.message_handler(func=lambda msg: msg.text == "📞 Support & Founder")
 @safe_handler
@@ -1147,6 +1180,13 @@ def deliver_access(user_id, utr):
 @safe_handler
 @check_join
 def process_payment(call):
+    # Button ko TURANT answer do (warna Telegram button spinner me atka rehta hai)
+    try:
+        bot.answer_callback_query(call.id, "⏳ Loading payment details...")
+    except Exception:
+        pass
+    logger.info(f"buy_now clicked by user {call.from_user.id}")
+
     # Local QR generation (no external service -> kabhi fail nahi hoga)
     qr_img = None
     try:
@@ -1167,7 +1207,7 @@ def process_payment(call):
         "2️⃣ After payment, submit your *12-Digit UTR / Transaction ID*.\n"
         "3️⃣ A *payment SCREENSHOT* is compulsory.\n"
         "4️⃣ Admin will *strictly verify* your payment in his UPI app before delivery.\n"
-        "5️⃣ Fake UTR / fake screenshot = *PERMANENT BLOCK*.\n"
+        "5️⃣ Fake UTR / fake screenshot = *PERMANENT BLOCK*. \n"
         "6️⃣ The app is device-locked. Sharing it to another device will *permanently block your device*.\n\n"
         "👇 After payment, click 'Submit UTR / Txn ID':"
     )
@@ -1180,22 +1220,25 @@ def process_payment(call):
         bio.name = "qr.png"
         qr_img.save(bio, format="PNG")
         bio.seek(0)
+        logger.info(f"Sending QR + UTR instructions to {call.message.chat.id}")
         send_photo_safe(call.message.chat.id, bio, caption=caption, reply_markup=markup)
     else:
         send_md(call.message.chat.id, caption, reply_markup=markup)
-
-    bot.answer_callback_query(call.id)
 
 @bot.callback_query_handler(func=lambda call: call.data == "verify_utr")
 @safe_handler
 @check_join
 def ask_utr(call):
+    try:
+        bot.answer_callback_query(call.id, "⏳ Loading...")
+    except Exception:
+        pass
+    logger.info(f"verify_utr clicked by user {call.from_user.id}")
     user_id = call.from_user.id
     active = user_has_active_payment(user_id)
     if active:
         next_step = "send your payment screenshot" if active.get("status") == "awaiting_proof" else "wait for admin verification"
         bot.send_message(call.message.chat.id, f"⏳ You already have a pending payment.\n👉 Please {next_step}.")
-        bot.answer_callback_query(call.id)
         return
     msg = bot.send_message(
         call.message.chat.id,
@@ -1204,7 +1247,6 @@ def ask_utr(call):
         parse_mode="Markdown"
     )
     bot.register_next_step_handler(msg, process_utr_submission)
-    bot.answer_callback_query(call.id)
 
 @safe_handler
 def process_utr_submission(message):
@@ -1461,7 +1503,31 @@ def admin_reject(call):
     bot.answer_callback_query(call.id, "❌ Rejected!")
 
 # ==========================================================================
-# 13. RUNNER LOGIC
+# 13. CATCH-ALL CALLBACK FAILSAFE (kisi bhi button click ka jawab zarur mile)
+# ==========================================================================
+# NOTE: ye handler SABSE AAKHRI me hai, taaki upar ke specific handlers
+# pehle match ho jayein. Agar koi button upar handle nahi hua to ye chalega.
+@bot.callback_query_handler(func=lambda call: True)
+@safe_handler
+def unknown_callback_failsafe(call):
+    try:
+        bot.answer_callback_query(call.id, "✅ Done")
+    except Exception:
+        pass
+    data = call.data or ""
+    logger.warning(f"Unhandled callback data: {data} (user {call.from_user.id})")
+    if data == "buy_now":
+        # Safety: agar buy_now kisi wajah se upar handle nahi hua to yaha dobara try
+        process_payment(call)
+    elif data == "show_batches":
+        send_batches_view(call.message.chat.id)
+    elif data == "verify_utr":
+        ask_utr(call)
+    else:
+        bot.send_message(call.message.chat.id, "ℹ️ Ye button purani hai. Please press /start.")
+
+# ==========================================================================
+# 14. RUNNER LOGIC
 # ==========================================================================
 if __name__ == "__main__":
     os.makedirs("images", exist_ok=True)
@@ -1479,7 +1545,9 @@ if __name__ == "__main__":
     logger.info("Starting Study Guru Bot Engine...")
     while True:
         try:
-            bot.infinity_polling(timeout=30, long_polling_timeout=15, skip_pending=True)
+            # skip_pending=False -> agar render spin-down/restart ke dauran
+            # koi callback aaya tha to wo bhi process hoga, silently drop nahi.
+            bot.infinity_polling(timeout=30, long_polling_timeout=15, skip_pending=False)
         except Exception as e:
             logger.error(f"Polling error: {e}")
             # 409 Conflict = koi dusra webhook active. Usko hatao aur retry karo.
