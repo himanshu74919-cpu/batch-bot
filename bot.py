@@ -565,6 +565,7 @@ def admin_command(message):
         "🔹 /blocked - List blocked users\n\n"
         "💎 *PREMIUM (DIRECT PAYMENT):*\n"
         "🔹 /activate <user_id> - Premium ON + app send\n"
+        "🔹 /resend <user_id> - App dobara send karo\n"
         "🔹 /deactivate <user_id> - Premium OFF\n"
         "🔹 /premium - Premium users list"
     )
@@ -737,12 +738,20 @@ def cancel_command(message):
 #   to in commands se user ko premium activate karke app bhej sakta hai.
 # ------------------------------------------------------------------
 def deliver_premium(user_id):
-    """Premium user ko app + access key bhejo (direct-payment style, bina UTR ke)."""
+    """Premium user ko app + access key bhejo (direct-payment style, bina UTR ke).
+
+    Returns: {"ok": True/False, "reason": "...human-friendly reason..."}
+    Kabhi crash nahi hota — user ne bot /start nahi kiya ho (chat not found)
+    to admin ko saaf reason bataya jata hai.
+    """
+    uid = str(user_id).strip()
     try:
         apk_data, apk_path = download_apk_file()
-        if apk_data:
+        if not apk_data:
+            return {"ok": False, "reason": "APK file download/read nahi ho payi (server issue)."}
+        try:
             bot.send_document(
-                user_id,
+                uid,
                 document=apk_data,
                 visible_file_name=os.path.basename(apk_path or APK_FILE),
                 caption=(
@@ -759,14 +768,19 @@ def deliver_premium(user_id):
                 ),
                 parse_mode="Markdown"
             )
-            return True
-        else:
-            send_md(user_id, "🎉 Premium Activated! App file server par update ho rahi hai, thodi der me milegi.")
-            return False
+            return {"ok": True, "reason": "App + access key delivered."}
+        except Exception as e:
+            err = str(e)
+            if "chat not found" in err.lower():
+                return {"ok": False, "reason": "User ne abhi tak bot ko /start nahi kiya (chat not found). "
+                          "User ko bolo pehle bot me /start bheje, fir /resend <id> se app bhejo."}
+            if "blocked" in err.lower() and "bot" in err.lower():
+                return {"ok": False, "reason": "User ne bot ko block/delete kar diya hai (bot was blocked)."}
+            logger.error(f"Premium document send failed for {uid}: {err}")
+            return {"ok": False, "reason": f"Send error: {err[:120]}"}
     except Exception as e:
-        logger.error(f"Premium delivery failed for {user_id}: {e}")
-        send_md(user_id, "🎉 Premium Activated! Contact Admin for the app file.")
-        return False
+        logger.error(f"Premium delivery failed for {uid}: {e}")
+        return {"ok": False, "reason": f"Delivery error: {str(e)[:120]}"}
 
 @bot.message_handler(commands=['activate'])
 @safe_handler
@@ -793,15 +807,21 @@ def activate_command(message):
 
     was_new = set_premium(target)
 
-    # App + access key user ko bhejo
-    delivered = deliver_premium(target)
+    # App + access key user ko bhejo (result with reason)
+    result = deliver_premium(target)
+
+    status_emoji = "✅" if result.get("ok") else "⚠️"
+    deliver_line = f"🛒 App deliver: {status_emoji} {'Sent' if result.get('ok') else 'FAILED'}"
+    if not result.get("ok"):
+        deliver_line += f"\n📌 Reason: {result.get('reason', 'unknown')}"
+        deliver_line += "\n👉 Retry: /resend " + target
 
     if was_new:
         bot.send_message(
             message.chat.id,
             f"✅ *PREMIUM ACTIVATED!*\n\n"
             f"👤 User `{target}` ab PREMIUM hai.\n"
-            f"🛒 App deliver: {'✅ Sent' if delivered else '⚠️ Manual check'}\n\n"
+            f"{deliver_line}\n\n"
             f"📋 List dekhne ke liye: /premium",
             parse_mode="Markdown"
         )
@@ -809,7 +829,7 @@ def activate_command(message):
         bot.send_message(
             message.chat.id,
             f"ℹ️ User `{target}` pehle se PREMIUM tha.\n"
-            f"🛒 App dobara deliver: {'✅ Sent' if delivered else '⚠️ Manual check'}",
+            f"{deliver_line}",
             parse_mode="Markdown"
         )
 
@@ -845,6 +865,35 @@ def premium_command(message):
         lines.append(f"🆔 {u['id']}  |  🕒 {u.get('time', '?')}")
     lines.append("\nActivate: /activate <id> | Deactivate: /deactivate <id>")
     bot.send_message(message.chat.id, "\n".join(lines))
+
+@bot.message_handler(commands=['resend'])
+@safe_handler
+def resend_command(message):
+    """Premium user ko dobara app + key bhejo (e.g. jab user pehle /start nahi kiya tha)."""
+    if not is_admin(message.from_user.id):
+        bot.send_message(message.chat.id, "❌ You do not have admin access.")
+        return
+    parts = (message.text or "").split()
+    if len(parts) < 2:
+        bot.send_message(message.chat.id, "❌ Wrong format.\n\nUsage: /resend <user_id>\nExample: /resend 123456789")
+        return
+    target = parts[1].strip()
+    if not target.isdigit():
+        bot.send_message(message.chat.id, "❌ User ID sirf number hota hai.\nUsage: /resend <user_id>")
+        return
+    if not is_premium(target):
+        bot.send_message(
+            message.chat.id,
+            f"⚠️ User `{target}` premium nahi hai. Pehle /activate {target} karo.",
+            parse_mode="Markdown"
+        )
+        return
+    result = deliver_premium(target)
+    status_emoji = "✅" if result.get("ok") else "⚠️"
+    text = f"🛒 App resend to `{target}`: {status_emoji} {'Sent' if result.get('ok') else 'FAILED'}"
+    if not result.get("ok"):
+        text += f"\n📌 Reason: {result.get('reason', 'unknown')}"
+    send_md(message.chat.id, text)
 
 # ==========================================================================
 # 10. REGULAR MENU HANDLERS
