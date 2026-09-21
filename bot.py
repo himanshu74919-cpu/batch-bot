@@ -445,12 +445,11 @@ def check_join(func):
             return func(event, *args, **kwargs)
 
         if is_blocked(user_id):
-            bot.send_message(
+            send_md(
                 chat_id,
                 "🚫 *ACCESS BLOCKED!*\n\n"
                 "You are blocked from this bot (fake payment/UTR attempt).\n"
-                f"To appeal, contact Admin {safe_admin()}.",
-                parse_mode="Markdown"
+                f"To appeal, contact Admin {safe_admin()}."
             )
             if isinstance(event, types.CallbackQuery):
                 try:
@@ -589,16 +588,16 @@ def admin_command(message):
         "🔹 /orders - Recent orders list\n"
         "🔹 /report - Full orders CSV report\n"
         "🔹 /broadcast - Message all users (text/photo/file)\n"
-        "🔹 /ban <user_id> - Block a user\n"
-        "🔹 /unban <user_id> - Unblock a user\n"
+        "🔹 /ban <user id> - Block a user\n"
+        "🔹 /unban <user id> - Unblock a user\n"
         "🔹 /blocked - List blocked users\n\n"
         "💎 *PREMIUM (DIRECT PAYMENT):*\n"
-        "🔹 /activate <user_id> - Premium ON + app send\n"
-        "🔹 /resend <user_id> - App dobara send karo\n"
-        "🔹 /deactivate <user_id> - Premium OFF\n"
+        "🔹 /activate <user id> - Premium ON + app send\n"
+        "🔹 /resend <user id> - App dobara send karo\n"
+        "🔹 /deactivate <user id> - Premium OFF\n"
         "🔹 /premium - Premium users list"
     )
-    bot.send_message(message.chat.id, text, parse_mode="Markdown")
+    send_md(message.chat.id, text)
 
 @bot.message_handler(commands=['stats'])
 @safe_handler
@@ -620,7 +619,7 @@ def stats_command(message):
         f"⏳ Pending: {len(pending)}\n"
         f"💰 Total Revenue (Verified): ₹{revenue}"
     )
-    bot.send_message(message.chat.id, text, parse_mode="Markdown")
+    send_md(message.chat.id, text)
 
 @bot.message_handler(commands=['pending'])
 @safe_handler
@@ -636,7 +635,7 @@ def pending_command(message):
     for o in reversed(pending):
         lines.append(
             f"🆔 Order: {o.get('id')}\n"
-            f"👤 {o.get('first_name')} (@{o.get('username') or 'No_Username'}) | ID {o.get('user_id')}\n"
+            f"👤 {o.get('first_name')} (@{o.get('username') or 'NoUsername'}) | ID {o.get('user_id')}\n"
             f"🔢 UTR: {o.get('utr')} | ₹{o.get('amount')} | 🕒 {o.get('time')}"
         )
     bot.send_message(message.chat.id, "\n\n".join(lines))
@@ -655,7 +654,7 @@ def orders_command(message):
     lines = [f"🛒 *RECENT ORDERS (Total: {len(orders)})*", "━━━━━━━━━━━━━━━━━━━━━━"]
     for o in recent:
         lines.append(
-            f"👤 {o.get('first_name')} (@{o.get('username') or 'No_Username'})\n"
+            f"👤 {o.get('first_name')} (@{o.get('username') or 'NoUsername'})\n"
             f"   🆔 {o.get('user_id')} | ₹{o.get('amount')} | {o.get('status')}\n"
             f"   🔢 UTR: {o.get('utr')} | 🕒 {o.get('time')}"
         )
@@ -727,7 +726,7 @@ def ban_command(message):
         return
     target = parts[1].strip()
     block_user(target)
-    bot.send_message(message.chat.id, f"🚫 User `{target}` has been blocked.", parse_mode="Markdown")
+    send_md(message.chat.id, f"🚫 User `{target}` has been blocked.")
 
 @bot.message_handler(commands=['unban'])
 @safe_handler
@@ -741,7 +740,7 @@ def unban_command(message):
         return
     target = parts[1].strip()
     unblock_user(target)
-    bot.send_message(message.chat.id, f"✅ User `{target}` is now unblocked.", parse_mode="Markdown")
+    send_md(message.chat.id, f"✅ User `{target}` is now unblocked.")
 
 @bot.message_handler(commands=['blocked'])
 @safe_handler
@@ -846,20 +845,18 @@ def activate_command(message):
         deliver_line += "\n👉 Retry: /resend " + target
 
     if was_new:
-        bot.send_message(
+        send_md(
             message.chat.id,
             f"✅ *PREMIUM ACTIVATED!*\n\n"
             f"👤 User `{target}` ab PREMIUM hai.\n"
             f"{deliver_line}\n\n"
-            f"📋 List dekhne ke liye: /premium",
-            parse_mode="Markdown"
+            f"📋 List dekhne ke liye: /premium"
         )
     else:
-        bot.send_message(
+        send_md(
             message.chat.id,
             f"ℹ️ User `{target}` pehle se PREMIUM tha.\n"
-            f"{deliver_line}",
-            parse_mode="Markdown"
+            f"{deliver_line}"
         )
 
 @bot.message_handler(commands=['deactivate'])
@@ -911,10 +908,9 @@ def resend_command(message):
         bot.send_message(message.chat.id, "❌ User ID sirf number hota hai.\nUsage: /resend <user_id>")
         return
     if not is_premium(target):
-        bot.send_message(
+        send_md(
             message.chat.id,
-            f"⚠️ User `{target}` premium nahi hai. Pehle /activate {target} karo.",
-            parse_mode="Markdown"
+            f"⚠️ User `{target}` premium nahi hai. Pehle /activate {target} karo."
         )
         return
     result = deliver_premium(target)
@@ -972,7 +968,7 @@ def handle_pricing(message):
     markup = types.InlineKeyboardMarkup()
     markup.add(types.InlineKeyboardButton(f"💳 Buy Now (Fixed ₹{PRICE})", callback_data="buy_now"))
     markup.add(types.InlineKeyboardButton("📚 All Institutes", callback_data="show_batches"))
-    bot.send_message(
+    send_md(
         message.chat.id,
         "🏷️ *OFFER & PRICING*\n"
         "━━━━━━━━━━━━━━━━━━━━━━\n\n"
@@ -985,7 +981,6 @@ def handle_pricing(message):
         "🆕 New Batches Added Regularly\n\n"
         f"💰 *Fixed Price: ₹{PRICE} Only*\n\n"
         "👇 Click 'Buy Now' to get instant access!",
-        parse_mode="Markdown",
         reply_markup=markup
     )
 
@@ -997,7 +992,7 @@ def handle_web_store(message):
     markup = types.InlineKeyboardMarkup()
     markup.add(types.InlineKeyboardButton("📚 All Institutes Batches", callback_data="show_batches"))
     markup.add(types.InlineKeyboardButton(f"💳 Buy Now (₹{PRICE})", callback_data="buy_now"))
-    bot.send_message(
+    send_md(
         message.chat.id,
         "🌐 *STUDY GURU WEB STORE*\n"
         "━━━━━━━━━━━━━━━━━━━━━━\n\n"
@@ -1008,7 +1003,6 @@ def handle_web_store(message):
         "✅ New Batches Added Regularly\n\n"
         f"💰 *Fixed Price: ₹{PRICE} Only*\n\n"
         "👇 Choose an option:",
-        parse_mode="Markdown",
         reply_markup=markup
     )
 
@@ -1018,12 +1012,11 @@ def handle_web_store(message):
 @check_join
 def handle_search(message):
     save_user(message.chat.id)
-    msg = bot.send_message(
+    msg = send_md(
         message.chat.id,
         "🔍 *Search Institute*\n\n"
         "Type the institute name you are looking for.\n"
-        "Examples: Physics Wallah, Unacademy, Study IQ, Adda247, KGS, RWA...",
-        parse_mode="Markdown"
+        "Examples: Physics Wallah, Unacademy, Study IQ, Adda247, KGS, RWA..."
     )
     bot.register_next_step_handler(msg, search_result)
 
@@ -1247,11 +1240,10 @@ def ask_utr(call):
         next_step = "send your payment screenshot" if active.get("status") == "awaiting_proof" else "wait for admin verification"
         bot.send_message(call.message.chat.id, f"⏳ You already have a pending payment.\n👉 Please {next_step}.")
         return
-    msg = bot.send_message(
+    msg = send_md(
         call.message.chat.id,
         "📩 After payment, enter your *12-Digit Real UTR / Reference Number* (numbers only):\n\n"
-        "⚠️ Fake numbers will get you blocked.",
-        parse_mode="Markdown"
+        "⚠️ Fake numbers will get you blocked."
     )
     bot.register_next_step_handler(msg, process_utr_submission)
 
@@ -1314,13 +1306,12 @@ def process_utr_submission(message):
     add_order(order)
 
     if REQUIRE_SCREENSHOT:
-        msg = bot.send_message(
+        msg = send_md(
             message.chat.id,
             "📸 *Payment Screenshot Required!*\n\n"
             "Now send a *screenshot/photo of your payment* from your UPI app (PhonePe/Paytm/GPay).\n"
             "The screenshot must clearly show *UTR, Amount and Date*.\n\n"
-            "👉 Send the photo now (or /cancel to cancel)",
-            parse_mode="Markdown"
+            "👉 Send the photo now (or /cancel to cancel)"
         )
         bot.register_next_step_handler(msg, receive_proof, order_id=order_id, attempts=0)
     else:
@@ -1337,11 +1328,10 @@ def receive_proof(message, order_id, attempts=0):
         if attempts >= 2:
             bot.send_message(message.chat.id, "❌ You did not send a screenshot. Press /start and follow the process again.")
             return
-        msg = bot.send_message(
+        msg = send_md(
             message.chat.id,
             f"⚠️ Please send a *screenshot/photo* (attempt {attempts + 1}/3). Text messages are not accepted.\n"
-            "Type /cancel to cancel.",
-            parse_mode="Markdown"
+            "Type /cancel to cancel."
         )
         bot.register_next_step_handler(msg, receive_proof, order_id=order_id, attempts=attempts + 1)
         return
@@ -1380,7 +1370,7 @@ def notify_admin(order, auto=False, proof_photo=None):
         f"🚨 *NEW ORDER — {status}*\n"
         "━━━━━━━━━━━━━━━━━━━━━━\n"
         f"🆔 *Order ID:* `{order.get('id')}`\n"
-        f"👤 *User:* {order.get('first_name')} (@{order.get('username') or 'No_Username'})\n"
+        f"👤 *User:* {order.get('first_name')} (@{order.get('username') or 'NoUsername'})\n"
         f"🆔 *User ID:* `{order.get('user_id')}`\n"
         f"💰 *Amount:* ₹{order.get('amount')}\n"
         f"🔢 *UTR:* `{order.get('utr')}`\n"
