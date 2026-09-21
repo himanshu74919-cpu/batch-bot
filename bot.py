@@ -1215,15 +1215,22 @@ def process_payment(call):
     markup.add(types.InlineKeyboardButton("🔍 Submit UTR / Txn ID", callback_data="verify_utr"))
     markup.add(types.InlineKeyboardButton("📩 Contact Admin", url=f"https://t.me/{ADMIN_USERNAME.replace('@', '')}"))
 
-    if qr_img is not None:
-        bio = io.BytesIO()
-        bio.name = "qr.png"
-        qr_img.save(bio, format="PNG")
-        bio.seek(0)
-        logger.info(f"Sending QR + UTR instructions to {call.message.chat.id}")
-        send_photo_safe(call.message.chat.id, bio, caption=caption, reply_markup=markup)
-    else:
-        send_md(call.message.chat.id, caption, reply_markup=markup)
+    try:
+        if qr_img is not None:
+            bio = io.BytesIO()
+            bio.name = "qr.png"
+            qr_img.save(bio, format="PNG")
+            bio.seek(0)
+            logger.info(f"Sending QR + UTR instructions to {call.message.chat.id}")
+            send_photo_safe(call.message.chat.id, bio, caption=caption, reply_markup=markup)
+        else:
+            send_md(call.message.chat.id, caption, reply_markup=markup)
+    except Exception as e:
+        logger.error(f"process_payment send failed: {e}")
+        try:
+            send_md(call.message.chat.id, caption, reply_markup=markup)
+        except Exception:
+            pass
 
 @bot.callback_query_handler(func=lambda call: call.data == "verify_utr")
 @safe_handler
@@ -1549,13 +1556,23 @@ if __name__ == "__main__":
             # koi callback aaya tha to wo bhi process hoga, silently drop nahi.
             bot.infinity_polling(timeout=30, long_polling_timeout=15, skip_pending=False)
         except Exception as e:
-            logger.error(f"Polling error: {e}")
-            # 409 Conflict = koi dusra webhook active. Usko hatao aur retry karo.
-            msg = str(e).lower()
-            if "409" in msg or "conflict" in msg or "webhook" in msg:
+            msg = str(e)
+            low = msg.lower()
+            logger.error(f"Polling error: {msg[:200]}")
+            if "webhook" in low:
+                # 409: webhook is active -> pehle webhook delete karo
                 try:
                     bot.remove_webhook()
-                    logger.info("Webhook conflict detected -> removed, retrying...")
-                except Exception:
-                    pass
-            time.sleep(3)
+                    logger.info("Webhook removed (it was blocking polling).")
+                except Exception as ex:
+                    logger.error(f"remove_webhook failed: {ex}")
+                time.sleep(3)
+            elif "terminated by other getupdates" in low or ("conflict" in low and "getupdates" in low):
+                logger.warning(
+                    "⚠️ CONFLICT: Isi token se DOOSRA BOT INSTANCE polling kar raha hai! "
+                    "Sirf EK jagah bot chalana chahiye (Render YA local PC — dono nahi). "
+                    "Isliye buttons ka response lost ho raha hai."
+                )
+                time.sleep(10)
+            else:
+                time.sleep(3)
