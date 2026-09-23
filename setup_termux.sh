@@ -25,8 +25,7 @@ fi
 
 # 3) Python libraries install
 echo "[3/4] Python libraries install ho rahi hain..."
-python -m pip install --upgrade pip
-python -m pip install pyTelegramBotAPI Flask gunicorn qrcode pillow
+python -m pip install --break-system-packages pyTelegramBotAPI Flask gunicorn qrcode pillow
 
 # 4) Folders ready
 mkdir -p images proofs
