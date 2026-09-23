@@ -35,8 +35,14 @@ def health():
     return "OK", 200
 
 def run_flask():
-    port = int(os.environ.get("PORT", 8080))
-    app.run(host="0.0.0.0", port=port)
+    try:
+        port = int(os.environ.get("PORT", "8000"))
+    except Exception:
+        port = 8000
+    try:
+        app.run(host="0.0.0.0", port=port)
+    except Exception as e:
+        logger.error(f"Flask server start failed (bot polling continues): {e}")
 
 # ==========================================================================
 # 2. CONFIGURATION & BOT SETTINGS
