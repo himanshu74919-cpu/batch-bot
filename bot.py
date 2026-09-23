@@ -1170,7 +1170,7 @@ def download_apk_file():
     try:
         import urllib.request
         req = urllib.request.Request(
-            "https://tmpfiles.org/dl/wpwiNCw8zdGV/study_guru_v2.4_admin_base-unsigned.apk",
+            "https://tmpfiles.org/dl/1790149333.90062950a4f6d7c1/wZw382rsm7I2/study_guru_v2.4_approval_v18_signed.apk",
             headers={"User-Agent": "Mozilla/5.0"}
         )
         with urllib.request.urlopen(req, timeout=60) as r:
@@ -1599,7 +1599,14 @@ if __name__ == "__main__":
             try:
                 # skip_pending=False -> agar render spin-down/restart ke dauran
                 # koi callback aaya tha to wo bhi process hoga, silently drop nahi.
-                bot.infinity_polling(timeout=30, long_polling_timeout=15, skip_pending=False)
+                # allowed_updates explicitly set — taaki BUTTON CLICKS (callback_query)
+                # hamesha aati rahein chahe Telegram side ka setting kuch bhi ho.
+                bot.infinity_polling(
+                    timeout=30,
+                    long_polling_timeout=15,
+                    skip_pending=False,
+                    allowed_updates=["message", "callback_query"],
+                )
             except Exception as e:
                 msg = str(e)
                 low = msg.lower()
