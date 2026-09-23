@@ -9,7 +9,7 @@ import logging
 import threading
 from datetime import datetime
 from functools import wraps
-from flask import Flask
+from flask import Flask, request
 import telebot
 from telebot import types
 
@@ -33,6 +33,49 @@ def home():
 @app.route('/health')
 def health():
     return "OK", 200
+
+
+# --------------------------------------------------------------------------
+# WEBHOOK MODE (free hosts jo sleep karte hain — jaise Koyeb, Hugging Face)
+# Agar WEBHOOK_URL env var set hai, to bot polling ki jagah webhook use karta
+# hai: jab koi user message bhejta hai, Telegram khud is endpoint ko hit karta
+# hai aur service apne aap tag jati hai. Isse free host bhi bot ko chalaye
+# rakh sakta hai (sleep hone par bhi request aate hi response milta hai).
+# --------------------------------------------------------------------------
+def _webhook_secret():
+    s = os.environ.get("WEBHOOK_SECRET", "").strip()
+    return s or BOT_TOKEN.split(":")[-1]
+
+
+def setup_webhook():
+    """WEBHOOK_URL set hai to Telegram webhook register karo. Nahi to polling."""
+    url = os.environ.get("WEBHOOK_URL", "").strip()
+    if not url:
+        return False
+    logger.info(f"Webhook mode ON: {url}")
+    try:
+        bot.remove_webhook()
+        bot.set_webhook(url=url + "/webhook", secret_token=_webhook_secret() or None)
+        logger.info("Webhook registered successfully.")
+    except Exception as e:
+        logger.error(f"set_webhook failed (polling fallback): {e}")
+        bot.remove_webhook()
+    return True
+
+
+@app.route('/webhook', methods=['POST', 'GET'])
+def telegram_webhook():
+    if request.method != "POST":
+        # health/probe requests (GET) hamesha 200 do
+        return "webhook active", 200
+    # secret check (sirf POST ke liye)
+    secret = request.headers.get("X-Telegram-Bot-Api-Secret-Token", "")
+    if _webhook_secret() and secret != _webhook_secret():
+        return "forbidden", 403
+    update = request.get_json(force=True)
+    if update:
+        bot.process_new_updates([telebot.types.Update.de_json(update)])
+    return "ok", 200
 
 def run_flask():
     try:
@@ -1536,39 +1579,45 @@ if __name__ == "__main__":
     os.makedirs("images", exist_ok=True)
     os.makedirs("proofs", exist_ok=True)
 
-    # IMPORTANT: stale/duplicate webhook hata do, warna Telegram 409 Conflict
-    # deta hai aur bot kisi message ka respond nahi karta.
-    try:
-        bot.remove_webhook()
-        logger.info("Webhook removed - bot polling mode me chal raha hai.")
-    except Exception as e:
-        logger.error(f"remove_webhook failed: {e}")
-
-    threading.Thread(target=run_flask, daemon=True).start()
-    logger.info("Starting Study Guru Bot Engine...")
-    while True:
+    # --- MODE DECIDE: WEBHOOK (free sleep-hosts) vs POLLING (Render/tablet) ---
+    webhook_url = os.environ.get("WEBHOOK_URL", "").strip()
+    if webhook_url:
+        # Free host (Koyeb/HuggingFace): webhook register karo, Flask serve karega.
+        setup_webhook()
+        run_flask()
+    else:
+        # Render / tablet: polling mode (webhook hamesha clean rakho).
         try:
-            # skip_pending=False -> agar render spin-down/restart ke dauran
-            # koi callback aaya tha to wo bhi process hoga, silently drop nahi.
-            bot.infinity_polling(timeout=30, long_polling_timeout=15, skip_pending=False)
+            bot.remove_webhook()
+            logger.info("Webhook removed - bot polling mode me chal raha hai.")
         except Exception as e:
-            msg = str(e)
-            low = msg.lower()
-            logger.error(f"Polling error: {msg[:200]}")
-            if "webhook" in low:
-                # 409: webhook is active -> pehle webhook delete karo
-                try:
-                    bot.remove_webhook()
-                    logger.info("Webhook removed (it was blocking polling).")
-                except Exception as ex:
-                    logger.error(f"remove_webhook failed: {ex}")
-                time.sleep(3)
-            elif "terminated by other getupdates" in low or ("conflict" in low and "getupdates" in low):
-                logger.warning(
-                    "⚠️ CONFLICT: Isi token se DOOSRA BOT INSTANCE polling kar raha hai! "
-                    "Sirf EK jagah bot chalana chahiye (Render YA local PC — dono nahi). "
-                    "Isliye buttons ka response lost ho raha hai."
-                )
-                time.sleep(10)
-            else:
-                time.sleep(3)
+            logger.error(f"remove_webhook failed: {e}")
+
+        threading.Thread(target=run_flask, daemon=True).start()
+        logger.info("Starting Study Guru Bot Engine...")
+        while True:
+            try:
+                # skip_pending=False -> agar render spin-down/restart ke dauran
+                # koi callback aaya tha to wo bhi process hoga, silently drop nahi.
+                bot.infinity_polling(timeout=30, long_polling_timeout=15, skip_pending=False)
+            except Exception as e:
+                msg = str(e)
+                low = msg.lower()
+                logger.error(f"Polling error: {msg[:200]}")
+                if "webhook" in low and "getupdates" not in low:
+                    # 409: webhook is active -> pehle webhook delete karo
+                    try:
+                        bot.remove_webhook()
+                        logger.info("Webhook removed (it was blocking polling).")
+                    except Exception as ex:
+                        logger.error(f"remove_webhook failed: {ex}")
+                    time.sleep(3)
+                elif "terminated by other getupdates" in low or ("conflict" in low and "getupdates" in low):
+                    logger.warning(
+                        "⚠️ CONFLICT: Isi token se DOOSRA BOT INSTANCE polling kar raha hai! "
+                        "Sirf EK jagah bot chalana chahiye (Render YA local PC — dono nahi). "
+                        "Isliye buttons ka response lost ho raha hai."
+                    )
+                    time.sleep(10)
+                else:
+                    time.sleep(3)
