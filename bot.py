@@ -1,4 +1,5 @@
 import os
+import sys
 import re
 import io
 import csv
@@ -1578,6 +1579,34 @@ def unknown_callback_failsafe(call):
 if __name__ == "__main__":
     os.makedirs("images", exist_ok=True)
     os.makedirs("proofs", exist_ok=True)
+
+    # --- SINGLE INSTANCE LOCK -------------------------------------------
+    # Agar bot pehle se chalu hai (purana process zinda hai) to naya wala
+    # turant exit ho jata hai. Isliye 2 bot kabhi ek saath nahi chalenge
+    # aur "409 Conflict / terminated by other getUpdates" kabhi nahi aayega.
+    LOCK_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bot.lock")
+    def _pid_alive(pid):
+        try:
+            os.kill(int(pid), 0)
+            return True
+        except Exception:
+            return False
+    if os.path.exists(LOCK_FILE):
+        try:
+            with open(LOCK_FILE, "r") as f:
+                _old = f.read().strip()
+            if _old.isdigit() and _pid_alive(_old) and int(_old) != os.getpid():
+                print("=" * 50)
+                print(f"⚠️  Ek bot PEHLE SE chalu hai (PID {_old}).")
+                print("    Naya instance band ho raha hai (409 conflict se bachne ke liye).")
+                print("    Purana bot band karne ke liye: bash stop_bot.sh")
+                print("=" * 50)
+                sys.exit(0)
+        except Exception:
+            pass
+    with open(LOCK_FILE, "w") as f:
+        f.write(str(os.getpid()))
+    # ----------------------------------------------------------------------
 
     # --- MODE DECIDE: WEBHOOK (free sleep-hosts) vs POLLING (Render/tablet) ---
     webhook_url = os.environ.get("WEBHOOK_URL", "").strip()
